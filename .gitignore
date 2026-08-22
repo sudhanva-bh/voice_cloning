@@ -2,12 +2,16 @@
 # Large ML Models, Weights & Datasets
 # ==========================================
 *.onnx
+*.onnx.data
 *.pt
 *.pth
 *.bin
 *.safetensors
 *.tflite
 *.ort
+models/.cache/
+scratch/indicf5_repo/
+
 
 # Downloaded Sherpa-ONNX model bundles & unpacked folders
 sherpa-onnx-*/
