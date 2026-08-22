@@ -7,8 +7,8 @@ Usage:
     .\\sherpa-env\\Scripts\\python.exe test_indicf5_clone.py `
       --ref "samples/sudhanva_voic_clone.wav" `
       --ref-text "The quick brown fox jumps over the lazy dog while the morning sun rises slowly over the quiet hills, casting long golden shadows across the valley." `
-      --text "வணக்கம், நீங்கள் எப்படி இருக்கிறீர்கள்? நான் இப்போது உங்கள் குரலில் பேசுகிறேன்." `
-      --out "generated/sudhanva_tamil.wav"
+      --text "ನಮಸ್ಕಾರ, ನೀವು ಹೇಗಿದ್ದೀರಾ? ನಾನು ಈಗ ನಿಮ್ಮ ಧ್ವನಿಯಲ್ಲಿ ಕನ್ನಡ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ." `
+      --out "generated/sudhanva_kannada_fixed.wav"
 """
 
 import sys
@@ -50,6 +50,7 @@ def clone_voice(
     num_steps: int = 16,
     cfg_strength: float = 2.0,
     speed: float = 1.0,
+    extra_duration_sec: float = 0.5,
 ):
     print("=" * 70)
     print(" IndicF5 High-Fidelity Zero-Shot Voice Cloning")
@@ -108,26 +109,33 @@ def clone_voice(
     # 4. Load Vocoder
     vocoder = Vocos.from_pretrained("charactr/vocos-mel-24khz").eval()
 
-    # 5. Load and preprocess Reference Audio
+    # 5. Load Reference Audio (Full audio matching the full reference text)
     y, sr = librosa.load(reference_audio_path, sr=SAMPLE_RATE, mono=True)
     audio = torch.from_numpy(y).unsqueeze(0).float()
 
-    # Optimal reference slice: 4.5 to 6.0 seconds for voice timbre
-    max_ref_samples = int(6.0 * SAMPLE_RATE)
-    if audio.shape[-1] > max_ref_samples:
-        audio = audio[:, :max_ref_samples]
-
     ref_audio_len = audio.shape[-1] // HOP_LENGTH
-    ref_text_len = max(len(reference_text.encode("utf-8")), 1)
-    gen_text_len = len(target_text.encode("utf-8"))
 
-    duration = ref_audio_len + int((ref_audio_len / ref_text_len * gen_text_len) / speed)
+    # Calculate generation duration accurately for Indic script
+    # Indic characters are syllabic (aksharas) and take ~14 to 18 mel frames per character
+    # English reference text is alphabetic (~6 to 8 frames per character)
+    # We use a robust duration estimation with safety padding
+    indic_frames_per_char = 15.0 / speed
+    gen_frames = int(len(target_text.strip()) * indic_frames_per_char)
+    extra_pad_frames = int(extra_duration_sec * SAMPLE_RATE / HOP_LENGTH)
+    
+    # Total duration = full reference audio + generated frames + buffer
+    duration = ref_audio_len + gen_frames + extra_pad_frames
 
     print(f"Reference duration : {ref_audio_len * HOP_LENGTH / SAMPLE_RATE:.2f} s ({ref_audio_len} frames)")
     print(f"Target duration    : {(duration - ref_audio_len) * HOP_LENGTH / SAMPLE_RATE:.2f} s ({duration - ref_audio_len} frames)")
     print(f"Total window       : {duration * HOP_LENGTH / SAMPLE_RATE:.2f} s ({duration} frames)")
 
-    text_list = [reference_text.strip() + " " + target_text.strip()]
+    # Ensure punctuation boundary between reference text and target text
+    clean_ref_text = reference_text.strip()
+    if not clean_ref_text.endswith((".", "!", "?", "।")):
+        clean_ref_text += "."
+    
+    text_list = [clean_ref_text + " " + target_text.strip()]
 
     # 6. Run Flow-Matching Diffusion
     print(f"\n[2/3] Running Flow-Matching Diffusion ({num_steps} Euler steps with CFG {cfg_strength})...")
@@ -143,6 +151,7 @@ def clone_voice(
             sway_sampling_coef=-1.0,
         )
         generated = generated.to(torch.float32)
+        # Extract only the generated portion (after reference audio)
         generated = generated[:, ref_audio_len:, :]
         generated_mel_spec = generated.permute(0, 2, 1)
 
@@ -183,13 +192,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--text",
         type=str,
-        default="வணக்கம், நீங்கள் எப்படி இருக்கிறீர்கள்? நான் இப்போது உங்கள் குரலில் பேசுகிறேன்.",
-        help="Target text in Tamil, Hindi, etc.",
+        default="ನಮಸ್ಕಾರ, ನೀವು ಹೇಗಿದ್ದೀರಾ? ನಾನು ಈಗ ನಿಮ್ಮ ಧ್ವನಿಯಲ್ಲಿ ಕನ್ನಡ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ.",
+        help="Target text in Tamil, Hindi, Kannada, Telugu, etc.",
     )
     parser.add_argument(
         "--out",
         type=str,
-        default="generated/sudhanva_cloned_tamil.wav",
+        default="generated/sudhanva_kannada_fixed.wav",
         help="Output audio path",
     )
     parser.add_argument(
