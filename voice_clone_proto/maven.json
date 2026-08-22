@@ -1,0 +1,96 @@
+﻿{
+    "responseHeader":  {
+                           "status":  0,
+                           "QTime":  1,
+                           "params":  {
+                                          "q":  "g:com.arthenica a:ffmpeg-kit-audio",
+                                          "core":  "",
+                                          "indent":  "off",
+                                          "spellcheck":  "true",
+                                          "fl":  "id,g,a,latestVersion,p,ec,repositoryId,text,timestamp,versionCount",
+                                          "start":  "",
+                                          "spellcheck.count":  "5",
+                                          "sort":  "score desc,timestamp desc,g asc,a asc",
+                                          "rows":  "20",
+                                          "wt":  "json",
+                                          "version":  "2.2"
+                                      }
+                       },
+    "response":  {
+                     "numFound":  1,
+                     "start":  0,
+                     "docs":  [
+                                  {
+                                      "id":  "com.arthenica:ffmpeg-kit-audio",
+                                      "g":  "com.arthenica",
+                                      "a":  "ffmpeg-kit-audio",
+                                      "latestVersion":  "6.0.LTS",
+                                      "repositoryId":  "central",
+                                      "p":  "aar",
+                                      "timestamp":  1692635229000,
+                                      "versionCount":  16,
+                                      "text":  [
+                                                   "com.arthenica",
+                                                   "ffmpeg-kit-audio",
+                                                   "-sources.jar.sha256",
+                                                   "-javadoc.jar",
+                                                   ".aar.sha256",
+                                                   "-javadoc.jar.sha512",
+                                                   ".aar.sha512",
+                                                   ".module.asc.sha256",
+                                                   ".module.asc.sha512",
+                                                   ".aar.asc.sha512",
+                                                   "-javadoc.jar.sha256",
+                                                   "-sources.jar.asc.sha512",
+                                                   "-sources.jar",
+                                                   ".pom.sha512",
+                                                   ".module",
+                                                   ".module.sha256",
+                                                   ".aar",
+                                                   ".aar.asc.sha256",
+                                                   ".pom",
+                                                   ".module.sha512",
+                                                   "-sources.jar.asc.sha256",
+                                                   "-javadoc.jar.asc.sha256",
+                                                   "-javadoc.jar.asc.sha512",
+                                                   ".pom.asc.sha256",
+                                                   ".pom.asc.sha512",
+                                                   ".pom.sha256",
+                                                   "-sources.jar.sha512"
+                                               ],
+                                      "ec":  [
+                                                 "-sources.jar.sha256",
+                                                 "-javadoc.jar",
+                                                 ".aar.sha256",
+                                                 "-javadoc.jar.sha512",
+                                                 ".aar.sha512",
+                                                 ".module.asc.sha256",
+                                                 ".module.asc.sha512",
+                                                 ".aar.asc.sha512",
+                                                 "-javadoc.jar.sha256",
+                                                 "-sources.jar.asc.sha512",
+                                                 "-sources.jar",
+                                                 ".pom.sha512",
+                                                 ".module",
+                                                 ".module.sha256",
+                                                 ".aar",
+                                                 ".aar.asc.sha256",
+                                                 ".pom",
+                                                 ".module.sha512",
+                                                 "-sources.jar.asc.sha256",
+                                                 "-javadoc.jar.asc.sha256",
+                                                 "-javadoc.jar.asc.sha512",
+                                                 ".pom.asc.sha256",
+                                                 ".pom.asc.sha512",
+                                                 ".pom.sha256",
+                                                 "-sources.jar.sha512"
+                                             ]
+                                  }
+                              ]
+                 },
+    "spellcheck":  {
+                       "suggestions":  [
+
+                                       ]
+                   }
+}

@@ -1,0 +1,109 @@
+# ==========================================
+# Large ML Models, Weights & Datasets
+# ==========================================
+*.onnx
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.tflite
+*.ort
+
+# Downloaded Sherpa-ONNX model bundles & unpacked folders
+sherpa-onnx-*/
+**/assets/zipvoice/*.onnx
+
+# Compressed archives & dataset dumps
+*.zip
+*.tar
+*.tar.gz
+*.tar.bz2
+*.7z
+*.rar
+
+# ==========================================
+# Python Virtual Environments & Cache
+# ==========================================
+sherpa-env/
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# ==========================================
+# Generated Audio & Large Audio Samples
+# ==========================================
+generated/
+*.wav
+*.mp3
+*.ogg
+*.m4a
+*.flac
+*.aac
+
+# ==========================================
+# Flutter / Dart Build Artifacts & Tooling
+# ==========================================
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+**/build/
+/build/
+
+# Obfuscation & Symbolication
+app.*.symbols
+app.*.map.json
+
+# ==========================================
+# Android Build Files & Secrets
+# ==========================================
+**/android/.gradle/
+**/android/captures/
+**/android/local.properties
+**/android/**/build/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+*.keystore
+*.jks
+
+# ==========================================
+# iOS Build Files & Pods
+# ==========================================
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/DerivedData/
+
+# ==========================================
+# IDEs & System Files
+# ==========================================
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+*.buildlog
