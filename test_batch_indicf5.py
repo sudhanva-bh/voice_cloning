@@ -34,27 +34,48 @@ REPO_PATH = Path("scratch/indicf5_repo").resolve()
 if str(REPO_PATH) not in sys.path:
     sys.path.insert(0, str(REPO_PATH))
 
-# ==============================================================================
+# ==============================================
 # BATCH PROMPTS CONFIGURATION
-# Add or modify your target texts and destination audio filepaths here.
-# ==============================================================================
+# 5 Telugu lines & 5 Tamil lines of varying lengths (Short -> Very Long)
+# ==============================================
 BATCH_PROMPTS = {
-    # Kannada
-    "ನಮಸ್ಕಾರ, ನೀವು ಹೇಗಿದ್ದೀರಾ? ನಾನು ಈಗ ನಿಮ್ಮ ಧ್ವನಿಯಲ್ಲಿ ಕನ್ನಡ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ.": "generated/sudhanva_kannada.wav",
-    "ಎಲ್ಲರಿಗೂ ಶುಭೋದಯ. ಇವತ್ತಿನ ದಿನ ತುಂಬಾ ಸುಂದರವಾಗಿದೆ. ನಿಮ್ಮ ದಿನ ಸಂತೋಷದಿಂದ ಕೂಡಿರಲಿ.": "generated/sudhanva_kannada_2.wav",
+    # ---------------------------------------------------------
+    # TELUGU PROMPTS (Varying Lengths)
+    # ---------------------------------------------------------
+    # 1. Telugu - Short (~4 words, ~2-3s)
+    "నమస్కారం, మీరు ఎలా ఉన్నారు?": "generated/sudhanva_telugu_1_short.wav",
 
-    # Telugu
-    "నమస్కారం, మీరు ఎలా ఉన్నారు? నేను ఇప్పుడు మీ స్వరం లో తెలుగు మాట్లాడుతున్నాను.": "generated/sudhanva_telugu.wav",
-    "హలో అందరికీ, ఈ రోజు వాతావరణం చాలా ఆహ్లాదకరంగా ఉంది. మీ అందరికీ శుభదినం.": "generated/sudhanva_telugu_2.wav",
+    # 2. Telugu - Medium (~8 words, ~4-5s)
+    "హలో అందరికీ, ఈ రోజు వాతావరణం చాలా ఆహ్లాదకరంగా ఉంది.": "generated/sudhanva_telugu_2_medium.wav",
 
-    # Tamil
-    "வணக்கம், நீங்கள் எப்படி இருக்கிறீர்கள்? நான் இப்போது உங்கள் குரலில் பேசுகிறேன்.": "generated/sudhanva_tamil.wav",
+    # 3. Telugu - Medium-Long (~14 words, ~7-8s)
+    "నేను ఇప్పుడు ఆర్టిఫిషియల్ ఇంటెలిజెన్స్ సహాయంతో మీ స్వరం లో తెలుగు లో మాట్లాడుతున్నాను.": "generated/sudhanva_telugu_3_medlong.wav",
 
-    # Hindi
-    "नमस्ते दोस्तों, आप सब कैसे हैं? मैं अब आपकी आवाज में बात कर रहा हूँ।": "generated/sudhanva_hindi.wav",
-    "सूरज की पहली किरण के साथ ही एक सुंदर सुबह की शुरुआत हुई।": "generated/sudhanva_hindi_2.wav",
+    # 4. Telugu - Long (~20 words, ~10-12s)
+    "ఉదయం సూర్యుని లేత కిరణాలు పచ్చని చెట్లపై పడుతుంటే, పక్షుల కిలకిలారావాలతో ప్రకృతి అంతా ఎంతో అందంగా కనిపిస్తుంది.": "generated/sudhanva_telugu_4_long.wav",
+
+    # 5. Telugu - Very Long (~28 words, ~14-16s)
+    "మిత్రులారా, సాంకేతిక పరిజ్ఞానం రోజురోజుకు ఎంతో వేగంగా అభివృద్ధి చెందుతోంది. మన స్వంత గొంతును ఇతర భారతీయ భాషల్లోకి సులభంగా మార్చుకునే అవకాశం ఇప్పుడు మనకు లభించింది.": "generated/sudhanva_telugu_5_verylong.wav",
+
+    # ---------------------------------------------------------
+    # TAMIL PROMPTS (Varying Lengths)
+    # ---------------------------------------------------------
+    # 1. Tamil - Short (~4 words, ~2-3s)
+    "வணக்கம், நீங்கள் எப்படி இருக்கிறீர்கள்?": "generated/sudhanva_tamil_1_short.wav",
+
+    # 2. Tamil - Medium (~8 words, ~4-5s)
+    "இன்றைய நாள் உங்கள் அனைவருக்கும் இனிமையாகவும் மகிழ்ச்சியாகவும் அமையட்டும்.": "generated/sudhanva_tamil_2_medium.wav",
+
+    # 3. Tamil - Medium-Long (~13 words, ~7-8s)
+    "நான் இப்போது செயற்கை நுண்ணறிவு தொழில்நுட்பத்தின் மூலம் உங்கள் சொந்த குரலில் தமிழில் பேசுகிறேன்.": "generated/sudhanva_tamil_3_medlong.wav",
+
+    # 4. Tamil - Long (~19 words, ~10-12s)
+    "காலை நேரத்தில் வீசும் குளிர்ந்த காற்றும், பறவைகளின் இனிய குரல்களும் மனதிற்கு மிகுந்த அமைதியையும் புத்துணர்ச்சியையும் தருகின்றன.": "generated/sudhanva_tamil_4_long.wav",
+
+    # 5. Tamil - Very Long (~26 words, ~14-16s)
+    "நண்பர்களே, இன்றைய நவீன அறிவியல் உலகத்தில் பல வியக்கத்தக்க மாற்றங்கள் நிகழ்கின்றன. நமது தாய்மொழியில் நாம் விரும்பும் கருத்துக்களை தொழில்நுட்பத்தின் உதவியுடன் அழகாகப் பகிர முடிகிறது.": "generated/sudhanva_tamil_5_verylong.wav",
 }
-# ==============================================================================
+# ==============================================
 
 # Constants
 MODEL_DIR = Path("models/indicf5")
