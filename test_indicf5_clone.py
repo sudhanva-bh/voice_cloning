@@ -195,22 +195,10 @@ if __name__ == "__main__":
         help="Transcript of the reference audio",
     )
     parser.add_argument(
-        "--ref-text-file",
-        type=str,
-        default=None,
-        help="Path to file containing reference transcript",
-    )
-    parser.add_argument(
         "--text",
         type=str,
-        default=None,
+        default="నಮಸ್ಕಾರ, ನೀವು ಹೇಗಿದ್ದೀರಾ? ನಾನು ಈಗ ನಿಮ್ಮ ಧ್ವನಿಯಲ್ಲಿ ಕನ್ನಡ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ.",
         help="Target text in Tamil, Hindi, Kannada, Telugu, etc.",
-    )
-    parser.add_argument(
-        "--text-file",
-        type=str,
-        default=None,
-        help="Path to .txt file containing target text",
     )
     parser.add_argument(
         "--out",
@@ -244,20 +232,10 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    ref_text = args.ref_text
-    if args.ref_text_file and Path(args.ref_text_file).is_file():
-        ref_text = Path(args.ref_text_file).read_text(encoding="utf-8").strip()
-
-    target_text = args.text
-    if args.text_file and Path(args.text_file).is_file():
-        target_text = Path(args.text_file).read_text(encoding="utf-8").strip()
-    elif target_text is None:
-        target_text = "నమస్కారం, మీరు ఎలా ఉన్నారు? నేను ఇప్పుడు మీ గొంతుతో తెలుగు మాట్లాడుతున్నాను."
-
     clone_voice(
         reference_audio_path=args.ref,
-        target_text=target_text,
-        reference_text=ref_text,
+        target_text=args.text,
+        reference_text=args.ref_text,
         output_wav_path=args.out,
         num_steps=args.steps,
         cfg_strength=args.cfg,
