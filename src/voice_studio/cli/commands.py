@@ -14,7 +14,7 @@ def cmd_list(json_path: Path = VOICES_JSON):
     entries = catalog.catalog
 
     print("\n" + "=" * 85)
-    print(f" 📋 REGISTERED VOICES CATALOG ({len(entries)} voices) — {Path(json_path).name}")
+    print(f" REGISTERED VOICES CATALOG ({len(entries)} voices) — {Path(json_path).name}")
     print("=" * 85)
     if not entries:
         print("  (Catalog is currently empty. Use 'add' to register a new voice.)")
@@ -26,7 +26,7 @@ def cmd_list(json_path: Path = VOICES_JSON):
     for i, (key, info) in enumerate(entries.items()):
         audio_rel = info.get("audio", "")
         _, exists = catalog.resolve_audio_path(audio_rel)
-        status = "✓ Ready" if exists else "✗ Missing"
+        status = "[Ready]" if exists else "[Missing]"
         dur = f"{info['duration_sec']:.1f}s" if "duration_sec" in info else "--"
         audio_display = Path(audio_rel).name
         print(f" {i+1:<3} | {key:<26} | {audio_display:<32} | {dur:<6} | {status}")
@@ -50,12 +50,12 @@ def cmd_info(voice_key: str, json_path: Path = VOICES_JSON):
     exists = voice.get("audio_exists", False)
 
     print("\n" + "=" * 75)
-    print(f" 🎙️  VOICE DETAILS: '{clean}'")
+    print(f" VOICE DETAILS: '{clean}'")
     print("=" * 75)
     print(f"  Key          : {clean}")
     print(f"  Description  : {voice.get('description', 'N/A')}")
     print(f"  Audio Path   : {audio_path}")
-    print(f"  Resolved At  : {full_path} [{'✓ File Exists' if exists else '✗ File Missing'}]")
+    print(f"  Resolved At  : {full_path} [{'Exists' if exists else 'Missing'}]")
     if "duration_sec" in voice:
         print(f"  Duration     : {voice['duration_sec']:.2f} seconds")
     if "added_at" in voice:
@@ -88,7 +88,7 @@ def cmd_add(
             move_file=move_file,
         )
         print("\n" + "=" * 75)
-        print(f" ✓ VOICE REGISTERED SUCCESSFULLY: '{clean_key}'")
+        print(f" [OK] VOICE REGISTERED SUCCESSFULLY: '{clean_key}'")
         print("=" * 75)
         print(f"  Catalog File : {json_path}")
         print(f"  Audio Saved  : {dest_path}")
@@ -106,7 +106,7 @@ def cmd_delete(voice_key: str, delete_audio: bool = False, json_path: Path = VOI
     catalog = VoiceCatalog(json_path)
     clean = sanitize_key(voice_key)
     if catalog.delete_voice(clean, delete_audio_file=delete_audio):
-        print(f"\n✓ Successfully removed voice '{clean}' from catalog.")
+        print(f"\n[OK] Successfully removed voice '{clean}' from catalog.")
         if delete_audio:
             print("  (Associated audio file was also deleted from disk)")
         print()
@@ -124,11 +124,11 @@ def cmd_prompts(prompts_file: str = str(PROMPTS_JSON)):
 
     total = sum(len(phrases) for tiers in data.values() for phrases in tiers.values())
     print("\n" + "=" * 85)
-    print(f" 📖 CONVERSATIONAL PHRASES DATASET ({total} Total Sentences) — {Path(prompts_file).name}")
+    print(f" CONVERSATIONAL PHRASES DATASET ({total} Total Sentences) — {Path(prompts_file).name}")
     print("=" * 85)
 
     for lang, tiers in data.items():
-        print(f"\n 🌐 Language: {lang.upper()}")
+        print(f"\n Language: {lang.upper()}")
         print("-" * 40)
         for tier, phrases in tiers.items():
             print(f"  [{tier.upper()}] ({len(phrases)} phrases):")
@@ -189,7 +189,7 @@ def cmd_clone(
         speed=speed,
     )
     print("\n" + "=" * 70)
-    print(f" ✓ Synthesis Complete: {res['output_path']}")
+    print(f" [OK] Synthesis Complete: {res['output_path']}")
     print(f"  Duration: {res['duration_sec']:.2f}s | Gen Time: {res['elapsed_sec']:.2f}s | RTF: {res['rtf']:.2f}x")
     print("=" * 70 + "\n")
 
