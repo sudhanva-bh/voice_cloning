@@ -20,10 +20,20 @@ from pathlib import Path
 # Add repo path
 sys.path.insert(0, str(Path("scratch/indicf5_repo").resolve()))
 
-# UTF-8 encoding for Windows terminals
+# Force unbuffered UTF-8 stdout and stderr for instant real-time printing
 if sys.platform == "win32":
-    sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
-    sys.stderr = codecs.getwriter("utf-8")(sys.stderr.detach())
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", line_buffering=True, write_through=True)
+        sys.stderr.reconfigure(encoding="utf-8", line_buffering=True, write_through=True)
+    except AttributeError:
+        sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
+        sys.stderr = codecs.getwriter("utf-8")(sys.stderr.detach())
+
+# Override built-in print to ALWAYS flush immediately
+_orig_print = print
+def print(*args, **kwargs):
+    kwargs.setdefault("flush", True)
+    _orig_print(*args, **kwargs)
 
 import torch
 import librosa
@@ -127,23 +137,31 @@ def clone_voice(
     indic_frames_per_char = 6.5 / speed
     gen_frames = int(len(target_text.strip()) * indic_frames_per_char)
     extra_pad_frames = int(extra_duration_sec * SAMPLE_RATE / HOP_LENGTH)
-    
+
     # Total duration = full reference audio + generated frames + buffer
     duration = ref_audio_len + gen_frames + extra_pad_frames
 
-    print(f"Reference duration : {ref_audio_len * HOP_LENGTH / SAMPLE_RATE:.2f} s ({ref_audio_len} frames)")
-    print(f"Target duration    : {(duration - ref_audio_len) * HOP_LENGTH / SAMPLE_RATE:.2f} s ({duration - ref_audio_len} frames)")
-    print(f"Total window       : {duration * HOP_LENGTH / SAMPLE_RATE:.2f} s ({duration} frames)")
+    print(
+        f"Reference duration : {ref_audio_len * HOP_LENGTH / SAMPLE_RATE:.2f} s ({ref_audio_len} frames)"
+    )
+    print(
+        f"Target duration    : {(duration - ref_audio_len) * HOP_LENGTH / SAMPLE_RATE:.2f} s ({duration - ref_audio_len} frames)"
+    )
+    print(
+        f"Total window       : {duration * HOP_LENGTH / SAMPLE_RATE:.2f} s ({duration} frames)"
+    )
 
     # Ensure punctuation boundary between reference text and target text
     clean_ref_text = reference_text.strip()
     if not clean_ref_text.endswith((".", "!", "?", "।")):
         clean_ref_text += "."
-    
+
     text_list = [clean_ref_text + " " + target_text.strip()]
 
     # 6. Run Flow-Matching Diffusion
-    print(f"\n[2/3] Running Flow-Matching Diffusion ({num_steps} Euler steps with CFG {cfg_strength})...")
+    print(
+        f"\n[2/3] Running Flow-Matching Diffusion ({num_steps} Euler steps with CFG {cfg_strength})..."
+    )
     start_time = time.time()
 
     with torch.inference_mode():
