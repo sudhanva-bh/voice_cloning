@@ -52,6 +52,7 @@ c:\voice_cloning\
 │
 ├── README.md                                # Root documentation & execution tutorial
 ├── project_summary.md                       # Master architecture & engineering summary (this document)
+├── add_voice.py                             # Interactive & CLI voice catalog manager (auto copies/moves to samples/added/)
 ├── test_indicf5_clone.py                   # Single-utterance CLI voice cloning script (PyTorch/CFM)
 ├── test_batch_indicf5.py                   # Sequential & parallel batch benchmark engine (auto `batch-i`)
 ├── zipvoice-tts.py                         # Standalone Sherpa-ONNX English runner
@@ -76,11 +77,18 @@ c:\voice_cloning\
 │   └── espeak-ng-data/                    # Grapheme-to-phoneme rule tables
 │
 ├── samples/                                # Reference Voice Audio Clips
+│   ├── voices.json                         # Master JSON catalog mapping voice keys to transcripts & styles
+│   ├── added/                              # User-registered voice files managed by add_voice.py
+│   ├── tamil_voices/                       # Cleaned & renamed Tamil reference voices
+│   │   ├── tamil_classic_pangram.mp3       # Female Tamil Classic Pangram (~5.0s)
+│   │   ├── tamil_conversational.mp3        # Female Tamil Expressive (~5.5s)
+│   │   ├── tamil_crisp.mp3                 # Female Tamil Crisp (~3.8s)
+│   │   ├── male_tamil_classic_pangram.mp3  # Male Tamil Classic Pangram (~5.5s)
+│   │   ├── male_tamil_conversational.mp3   # Male Tamil Expressive (~5.5s)
+│   │   ├── male_tamil_crisp.mp3            # Male Tamil Crisp (~4.0s)
+│   │   └── deep_classic.mp3                # Deep Voice Tamil Pangram (~6.0s)
 │   ├── sudhanva_short_ref.wav             # Clean 3.8s reference clip ("The quick brown fox jumps over the lazy dog.")
-│   ├── sudhanva_voic_clone.wav / .m4a     # 10.8s studio English recording
-│   ├── tamil_voices/tamil1.mp3            # Native Tamil reference recording (7.99s)
-│   ├── vamsi.ogg, bhai.ogg, sahasra.ogg   # WhatsApp mobile voice messages
-│   └── taf_02042_01985158141.wav          # IndicTTS Tamil benchmark reference clip
+│   └── sudhanva_voic_clone.wav / .m4a     # 10.8s studio English recording
 │
 ├── generated/                              # Synthesized Audio Outputs
 │   ├── batches/                            # Output directory for `test_batch_indicf5.py`

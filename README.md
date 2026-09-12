@@ -72,51 +72,120 @@ The backend relies on the pre-configured Python virtual environment located in `
 
 ## 🚀 Backend Execution Tutorial
 
-### 1. Run IndicF5 Voice Cloning (Single Utterance)
+### 1. Unified Voice Studio CLI Program (`voice_cli.py`)
+
+Manage reference voices, inspect transcripts, and test neural voice cloning directly from an interactive menu or command-line subcommands. New voices are automatically validated, analyzed, and moved/copied to `samples/added/` while updating `samples/voices.json`.
+
+#### A. Interactive Menu Program:
+```powershell
+.\sherpa-env\Scripts\python.exe voice_cli.py
+```
+*(Provides an interactive menu with options to list, add, inspect, test single synthesis, run batch benchmarks, and delete voices)*
+
+#### B. Command-Line Subcommands:
+```powershell
+# 1. List all voices & audio status:
+.\sherpa-env\Scripts\python.exe voice_cli.py list
+
+# 2. Inspect voice details and transcript:
+.\sherpa-env\Scripts\python.exe voice_cli.py info deep_classic
+
+# 3. Add & automatically move audio to samples/added/:
+.\sherpa-env\Scripts\python.exe voice_cli.py add `
+  --audio "C:/path/to/my_recording.wav" `
+  --key "kannada_male_expressive" `
+  --transcript "ನಮಸ್ಕಾರ, ನಾನು ಈ ದಿನ ನಿಮಗೆ ಒಂದು ಮುಖ್ಯವಾದ ವಿಷಯವನ್ನು ತಿಳಿಸಲು ಬಯಸುತ್ತೇನೆ." `
+  --desc "Male Kannada - Conversational & Clear" `
+  --move
+
+# 4. Directly test synthesis with IndicF5 (saving as MP3, OGG, WAV, or FLAC):
+.\sherpa-env\Scripts\python.exe voice_cli.py test deep_classic `
+  --text "வணக்கம், நீங்கள் எப்படி இருக்கிறீர்கள்?" `
+  --format mp3
+
+# 5. Browse 120 authentic conversational phrases (Telugu, Tamil, Hindi):
+.\sherpa-env\Scripts\python.exe voice_cli.py prompts
+
+# 6. Customizable batch synthesis (filter by language, length tier, count, format):
+.\sherpa-env\Scripts\python.exe voice_cli.py batch deep_classic `
+  --lang tamil `
+  --tier short,medium `
+  --count 2 `
+  --format mp3 `
+  --steps 8
+```
+
+---
+
+### 2. Run IndicF5 Voice Cloning (Single Utterance)
 
 Run `test_indicf5_clone.py` to clone a speaker's voice into Tamil, Kannada, Telugu, or Hindi.
 
-> 💡 **Tip for Laptop / CPU Execution**:
-> On a CPU without CUDA, use `--steps 4` for quick testing (~30 seconds). Use `--steps 8` or `--steps 16` for higher phonetic fidelity.
+Preset voices can be selected directly from `samples/voices.json` with `--voice <KEY>`, or listed with `--list-voices`. Output format can be chosen with `--format [wav|mp3|ogg|flac]`.
 
-#### A. Tamil Example
+#### A. Using Preset Voices (Quick & Easy)
 ```powershell
+# List all available presets:
+.\sherpa-env\Scripts\python.exe test_indicf5_clone.py --list-voices
+
+# Synthesize using a preset voice (e.g. saving as MP3):
 .\sherpa-env\Scripts\python.exe test_indicf5_clone.py `
-  --ref "samples/sudhanva_voic_clone.wav" `
-  --ref-text "The quick brown fox jumps over the lazy dog while the morning sun rises slowly over the quiet hills, casting long golden shadows across the valley." `
+  --voice tamil_crisp `
   --text "வணக்கம், நீங்கள் எப்படி இருக்கிறீர்கள்? நான் இப்போது உங்கள் குரலில் தமிழில் பேசுகிறேன்." `
-  --out "generated/tamil_sample.wav" `
-  --steps 4
+  --out "generated/tamil_sample.mp3" `
+  --format mp3 `
+  --steps 8
 ```
 
-#### B. Kannada Example
+#### B. Using Custom Audio + Reference Transcript
 ```powershell
 .\sherpa-env\Scripts\python.exe test_indicf5_clone.py `
-  --ref "samples/sudhanva_voic_clone.wav" `
-  --ref-text "The quick brown fox jumps over the lazy dog while the morning sun rises slowly over the quiet hills, casting long golden shadows across the valley." `
-  --text "ನಮಸ್ಕಾರ, ನೀವು ಹೇಗಿದ್ದೀರಾ? ನಾನು ಈಗ ನಿಮ್ಮ ಧ್ವನಿಯಲ್ಲಿ ಕನ್ನಡ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ." `
-  --out "generated/kannada_sample.wav" `
-  --steps 4
-```
-
-#### C. Telugu Example
-```powershell
-.\sherpa-env\Scripts\python.exe test_indicf5_clone.py `
-  --ref "samples/sudhanva_voic_clone.wav" `
-  --ref-text "The quick brown fox jumps over the lazy dog while the morning sun rises slowly over the quiet hills, casting long golden shadows across the valley." `
-  --text "నమస్కారం, మీరు ఎలా ఉన్నారు? నేను మీ గొంతులో తెలుగు మాట్లాడుతున్నాను." `
+  --ref "samples/sudhanva_short_ref.wav" `
+  --ref-text "The quick brown fox jumps over the lazy dog." `
+  --text "నమస్కారం, మీరు ఎలా ఉన్నారు? నేను ఇప్పుడు మీ గొంతుతో తెలుగు మాట్లాడుతున్నాను." `
   --out "generated/telugu_sample.wav" `
-  --steps 4
+  --format wav `
+  --steps 8
 ```
 
-#### D. Hindi Example
+---
+
+### 3. Run Customizable Batch Voice Cloning (`test_batch_indicf5.py`)
+
+Run `test_batch_indicf5.py` to synthesize phrases from [prompts.json](file:///c:/voice_cloning/prompts.json) (120 conversational sentences categorized by `short`, `medium`, `midlong`, and `long` in Telugu, Tamil, and Hindi). The model is loaded once into memory, and all outputs are saved into automatically incrementing directories (`generated/batches/batch-1/`, `batch-2/`, etc.).
+
+#### A. Run Full Multilingual Matrix (1 per tier × 4 tiers × 3 languages = 12 files)
 ```powershell
-.\sherpa-env\Scripts\python.exe test_indicf5_clone.py `
-  --ref "samples/sudhanva_voic_clone.wav" `
-  --ref-text "The quick brown fox jumps over the lazy dog while the morning sun rises slowly over the quiet hills, casting long golden shadows across the valley." `
-  --text "नमस्ते, आप कैसे हैं? मैं अब आपकी आवाज़ में हिंदी बोल रहा हूँ।" `
-  --out "generated/hindi_sample.wav" `
-  --steps 4
+.\sherpa-env\Scripts\python.exe test_batch_indicf5.py `
+  --voice tamil_classic_pangram `
+  --count 1 `
+  --steps 8
+```
+
+#### B. Run Flexible Multi-Number / Multi-Language Selections
+```powershell
+# 1. Telugu & Tamil, Short + Medium + Mid-long tiers, 1st & 2nd phrases as MP3:
+.\sherpa-env\Scripts\python.exe test_batch_indicf5.py `
+  --voice deep_classic `
+  --lang "1 2" `
+  --tier "1 2 3" `
+  --count "1 2" `
+  --format mp3 `
+  --steps 8
+
+# 2. Tamil & Hindi, Medium + Mid-long + Long tiers, specific phrase indices 2, 3, 4 as OGG:
+.\sherpa-env\Scripts\python.exe test_batch_indicf5.py `
+  --voice sahasra_reference_short `
+  --lang "2 3" `
+  --tier "2 3 4" `
+  --count "2 3 4" `
+  --format ogg `
+  --steps 8
+```
+
+#### C. List All Available Phrases in the Dataset
+```powershell
+.\sherpa-env\Scripts\python.exe test_batch_indicf5.py --list-prompts
 ```
 
 #### CLI Parameters:

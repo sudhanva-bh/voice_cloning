@@ -52,11 +52,33 @@ SAMPLE_RATE = 24000
 HOP_LENGTH = 256
 
 
+def save_audio(out_path: str, wav, sample_rate: int = SAMPLE_RATE, fmt: str = "wav") -> Path:
+    path = Path(out_path)
+    # If explicit format given and doesn't match extension, adjust suffix
+    if fmt and fmt.lower() in ("wav", "mp3", "ogg", "flac"):
+        if path.suffix.lower().replace(".", "") != fmt.lower():
+            path = path.with_suffix(f".{fmt.lower()}")
+    
+    ext = path.suffix.lower().replace(".", "")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    
+    if ext == "mp3":
+        sf.write(str(path), wav, samplerate=sample_rate, format="MP3")
+    elif ext in ("ogg", "oga"):
+        sf.write(str(path), wav, samplerate=sample_rate, format="OGG")
+    elif ext == "flac":
+        sf.write(str(path), wav, samplerate=sample_rate, format="FLAC")
+    else:
+        sf.write(str(path), wav, samplerate=sample_rate, subtype="PCM_16")
+    return path
+
+
 def clone_voice(
     reference_audio_path: str,
     target_text: str,
     reference_text: str,
     output_wav_path: str = "generated/indicf5_cloned.wav",
+    audio_format: str = "wav",
     num_steps: int = 16,
     cfg_strength: float = 2.0,
     speed: float = 1.0,
@@ -186,20 +208,73 @@ def clone_voice(
     duration_sec = len(wav) / SAMPLE_RATE
 
     # 7. Save output
-    out_path = Path(output_wav_path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    sf.write(str(out_path), wav, samplerate=SAMPLE_RATE, subtype="PCM_16")
+    saved_path = save_audio(output_wav_path, wav, sample_rate=SAMPLE_RATE, fmt=audio_format)
 
     print("\n" + "=" * 70)
-    print(f" SUCCESS! Cloned audio saved to: {out_path.resolve()}")
+    print(f" SUCCESS! Cloned audio saved to: {saved_path.resolve()} [{saved_path.suffix.upper()}]")
     print(f" Audio Duration : {duration_sec:.2f} seconds")
     print(f" Generation Time: {elapsed:.2f} seconds")
     print(f" RTF (Speed)    : {elapsed / duration_sec:.2f}x")
     print("=" * 70)
 
 
+import json
+
+
+def load_voice_from_json(voice_key: str, json_path: str = "samples/voices.json"):
+    path = Path(json_path)
+    if not path.is_file():
+        # Fallback check
+        alt_json = Path("samples/tamil_voices/voices.json")
+        if alt_json.is_file():
+            path = alt_json
+        else:
+            raise FileNotFoundError(f"Voices JSON mapping file not found at: {json_path}")
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if voice_key not in data:
+        available = "\n  - " + "\n  - ".join(data.keys())
+        raise KeyError(f"Voice key '{voice_key}' not found in {path}. Available keys:{available}")
+    entry = data[voice_key]
+    audio_path = entry["audio"]
+    
+    # Resolve audio path robustly
+    audio_p = Path(audio_path)
+    if not audio_p.is_file():
+        candidates = [
+            path.parent / audio_path,
+            path.parent / audio_p.name,
+            Path("samples") / audio_path,
+            Path("samples/added") / audio_p.name,
+            Path("samples/tamil_voices") / audio_p.name,
+        ]
+        for c in candidates:
+            if c.is_file():
+                audio_path = str(c)
+                break
+    return audio_path, entry["transcript"]
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="IndicF5 Voice Cloning CLI Test")
+    parser.add_argument(
+        "--voice",
+        "--voice-key",
+        type=str,
+        default=None,
+        help="Preset voice key from voices.json (e.g. tamil_classic_pangram, deep_classic, sudhanva_english)",
+    )
+    parser.add_argument(
+        "--voices-json",
+        type=str,
+        default="samples/voices.json",
+        help="Path to voices.json mapping file (default: samples/voices.json)",
+    )
+    parser.add_argument(
+        "--list-voices",
+        action="store_true",
+        help="List all available preset voice keys from voices.json and exit",
+    )
     parser.add_argument(
         "--ref",
         type=str,
@@ -215,7 +290,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--text",
         type=str,
-        default="నಮಸ್ಕಾರ, ನೀವು ಹೇಗಿದ್ದೀರಾ? ನಾನು ಈಗ ನಿಮ್ಮ ಧ್ವನಿಯಲ್ಲಿ ಕನ್ನಡ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ.",
+        default="నమస్కారం, మీరు ఎలా ఉన్నారు? నేను ఇప్పుడు మీ గొంతుతో తెలుగు మాట్లాడుతున్నాను.",
         help="Target text in Tamil, Hindi, Kannada, Telugu, etc.",
     )
     parser.add_argument(
@@ -223,6 +298,14 @@ if __name__ == "__main__":
         type=str,
         default="generated/kannada_fixed.wav",
         help="Output audio path",
+    )
+    parser.add_argument(
+        "--format",
+        "-f",
+        type=str,
+        default="wav",
+        choices=["wav", "mp3", "ogg", "flac"],
+        help="Output audio format: wav, mp3, ogg, or flac (default: wav)",
     )
     parser.add_argument(
         "--steps",
@@ -250,11 +333,39 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # If listing voices, display available keys and exit
+    if args.list_voices:
+        json_path = Path(args.voices_json)
+        if not json_path.is_file():
+            print(f"Voices JSON file not found at: {json_path}")
+            sys.exit(1)
+        with open(json_path, "r", encoding="utf-8") as f:
+            voices = json.load(f)
+        print("=" * 70)
+        print(f" Available Voice Keys in {json_path.resolve()}")
+        print("=" * 70)
+        for key, info in voices.items():
+            print(f" Key   : {key}")
+            print(f" Audio : {info.get('audio')}")
+            print(f" Desc  : {info.get('description', '')}")
+            print(f" Text  : {info.get('transcript')}")
+            print("-" * 70)
+        sys.exit(0)
+
+    ref_audio = args.ref
+    ref_text = args.ref_text
+
+    # Resolve from voices.json if voice key is specified
+    if args.voice:
+        ref_audio, ref_text = load_voice_from_json(args.voice, args.voices_json)
+        print(f"[Preset Voice] Loaded voice '{args.voice}' from {args.voices_json}")
+
     clone_voice(
-        reference_audio_path=args.ref,
+        reference_audio_path=ref_audio,
         target_text=args.text,
-        reference_text=args.ref_text,
+        reference_text=ref_text,
         output_wav_path=args.out,
+        audio_format=args.format,
         num_steps=args.steps,
         cfg_strength=args.cfg,
         speed=args.speed,

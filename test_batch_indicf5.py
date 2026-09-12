@@ -5,21 +5,24 @@ Demonstrates one-time cold initialization in memory followed by fast back-to-bac
 Automatically increments output directories to generated/batches/batch-1, batch-2, etc.
 
 Usage:
-    # Sequential batch generation (Model loaded once into RAM, reused across all prompts):
+    # 1. Using a preset voice key from voices.json (Recommended):
+    .\\sherpa-env\\Scripts\\python.exe test_batch_indicf5.py `
+      --voice deep_classic `
+      --steps 8
+
+    # 2. List all available preset voice keys:
+    .\\sherpa-env\\Scripts\\python.exe test_batch_indicf5.py --list-voices
+
+    # 3. Using direct reference audio & transcript:
     .\\sherpa-env\\Scripts\\python.exe test_batch_indicf5.py `
       --ref "samples/sudhanva_short_ref.wav" `
       --ref-text "The quick brown fox jumps over the lazy dog." `
-      --steps 8
-
-    # Using native Tamil reference:
-    .\\sherpa-env\\Scripts\\python.exe test_batch_indicf5.py `
-      --ref "samples/tamil_voices/tamil1.mp3" `
-      --ref-text "யாதும் ஊரே யாவரும் கேளிர் என்ற உயரிய சிந்தனை, உலகெங்கும் வாழும் மனிதர்களின் இதயங்களில் அன்பையும் அமைதியையும் விதைக்கட்டும்." `
       --steps 8
 """
 
 import os
 import sys
+import json
 import codecs
 import time
 import argparse
@@ -48,35 +51,136 @@ if str(REPO_PATH) not in sys.path:
     sys.path.insert(0, str(REPO_PATH))
 
 # ==============================================
-# BATCH PROMPTS CONFIGURATION
-# 3 Telugu and 3 Tamil prompts ranging from 4 to 12 seconds (Medium-Long -> Very Long)
+# PROMPTS DATASET LOADER WITH MULTI-SELECT
 # ==============================================
-BATCH_PROMPTS = {
-    # ---------------------------------------------------------
-    # TELUGU PROMPTS (4s to 12s)
-    # ---------------------------------------------------------
-    # 1. Telugu - Medium-Long (~5.5s, ~75 chars)
-    "నేను ఇప్పుడు ఆర్టిఫిషియల్ ఇంటెలిజెన్స్ సహాయంతో మీ స్వంత గొంతుతో తెలుగులో మాట్లాడుతున్నాను.": "telugu_1_medlong.wav",
+PROMPTS_JSON_PATH = Path("prompts.json")
 
-    # 2. Telugu - Long (~8.5s, ~115 chars)
-    "ఉదయం సూర్యుని లేత కిరణాలు పచ్చని చెట్లపై పడుతుంటే, పక్షుల కిలకిలారావాలతో ప్రకృతి అంతా ఎంతో అందంగా కనిపిస్తుంది.": "telugu_2_long.wav",
-
-    # 3. Telugu - Very Long (~11.5s, ~155 chars)
-    "మిత్రులారా, సాంకేతిక పరిజ్ఞానం రోజురోజుకు ఎంతో వేగంగా అభివృద్ధి చెందుతోంది. మన స్వంత గొంతును ఇతర భారతీయ భాషల్లోకి సులభంగా మార్చుకునే అవకాశం ఇప్పుడు మనకు లభించింది.": "telugu_3_verylong.wav",
-
-    # ---------------------------------------------------------
-    # TAMIL PROMPTS (4s to 12s)
-    # ---------------------------------------------------------
-    # 1. Tamil - Medium-Long (~5.5s, ~75 chars)
-    "நான் இப்போது செயற்கை நுண்ணறிவு தொழில்நுட்பத்தின் மூலம் உங்கள் சொந்த குரலில் தமிழில் பேசுகிறேன்.": "tamil_1_medlong.wav",
-
-    # 2. Tamil - Long (~8.5s, ~115 chars)
-    "காலை நேரத்தில் வீசும் குளிர்ந்த காற்றும், பறவைகளின் இனிய குரல்களும் மனதிற்கு மிகுந்த அமைதியையும் புத்துணர்ச்சியையும் தருகின்றன.": "tamil_2_long.wav",
-
-    # 3. Tamil - Very Long (~11.5s, ~155 chars)
-    "நண்பர்களே, இன்றைய நவீன அறிவியல் உலகத்தில் பல வியக்கத்தக்க மாற்றங்கள் நிகழ்கின்றன. நமது தாய்மொழியில் நாம் விரும்பும் கருத்துக்களை தொழில்நுட்பத்தின் உதவியுடன் அழகாகப் பகிர முடிகிறது.": "tamil_3_verylong.wav",
+LANG_MAP = {
+    "1": "telugu", "telugu": "telugu", "te": "telugu",
+    "2": "tamil", "tamil": "tamil", "ta": "tamil",
+    "3": "hindi", "hindi": "hindi", "hi": "hindi",
 }
-# ==============================================
+
+TIER_MAP = {
+    "1": "short", "short": "short", "s": "short",
+    "2": "medium", "medium": "medium", "med": "medium", "m": "medium",
+    "3": "midlong", "midlong": "midlong", "mid-long": "midlong", "mid_long": "midlong", "ml": "midlong",
+    "4": "long", "long": "long", "l": "long",
+}
+
+
+def parse_multi_selection(input_val, mapping: dict, default_all: list) -> list:
+    """Parses space-separated, comma-separated, range, or number/keyword tokens (e.g. '1 2', '2-4', '1-3', 'telugu, tamil')."""
+    if input_val is None:
+        return default_all
+    if isinstance(input_val, list):
+        return [mapping.get(str(x).lower(), str(x).lower()) for x in input_val if str(x).lower() in mapping or str(x).lower() in default_all]
+    
+    val_str = str(input_val).strip()
+    if not val_str or val_str.lower() in ("0", "all", "*"):
+        return default_all
+        
+    tokens = [t.strip().lower() for t in val_str.replace(",", " ").split() if t.strip()]
+    selected = []
+    for t in tokens:
+        if "-" in t:
+            parts = t.split("-")
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                start = int(parts[0])
+                end = int(parts[1])
+                for num_i in range(min(start, end), max(start, end) + 1):
+                    key_str = str(num_i)
+                    if key_str in mapping:
+                        res = mapping[key_str]
+                        if res not in selected:
+                            selected.append(res)
+                continue
+        if t in mapping:
+            res = mapping[t]
+            if res not in selected:
+                selected.append(res)
+        elif t in default_all:
+            if t not in selected:
+                selected.append(t)
+    return selected if selected else default_all
+
+
+def parse_phrase_indices(input_val, max_available: int = 10) -> list:
+    """Parses count integer, space-separated indices ('1 2', '1 2 3', '2 3 4'), ranges ('1-4'), or 'all'/'0'."""
+    if input_val is None:
+        return [0]
+    
+    val_str = str(input_val).strip().lower()
+    if not val_str or val_str in ("0", "all", "*"):
+        return list(range(max_available))
+        
+    # Single integer count (e.g. 2 means first 2 phrases)
+    if val_str.isdigit():
+        count = int(val_str)
+        if count == 0 or count >= max_available:
+            return list(range(max_available))
+        return list(range(min(count, max_available)))
+        
+    indices = []
+    tokens = [t.strip() for t in val_str.replace(",", " ").split() if t.strip()]
+    for t in tokens:
+        if "-" in t:
+            parts = t.split("-")
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                start = max(1, int(parts[0]))
+                end = min(max_available, int(parts[1]))
+                for i in range(start, end + 1):
+                    if (i - 1) not in indices:
+                        indices.append(i - 1)
+        elif t.isdigit():
+            idx = int(t) - 1
+            if 0 <= idx < max_available and idx not in indices:
+                indices.append(idx)
+    return sorted(indices) if indices else [0]
+
+
+def load_prompts_from_json(
+    prompts_file: str = "prompts.json",
+    languages="all",
+    categories="all",
+    count_per_category=1,
+    audio_format: str = "wav",
+) -> dict:
+    """Loads customizable phrase dictionary from prompts.json supporting multi-select numbers/keywords."""
+    path = Path(prompts_file)
+    if not path.is_file():
+        alt = Path("data/prompts.json")
+        if alt.is_file():
+            path = alt
+        else:
+            raise FileNotFoundError(f"Prompts dataset file not found at: {prompts_file}")
+            
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        
+    default_langs = ["telugu", "tamil", "hindi"]
+    default_cats = ["short", "medium", "midlong", "long"]
+    
+    req_langs = parse_multi_selection(languages, LANG_MAP, default_langs)
+    req_cats = parse_multi_selection(categories, TIER_MAP, default_cats)
+    
+    ext = audio_format.lower().replace(".", "")
+    selected_prompts = {}
+    
+    for lang in req_langs:
+        lang_data = data.get(lang, {})
+        for cat in req_cats:
+            phrases = lang_data.get(cat, [])
+            if not phrases:
+                continue
+            indices = parse_phrase_indices(count_per_category, len(phrases))
+            for idx in indices:
+                if 0 <= idx < len(phrases):
+                    clean_text = phrases[idx].strip()
+                    filename = f"{lang}_{cat}_{idx+1}.{ext}"
+                    selected_prompts[clean_text] = filename
+                
+    return selected_prompts
 
 # Constants
 MODEL_DIR = Path("models/indicf5")
@@ -100,6 +204,25 @@ def get_next_batch_dir(base_dir: Path = Path("generated/batches")) -> Path:
     batch_dir = base_dir / f"batch-{next_idx}"
     batch_dir.mkdir(parents=True, exist_ok=True)
     return batch_dir
+
+
+def save_audio(out_path: str, wav, sample_rate: int = SAMPLE_RATE, fmt: str = "wav") -> Path:
+    import soundfile as sf
+    path = Path(out_path)
+    if fmt and fmt.lower() in ("wav", "mp3", "ogg", "flac"):
+        if path.suffix.lower().replace(".", "") != fmt.lower():
+            path = path.with_suffix(f".{fmt.lower()}")
+    ext = path.suffix.lower().replace(".", "")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if ext == "mp3":
+        sf.write(str(path), wav, samplerate=sample_rate, format="MP3")
+    elif ext in ("ogg", "oga"):
+        sf.write(str(path), wav, samplerate=sample_rate, format="OGG")
+    elif ext == "flac":
+        sf.write(str(path), wav, samplerate=sample_rate, format="FLAC")
+    else:
+        sf.write(str(path), wav, samplerate=sample_rate, subtype="PCM_16")
+    return path
 
 
 class IndicF5Engine:
@@ -170,13 +293,13 @@ class IndicF5Engine:
         reference_text: str,
         target_text: str,
         output_wav_path: str,
+        audio_format: str = "wav",
         num_steps: int = 8,
         cfg_strength: float = 2.0,
         speed: float = 1.0,
         extra_duration_sec: float = 0.3,
     ) -> dict:
         import librosa
-        import soundfile as sf
 
         start_time = time.time()
 
@@ -233,12 +356,10 @@ class IndicF5Engine:
         duration_sec = len(wav) / SAMPLE_RATE
 
         # 5. Save output file
-        out_path = Path(output_wav_path)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        sf.write(str(out_path), wav, samplerate=SAMPLE_RATE, subtype="PCM_16")
+        saved_path = save_audio(output_wav_path, wav, sample_rate=SAMPLE_RATE, fmt=audio_format)
 
         return {
-            "output_path": str(out_path),
+            "output_path": str(saved_path),
             "char_count": len(target_text.strip()),
             "ref_sec": ref_duration_sec,
             "target_sec": target_duration_sec,
@@ -248,7 +369,7 @@ class IndicF5Engine:
         }
 
 
-def _worker_process(queue: Queue, result_queue: Queue, ref_audio: str, ref_text: str, num_steps: int, cfg: float, speed: float):
+def _worker_process(queue: Queue, result_queue: Queue, ref_audio: str, ref_text: str, num_steps: int, cfg: float, speed: float, audio_format: str = "wav"):
     """Worker process for parallel batch generation."""
     try:
         engine = IndicF5Engine()
@@ -263,6 +384,7 @@ def _worker_process(queue: Queue, result_queue: Queue, ref_audio: str, ref_text:
                 reference_text=ref_text,
                 target_text=text,
                 output_wav_path=out_path,
+                audio_format=audio_format,
                 num_steps=num_steps,
                 cfg_strength=cfg,
                 speed=speed,
@@ -273,12 +395,13 @@ def _worker_process(queue: Queue, result_queue: Queue, ref_audio: str, ref_text:
         print(f"[Worker Error] {e}")
 
 
-def run_sequential(prompts_dict: dict, batch_dir: Path, ref_audio: str, ref_text: str, num_steps: int, cfg: float, speed: float):
+def run_sequential(prompts_dict: dict, batch_dir: Path, ref_audio: str, ref_text: str, num_steps: int, cfg: float, speed: float, audio_format: str = "wav"):
     """Runs all batch items sequentially using a single model kept warm in memory."""
     print("=" * 80)
     print(" [Start Batch Script] IndicF5 High-Fidelity Batch Synthesis (Sequential)")
     print("=" * 80)
     print(f" Output Folder   : {batch_dir.resolve()}")
+    print(f" Output Format   : {audio_format.upper()}")
     print(f" Reference Audio : {ref_audio}")
     print(f" Reference Text  : {ref_text}")
     print(f" Total Prompts   : {len(prompts_dict)} items")
@@ -300,6 +423,7 @@ def run_sequential(prompts_dict: dict, batch_dir: Path, ref_audio: str, ref_text
             reference_text=ref_text,
             target_text=text,
             output_wav_path=out_path,
+            audio_format=audio_format,
             num_steps=num_steps,
             cfg_strength=cfg,
             speed=speed,
@@ -310,12 +434,13 @@ def run_sequential(prompts_dict: dict, batch_dir: Path, ref_audio: str, ref_text
     return results, engine.init_elapsed
 
 
-def run_parallel(prompts_dict: dict, batch_dir: Path, ref_audio: str, ref_text: str, num_steps: int, cfg: float, speed: float, workers: int = 2):
+def run_parallel(prompts_dict: dict, batch_dir: Path, ref_audio: str, ref_text: str, num_steps: int, cfg: float, speed: float, audio_format: str = "wav", workers: int = 2):
     """Runs all batch items across multiple parallel worker processes."""
     print("=" * 80)
     print(f" [Start Batch Script] IndicF5 Parallel Batch Synthesis ({workers} Workers)")
     print("=" * 80)
     print(f" Output Folder   : {batch_dir.resolve()}")
+    print(f" Output Format   : {audio_format.upper()}")
     print(f" Reference Audio : {ref_audio}")
     print(f" Reference Text  : {ref_text}")
     print(f" Total Prompts   : {len(prompts_dict)} items across {workers} parallel processes")
@@ -335,7 +460,7 @@ def run_parallel(prompts_dict: dict, batch_dir: Path, ref_audio: str, ref_text: 
     for _ in range(workers):
         p = Process(
             target=_worker_process,
-            args=(queue, result_queue, ref_audio, ref_text, num_steps, cfg, speed),
+            args=(queue, result_queue, ref_audio, ref_text, num_steps, cfg, speed, audio_format),
         )
         p.start()
         processes.append(p)
@@ -351,8 +476,60 @@ def run_parallel(prompts_dict: dict, batch_dir: Path, ref_audio: str, ref_text: 
     return [results_dict[i] for i in range(len(items))], 0.0
 
 
+def load_voice_from_json(voice_key: str, json_path: str = "samples/voices.json"):
+    path = Path(json_path)
+    if not path.is_file():
+        # Fallback check
+        alt_json = Path("samples/tamil_voices/voices.json")
+        if alt_json.is_file():
+            path = alt_json
+        else:
+            raise FileNotFoundError(f"Voices JSON mapping file not found at: {json_path}")
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if voice_key not in data:
+        available = "\n  - " + "\n  - ".join(data.keys())
+        raise KeyError(f"Voice key '{voice_key}' not found in {path}. Available keys:{available}")
+    entry = data[voice_key]
+    audio_path = entry["audio"]
+    
+    # Resolve audio path robustly
+    audio_p = Path(audio_path)
+    if not audio_p.is_file():
+        candidates = [
+            path.parent / audio_path,
+            path.parent / audio_p.name,
+            Path("samples") / audio_path,
+            Path("samples/added") / audio_p.name,
+            Path("samples/tamil_voices") / audio_p.name,
+        ]
+        for c in candidates:
+            if c.is_file():
+                audio_path = str(c)
+                break
+    return audio_path, entry["transcript"]
+
+
 def main():
     parser = argparse.ArgumentParser(description="IndicF5 Batch Voice Cloning Engine")
+    parser.add_argument(
+        "--voice",
+        "--voice-key",
+        type=str,
+        default=None,
+        help="Preset voice key from voices.json (e.g. tamil_classic_pangram, deep_classic, sudhanva_english)",
+    )
+    parser.add_argument(
+        "--voices-json",
+        type=str,
+        default="samples/voices.json",
+        help="Path to voices.json mapping file (default: samples/voices.json)",
+    )
+    parser.add_argument(
+        "--list-voices",
+        action="store_true",
+        help="List all available preset voice keys from voices.json and exit",
+    )
     parser.add_argument(
         "--ref",
         type=str,
@@ -379,6 +556,46 @@ def main():
         help="Number of worker processes when running in parallel (default: 2)",
     )
     parser.add_argument(
+        "--prompts-file",
+        type=str,
+        default="prompts.json",
+        help="Path to prompts dataset JSON file (default: prompts.json)",
+    )
+    parser.add_argument(
+        "--lang",
+        "--language",
+        type=str,
+        default="all",
+        help="Language filter: 'all', or comma-separated list like 'telugu', 'tamil', 'hindi', 'telugu,tamil' (default: all)",
+    )
+    parser.add_argument(
+        "--tier",
+        "--length",
+        type=str,
+        default="all",
+        help="Length tier filter: 'all', or comma-separated list like 'short', 'medium', 'midlong', 'long' (default: all)",
+    )
+    parser.add_argument(
+        "--count",
+        "--limit",
+        type=str,
+        default="1",
+        help="Number of phrases or specific indices per category tier (e.g. '1', '2', '1 2', '2 3 4', '1-4', or '0' for all 10)",
+    )
+    parser.add_argument(
+        "--list-prompts",
+        action="store_true",
+        help="List available phrases in the prompts JSON file and exit",
+    )
+    parser.add_argument(
+        "--format",
+        "-f",
+        type=str,
+        default="wav",
+        choices=["wav", "mp3", "ogg", "flac"],
+        help="Output audio format: wav, mp3, ogg, or flac (default: wav)",
+    )
+    parser.add_argument(
         "--steps",
         type=int,
         default=8,
@@ -398,11 +615,71 @@ def main():
     )
     args = parser.parse_args()
 
+    # If listing prompts, display available sentences and exit
+    if args.list_prompts:
+        prompts_path = Path(args.prompts_file)
+        if not prompts_path.is_file():
+            print(f"Prompts file not found at: {prompts_path}")
+            sys.exit(1)
+        with open(prompts_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        print("=" * 85)
+        print(f" 📖 Available Batch Phrases in {prompts_path.resolve()}")
+        print("=" * 85)
+        for lang, tiers in data.items():
+            print(f"\n Language: {lang.upper()}")
+            for tier, sentences in tiers.items():
+                print(f"  [{tier.upper()}] ({len(sentences)} phrases):")
+                for s_idx, s in enumerate(sentences):
+                    print(f"    {s_idx+1}. {s}")
+        print("=" * 85)
+        sys.exit(0)
+
+    # If listing voices, display available keys and exit
+    if args.list_voices:
+        json_path = Path(args.voices_json)
+        if not json_path.is_file():
+            print(f"Voices JSON file not found at: {json_path}")
+            sys.exit(1)
+        with open(json_path, "r", encoding="utf-8") as f:
+            voices = json.load(f)
+        print("=" * 70)
+        print(f" Available Voice Keys in {json_path.resolve()}")
+        print("=" * 70)
+        for key, info in voices.items():
+            print(f" Key   : {key}")
+            print(f" Audio : {info.get('audio')}")
+            print(f" Desc  : {info.get('description', '')}")
+            print(f" Text  : {info.get('transcript')}")
+            print("-" * 70)
+        sys.exit(0)
+
+    ref_audio = args.ref
+    ref_text = args.ref_text
+
+    # Resolve from voices.json if voice key is specified
+    if args.voice:
+        ref_audio, ref_text = load_voice_from_json(args.voice, args.voices_json)
+        print(f"[Preset Voice] Loaded voice '{args.voice}' from {args.voices_json}")
+
+    # Load filtered prompts from prompts.json
+    selected_prompts = load_prompts_from_json(
+        prompts_file=args.prompts_file,
+        languages=args.lang,
+        categories=args.tier,
+        count_per_category=args.count,
+        audio_format=args.format,
+    )
+
+    if not selected_prompts:
+        print(f"[Error] No phrases matched filter: lang='{args.lang}', tier='{args.tier}' in {args.prompts_file}")
+        sys.exit(1)
+
     # Automatically allocate next batch directory: generated/batches/batch-1, batch-2, etc.
     batch_dir = get_next_batch_dir()
     prompts_with_paths = {
         text: str(batch_dir / filename)
-        for text, filename in BATCH_PROMPTS.items()
+        for text, filename in selected_prompts.items()
     }
 
     overall_start = time.time()
@@ -411,22 +688,24 @@ def main():
         results, init_time = run_parallel(
             prompts_dict=prompts_with_paths,
             batch_dir=batch_dir,
-            ref_audio=args.ref,
-            ref_text=args.ref_text,
+            ref_audio=ref_audio,
+            ref_text=ref_text,
             num_steps=args.steps,
             cfg=args.cfg,
             speed=args.speed,
+            audio_format=args.format,
             workers=args.workers,
         )
     else:
         results, init_time = run_sequential(
             prompts_dict=prompts_with_paths,
             batch_dir=batch_dir,
-            ref_audio=args.ref,
-            ref_text=args.ref_text,
+            ref_audio=ref_audio,
+            ref_text=ref_text,
             num_steps=args.steps,
             cfg=args.cfg,
             speed=args.speed,
+            audio_format=args.format,
         )
 
     overall_time = time.time() - overall_start

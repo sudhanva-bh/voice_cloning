@@ -1,0 +1,56 @@
+{
+  "tamil_classic_pangram": {
+    "audio": "samples/tamil_voices/tamil_classic_pangram.mp3",
+    "transcript": "தமிழ்மொழியின் சிறப்பு அதன் இனிமையான ஒலியிலும், பழமையான இலக்கணத்திலும், உலகளாவிய சிந்தனையிலும் திகழ்கிறது.",
+    "description": "Female Tamil - The Classic Phonetic Pangram (~5.0s, balanced phonetics)"
+  },
+  "tamil_conversational": {
+    "audio": "samples/tamil_voices/tamil_conversational.mp3",
+    "transcript": "காலை வேளையில் கடற்கரைக் காற்று வீசும்போது, மனதிற்குள் புதிய எண்ணங்களும் புத்துணர்ச்சியும் தானாகவே எழுகின்றன.",
+    "description": "Female Tamil - Conversational & Expressive (~5.5s)"
+  },
+  "tamil_crisp": {
+    "audio": "samples/tamil_voices/tamil_crisp.mp3",
+    "transcript": "எப்பொழுதும் உண்மையை மட்டுமே பேசி, அன்புடன் வாழ்வதே வாழ்க்கையின் சிறந்த நெறியாகும்.",
+    "description": "Female Tamil - Crisp & Fast (~3.8s, cleanest alignment)"
+  },
+  "male_tamil_classic_pangram": {
+    "audio": "samples/tamil_voices/male_tamil_classic_pangram.mp3",
+    "transcript": "தமிழ்மொழியின் சிறப்பு அதன் இனிமையான ஒலியிலும், பழமையான இலக்கணத்திலும், உலகளாவிய சிந்தனையிலும் திகழ்கிறது.",
+    "description": "Male Tamil - The Classic Phonetic Pangram (~5.5s, balanced phonetics)"
+  },
+  "male_tamil_conversational": {
+    "audio": "samples/tamil_voices/male_tamil_conversational.mp3",
+    "transcript": "காலை வேளையில் கடற்கரைக் காற்று வீசும்போது, மனதிற்குள் புதிய எண்ணங்களும் புத்துணர்ச்சியும் தானாகவே எழுகின்றன.",
+    "description": "Male Tamil - Conversational & Expressive (~5.5s)"
+  },
+  "male_tamil_crisp": {
+    "audio": "samples/tamil_voices/male_tamil_crisp.mp3",
+    "transcript": "எப்பொழுதும் உண்மையை மட்டுமே பேசி, அன்புடன் வாழ்வதே வாழ்க்கையின் சிறந்த நெறியாகும்.",
+    "description": "Male Tamil - Crisp & Fast (~4.0s)"
+  },
+  "deep_classic": {
+    "audio": "samples/tamil_voices/deep_classic.mp3",
+    "transcript": "யாதும் ஊரே யாவரும் கேளிர் என்ற உயரிய சிந்தனை, உலகெங்கும் வாழும் மனிதர்களின் இதயங்களில் அன்பையும் அமைதியையும் விதைக்கட்டும்.",
+    "description": "Deep Voice Tamil - Classic Phonetic Pangram"
+  },
+  "sudhanva_english": {
+    "audio": "samples/sudhanva_short_ref.wav",
+    "transcript": "The quick brown fox jumps over the lazy dog.",
+    "description": "Male English - The Classic Phonetic Pangram (~4.0s)"
+  },
+  "sudheendra_test": {
+    "audio": "samples/added/sudheendra_test.wav",
+    "transcript": "ನಮಸ್ಕಾರ, ನೀವು ಹೇಗಿದ್ದೀರಾ?",
+    "description": "Male Kannada Voice",
+    "added_at": "2026-09-12 23:09:19",
+    "duration_sec": 13.15
+  },
+  "sahasra_reference_short": {
+    "audio": "samples/added/sahasra_reference_short.ogg",
+    "transcript": "The quick brown fox jumps over the lazy dog.",
+    "description": "Sahasra saying shortly because she is short",
+    "added_at": "2026-09-12 23:14:58",
+    "duration_sec": 4.45
+  }
+}
