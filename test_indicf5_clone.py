@@ -113,13 +113,18 @@ def clone_voice(
     y, sr = librosa.load(reference_audio_path, sr=SAMPLE_RATE, mono=True)
     audio = torch.from_numpy(y).unsqueeze(0).float()
 
+    # Normalize audio RMS to standard 0.1 level
+    target_rms = 0.1
+    rms = torch.sqrt(torch.mean(torch.square(audio)))
+    if rms < target_rms and rms.item() > 1e-6:
+        audio = audio * (target_rms / rms.item())
+
     ref_audio_len = audio.shape[-1] // HOP_LENGTH
 
     # Calculate generation duration accurately for Indic script
-    # Indic characters are syllabic (aksharas) and take ~14 to 18 mel frames per character
-    # English reference text is alphabetic (~6 to 8 frames per character)
-    # We use a robust duration estimation with safety padding
-    indic_frames_per_char = 15.0 / speed
+    # In Indic Unicode strings (including aksharas, matras, viramas), each code point averages ~5.5 to 7.0 mel frames (~60ms).
+    # Previous 15.0 frames/char caused 2.5x overestimation, creating huge gaps of silence and babbling.
+    indic_frames_per_char = 6.5 / speed
     gen_frames = int(len(target_text.strip()) * indic_frames_per_char)
     extra_pad_frames = int(extra_duration_sec * SAMPLE_RATE / HOP_LENGTH)
     
@@ -180,32 +185,44 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ref",
         type=str,
-        default="samples/sudhanva_voic_clone.wav",
+        default="samples/sudhanva_short_ref.wav",
         help="Path to reference audio file",
     )
     parser.add_argument(
         "--ref-text",
         type=str,
-        default="The quick brown fox jumps over the lazy dog while the morning sun rises slowly over the quiet hills, casting long golden shadows across the valley.",
+        default="The quick brown fox jumps over the lazy dog.",
         help="Transcript of the reference audio",
+    )
+    parser.add_argument(
+        "--ref-text-file",
+        type=str,
+        default=None,
+        help="Path to file containing reference transcript",
     )
     parser.add_argument(
         "--text",
         type=str,
-        default="ನಮಸ್ಕಾರ, ನೀವು ಹೇಗಿದ್ದೀರಾ? ನಾನು ಈಗ ನಿಮ್ಮ ಧ್ವನಿಯಲ್ಲಿ ಕನ್ನಡ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ.",
+        default=None,
         help="Target text in Tamil, Hindi, Kannada, Telugu, etc.",
+    )
+    parser.add_argument(
+        "--text-file",
+        type=str,
+        default=None,
+        help="Path to .txt file containing target text",
     )
     parser.add_argument(
         "--out",
         type=str,
-        default="generated/sudhanva_kannada_fixed.wav",
+        default="generated/kannada_fixed.wav",
         help="Output audio path",
     )
     parser.add_argument(
         "--steps",
         type=int,
-        default=16,
-        help="Diffusion steps (default: 16)",
+        default=8,
+        help="Diffusion steps (default: 8)",
     )
     parser.add_argument(
         "--cfg",
@@ -219,14 +236,31 @@ if __name__ == "__main__":
         default=1.0,
         help="Speech speed multiplier (default: 1.0)",
     )
+    parser.add_argument(
+        "--extra-pad",
+        type=float,
+        default=0.3,
+        help="Extra safety duration padding in seconds (default: 0.3)",
+    )
     args = parser.parse_args()
+
+    ref_text = args.ref_text
+    if args.ref_text_file and Path(args.ref_text_file).is_file():
+        ref_text = Path(args.ref_text_file).read_text(encoding="utf-8").strip()
+
+    target_text = args.text
+    if args.text_file and Path(args.text_file).is_file():
+        target_text = Path(args.text_file).read_text(encoding="utf-8").strip()
+    elif target_text is None:
+        target_text = "నమస్కారం, మీరు ఎలా ఉన్నారు? నేను ఇప్పుడు మీ గొంతుతో తెలుగు మాట్లాడుతున్నాను."
 
     clone_voice(
         reference_audio_path=args.ref,
-        target_text=args.text,
-        reference_text=args.ref_text,
+        target_text=target_text,
+        reference_text=ref_text,
         output_wav_path=args.out,
         num_steps=args.steps,
         cfg_strength=args.cfg,
         speed=args.speed,
+        extra_duration_sec=args.extra_pad,
     )

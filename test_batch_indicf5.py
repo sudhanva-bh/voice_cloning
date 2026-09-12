@@ -164,10 +164,17 @@ class IndicF5Engine:
         # 1. Load Reference Audio
         y, sr = librosa.load(reference_audio_path, sr=SAMPLE_RATE, mono=True)
         audio = self.torch.from_numpy(y).unsqueeze(0).float()
+
+        # Normalize audio RMS to standard 0.1 level
+        target_rms = 0.1
+        rms = self.torch.sqrt(self.torch.mean(self.torch.square(audio)))
+        if rms < target_rms and rms.item() > 1e-6:
+            audio = audio * (target_rms / rms.item())
+
         ref_audio_len = audio.shape[-1] // HOP_LENGTH
 
-        # 2. Syllable-based duration estimation
-        indic_frames_per_char = 15.0 / speed
+        # 2. Syllable-based duration estimation (6.5 mel frames per Indic code point)
+        indic_frames_per_char = 6.5 / speed
         gen_frames = int(len(target_text.strip()) * indic_frames_per_char)
         extra_pad_frames = int(extra_duration_sec * SAMPLE_RATE / HOP_LENGTH)
         duration = ref_audio_len + gen_frames + extra_pad_frames
@@ -306,13 +313,13 @@ def main():
     parser.add_argument(
         "--ref",
         type=str,
-        default="samples/sudhanva_voic_clone.wav",
+        default="samples/sudhanva_short_ref.wav",
         help="Path to reference audio file (.wav/.ogg/.mp3)",
     )
     parser.add_argument(
         "--ref-text",
         type=str,
-        default="The quick brown fox jumps over the lazy dog while the morning sun rises slowly over the quiet hills, casting long golden shadows across the valley.",
+        default="The quick brown fox jumps over the lazy dog.",
         help="Transcript of reference audio",
     )
     parser.add_argument(
@@ -331,8 +338,8 @@ def main():
     parser.add_argument(
         "--steps",
         type=int,
-        default=16,
-        help="Diffusion steps (default: 16)",
+        default=8,
+        help="Diffusion steps (default: 8)",
     )
     parser.add_argument(
         "--cfg",
