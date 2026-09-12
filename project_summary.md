@@ -233,7 +233,7 @@ The environment is self-contained in `.\sherpa-env`:
 
 #### 3. Kannada Synthesis
 ```powershell
-.\sherpa-env\Scripts\python.exe test_indicf5_clone.py `
+.\sherpa-env\Scripts\python.exe clone.py `
   --ref "samples/sudhanva_short_ref.wav" `
   --ref-text "The quick brown fox jumps over the lazy dog." `
   --text "ನಮಸ್ಕಾರ, ನೀವು ಹೇಗಿದ್ದೀರಾ? ನಾನು ಈಗ ನಿಮ್ಮ ಧ್ವನಿಯಲ್ಲಿ ಕನ್ನಡ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ." `
@@ -243,23 +243,26 @@ The environment is self-contained in `.\sherpa-env`:
 
 ---
 
-### C. Batch Synthesis Engine (`test_batch_indicf5.py`)
+### C. Batch Synthesis Engine (`batch.py`)
 
 The batch engine loads the 1.35 GB model **once** into RAM and synthesizes multiple prompts back-to-back without redundant disk I/O. Each run automatically creates the next incremental folder (`generated/batches/batch-1/`, `batch-2/`, etc.):
 
 ```powershell
-# Run the 6-prompt benchmark (3 Telugu + 3 Tamil, 4s to 12s):
-.\sherpa-env\Scripts\python.exe test_batch_indicf5.py `
-  --ref "samples/sudhanva_short_ref.wav" `
-  --ref-text "The quick brown fox jumps over the lazy dog." `
+# Run batch synthesis across Telugu & Tamil (Medium to Long tiers, phrases 1-3):
+.\sherpa-env\Scripts\python.exe batch.py `
+  --voice deep_classic `
+  --lang "1 2" `
+  --tier "2-4" `
+  --count "1-3" `
+  --format mp3 `
   --steps 8
 ```
 
 ---
 
-### D. English Baseline (`zipvoice-tts.py`)
+### D. English Baseline (`english_tts.py`)
 ```powershell
-.\sherpa-env\Scripts\python.exe zipvoice-tts.py
+.\sherpa-env\Scripts\python.exe english_tts.py
 ```
 
 ---
