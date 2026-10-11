@@ -16,7 +16,7 @@ To trace the development of this project with complete academic rigor and reprod
 
 \section{Iteration 1: English Baseline Implementation via Sherpa-ONNX}
 \subsection{Objective and Setup}
-The initial milestone sought to validate whether non-autoregressive flow-matching models could execute zero-shot speaker adaptation on commodity consumer CPUs within acceptable latency thresholds ($\text{RTF} < 1.0$), establishing an empirical baseline prior to addressing Indian languages.
+The initial milestone sought to validate whether non-autoregressive flow-matching models could execute zero-shot speaker adaptation directly on local client hardware without cloud server dependencies, establishing an empirical edge baseline prior to addressing Indian languages.
 
 \subsection{Implementation Details}
 We developed the standalone evaluation tool \texttt{english\_tts.py} (and legacy \texttt{zipvoice-tts.py}) utilizing the Python C++ bindings of \texttt{sherpa-onnx}~\cite{sherpaonnx2023}. The model architecture incorporated:

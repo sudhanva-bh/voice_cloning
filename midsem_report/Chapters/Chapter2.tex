@@ -40,7 +40,7 @@ where $\nabla_{\mathbf{x}} \log p_t(\mathbf{x})$ is the score function, approxim
 Although diffusion models generate pristine audio quality, their Brownian stochastic trajectories are inherently curved and turbulent. Simulating stochastic differential equations requires high-order numerical solvers across 50 to 1000 sampling steps. Even accelerated diffusion solvers (e.g., DPM-Solver) require at least 15 to 30 forward evaluations, incurring unviable computational latency on mobile ARM processors.
 
 \subsection{Continuous Flow Matching: The Modern Frontier}
-To circumvent the Brownian noise and curvature penalties of diffusion SDEs, Lipman et al.~\cite{lipman2022flow} formulated \textit{Continuous Flow Matching} (\gls{cfm}). CFM synthesizes data along deterministic probability trajectories governed by ordinary differential equations. By constructing optimal transport displacement interpolants, CFM ensures that trajectories between noise and clean speech are straight linear paths, establishing the mathematical foundation for ultra-fast, real-time edge synthesis.
+To circumvent the Brownian noise and curvature penalties of diffusion SDEs, Lipman et al.~\cite{lipman2022flow} formulated \textit{Continuous Flow Matching} (\gls{cfm}). CFM synthesizes data along deterministic probability trajectories governed by ordinary differential equations. By constructing optimal transport displacement interpolants, CFM ensures that trajectories between noise and clean speech are straight linear paths, establishing the mathematical foundation for stable, low-complexity execution on resource-constrained edge architectures.
 
 \section{Continuous Normalizing Flows and Optimal Transport Flow Matching}
 \label{sec:cfm_theory}
@@ -199,8 +199,8 @@ To optimize solver step distribution, IndicF5 implements \textit{Sway Sampling}~
 \end{equation}
 Setting $\rho = -1.0$ warps the uniform discretization grid, clustering integration steps closer to the boundaries $t=0$ and $t=1$. This mathematical adjustment enables an \textbf{8-step Euler solver} to achieve acoustic Mean Opinion Scores equivalent to a 16-step or 32-step uniform solver, effectively slashing computational latency by 50\%.
 
-\section{Trajectory Straightening and Step Distillation}
-To push on-device synthesis speeds to absolute real-time thresholds on low-power hardware, the literature offers two cutting-edge mathematical methodologies:
+\section{Trajectory Straightening and Step Distillation for Edge Efficiency}
+To minimize iterative numerical evaluations, prevent battery depletion, and mitigate processor thermal throttling during edge execution on mobile SoCs, the literature offers two cutting-edge mathematical acceleration methodologies:
 
 \subsection{Rectified Flow and Reflow (Liu et al., 2022)}
 While optimal transport continuous flow matching produces straight trajectories in expectation, individual sample trajectories can cross in high-dimensional space, forcing the neural network to learn an average velocity that introduces curvature. Liu et al.~\cite{liu2022flowstraight} proved that this curvature can be systematically eliminated through recursive \textit{Reflow}:
