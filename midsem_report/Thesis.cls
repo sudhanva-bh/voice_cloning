@@ -1,3 +1,4 @@
+% !TeX root = main.tex
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Thesis LaTeX Template - THESIS CLASS FILE
 %
