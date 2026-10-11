@@ -1,0 +1,103 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Thesis / Project Report
+% LaTeX Template
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%-------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%-------------------------------------------------------------------------------
+
+\documentclass[11pt, a4paper, oneside]{Thesis}
+
+\usepackage{lmodern}
+\graphicspath{{Figures/}}
+
+\usepackage[backend=bibtex,sorting=none]{biblatex}
+\bibliography{Bibliography.bib}
+
+\title{\ttitle}
+
+\begin{document}
+
+\frontmatter
+
+\setstretch{1.15}
+
+\fancyhead{}
+\rhead{\thepage}
+\lhead{}
+
+\pagestyle{fancy}
+
+\input{variables}
+
+%-------------------------------------------------------------------------------
+%   NON-CONTENT PAGES
+%-------------------------------------------------------------------------------
+\maketitle
+% \Declaration
+% \Certificate 
+
+\begin{abstract}
+On-device zero-shot neural voice cloning enables the immediate replication of an unseen human speaker's acoustic timbre and prosody from a brief reference recording (three to five seconds) without model retraining or parameter fine-tuning. While modern continuous flow-matching models demonstrate remarkable expressive fidelity on cloud graphics accelerators, deploying these models on resource-constrained edge hardware presents formidable algorithmic, numerical, and systems-level hurdles. Specifically, low-tier commodity platforms such as the Lenovo Tab K10 (MediaTek Helio P22T with 4\,GB RAM) lack dedicated neural processing units, possess constrained memory bandwidth, and enforce strict user-space memory limits before triggering the Android operating system's \textit{LowMemoryKiller}. Furthermore, existing lightweight edge speech engines exclusively target English and Mandarin phonology, leaving a critical research gap for Dravidian and Indo-Aryan languages characterized by complex syllabic structures (\textit{aksharas}), consonant conjuncts, and vowel ligatures.
+
+This treatise presents the design, mathematical formulation, empirical benchmarking, and hardware optimization of a dual-engine on-device multilingual voice cloning architecture. For English synthesis, a non-autoregressive Zipformer backbone (ZipVoice-Distill, 123M parameters, INT8 quantized to 104\,MB) is coupled with a 24\,kHz Vocos vocoder and executed via Sherpa-ONNX. For native Indian languages, we formulate and verify an Indic voice cloning pipeline based on a 22-layer Diffusion Transformer (IndicF5, 335M parameters) trained on 1,417 hours of multi-speaker speech across eleven languages. We resolve critical duration mismatch artifacts by developing a calibrated syllabic akshara duration model (yielding 6.5 mel frames per character), and establish the spatial text-mel alignment law governing in-context conditioning. Physical hardware profiling across Samsung Galaxy S23, Galaxy Tab S9 FE+, and Galaxy M53 reveals real-time factor scaling and peak resident set size dynamics, validating our static INT8 quantization (349\,MB DiT with 22\,MB Vocos) within an 801\,MB operational memory envelope. Finally, we formulate a comprehensive production migration roadmap to Google LiteRT, leveraging the unified \textit{CompiledModel} API, Qualcomm AI Engine Direct (QNN), MediaTek NeuroPilot, and consistency distillation to achieve deterministic, real-time edge synthesis.
+\end{abstract}
+
+\begin{acknowledgements}
+{I express my sincere gratitude to Dr.~Jabez Christopher, Assistant Professor, Department of Computer Science and Information Systems, BITS-Pilani Hyderabad Campus, for his invaluable academic mentorship, technical guidance, and constructive critique throughout the course of this study and design project. His profound insights into artificial intelligence, embedded machine learning systems, and speech processing architectures have been instrumental in defining the trajectory and rigorous execution of this research. I also extend my appreciation to BITS-Pilani Hyderabad Campus for providing the academic infrastructure and computing resources that made this investigation possible.}
+\end{acknowledgements}
+
+%-------------------------------------------------------------------------------
+%	LIST OF CONTENTS/FIGURES/TABLES PAGES
+%-------------------------------------------------------------------------------
+
+\pagestyle{fancy}
+\lhead{\emph{Contents}}
+\tableofcontents
+
+\lhead{\emph{List of Tables}}
+\listoftables
+
+\listofnomenclature
+
+%-------------------------------------------------------------------------------
+%	THESIS CONTENT - CHAPTERS
+%-------------------------------------------------------------------------------
+
+\mainmatter
+
+\pagestyle{fancy}
+
+\input{Chapters/Chapter1}
+\input{Chapters/Chapter2}
+\input{Chapters/Chapter3}
+\input{Chapters/Chapter4}
+\input{Chapters/Chapter5}
+\input{Chapters/Chapter6}
+
+%-------------------------------------------------------------------------------
+%	THESIS CONTENT - APPENDICES
+%-------------------------------------------------------------------------------
+
+\addtocontents{toc}{\vspace{1em}}
+
+\appendix
+
+\input{Appendices/AppendixA}
+\input{Appendices/AppendixB}
+
+\addtocontents{toc}{\vspace{0em}}
+
+\backmatter
+
+%-------------------------------------------------------------------------------
+%	BIBLIOGRAPHY
+%-------------------------------------------------------------------------------
+
+\label{Bibliography}
+\lhead{\emph{Bibliography}}
+
+\printbibliography
+
+\end{document}

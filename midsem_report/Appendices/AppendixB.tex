@@ -1,0 +1,112 @@
+% Appendix B
+\chapter{Multilingual Phonetic Evaluation Prompts Dataset}
+\label{AppendixB}
+\lhead{Appendix B. \emph{Prompts Dataset Inventory}}
+
+\section{Dataset Architecture and Stratification Methodology}
+To evaluate voice cloning fidelity, articulation clarity, and real-time factor scaling under controlled experimental conditions, we curated the standardized dataset \texttt{prompts.json}. The corpus comprises 120 phonetically balanced conversational sentences distributed across Telugu, Tamil, and Hindi (40 phrases per language).
+
+To quantify temporal scaling dynamics and verify our syllabic duration formula across diverse utterance lengths, the corpus is stratified into four standardized duration tiers:
+\begin{enumerate}
+    \item \textbf{Short Tier} ($\sim 4\text{--}7$ words): Everyday inquiries, greetings, and brief conversational exchanges.
+    \item \textbf{Medium Tier} ($\sim 12\text{--}18$ words): Single-clause sentences conveying social activities and emotional reflections.
+    \item \textbf{Midlong Tier} ($\sim 20\text{--}25$ words): Compound descriptive sentences containing coordinate clauses.
+    \item \textbf{Long Tier} ($\sim 28\text{--}35$ words): Complex narrative sentences designed to stress-test attention mechanisms and RAM allocations.
+\end{enumerate}
+
+\section{Telugu Dataset Inventory}
+Table~\ref{tab:telugu_prompts_inventory} documents representative Telugu evaluation prompts across standardized duration tiers, accompanied by Romanized phonetic transcription and English semantic translations.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Curated Telugu Evaluation Prompts across Standardized Tiers}
+\label{tab:telugu_prompts_inventory}
+\begin{tabular}{lp{6.5cm}p{6.5cm}}
+\toprule
+\textbf{Tier} & \textbf{Phonetic Transliteration} & \textbf{English Semantic Translation} \\
+\midrule
+Short 1 & Nuvvu bhojanam chesaavaa? & Have you eaten your meal? \\
+Short 2 & Eeroju vaataavaranam chaalaa baagundi. & The weather is very pleasant today. \\
+Short 3 & Repu saayantram kaluddaamaa? & Shall we meet tomorrow evening? \\
+Short 4 & Naaku kaasinni neellu kaavaali. & I need some water, please. \\
+Short 5 & Intiki velle time ayyindi. & It is time to head back home. \\
+Short 6 & Ee pustakam chadavadame naaku nachindi. & I enjoyed reading this book. \\
+Short 7 & Andaru baagunnaaraa? & Is everyone doing well? \\
+\midrule
+Medium 1 & Chaalaa rojula tharvaatha ninnu choodatam chaalaa santhoshamgaa undi. & I am so glad to see you after such a long time. \\
+Medium 2 & Eeroju udayam nundi challagaa undi, varsham vachelaa undi. & It has been cool since morning; it looks like rain. \\
+Medium 3 & Maa oorlo pandaga timelo andaru chaalaa utsaahamgaa untaaru. & Everyone in our village is vibrant during festival time. \\
+Medium 4 & Pillalu thotalo puvvulu choosthu santhoshamgaa aadukuntunnaaru. & Children are happily playing in the garden admiring flowers. \\
+\midrule
+Midlong 1 & Prathiroju udayam lechi konchem sepu nadisthe rojanthaa churukgaa, aarogyamgaa untundi. & Walking every morning keeps one active and healthy throughout the day. \\
+Midlong 2 & Maa oori cheruvu daggara pachani polaalu, thaati chetlu, pakshula arupulu choosthunte manasuki chaalaa baaguntundi. & The green fields, palm trees, and birds by our village pond are truly delightful. \\
+\midrule
+Long 1 & Mana kutumbamlo andaram kalisi pandagalu cheskovadam valla mana madhya anubandham inkaa balamgaa avuthundi. & Celebrating festivals together strengthens our family bonds and mutual love. \\
+Long 2 & Raithulu endainaa vaanainaa lekka cheyakundaa polamlo kashtapadi pani chesthaaru kaabatte manandariki thintaaniki thindi dorukuthundi. & Because farmers work tirelessly through sun and rain, we have food to eat every day. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Tamil Dataset Inventory}
+Table~\ref{tab:tamil_prompts_inventory} documents representative Tamil evaluation prompts across standardized duration tiers, accompanied by Romanized phonetic transcription and English semantic translations.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Curated Tamil Evaluation Prompts across Standardized Tiers}
+\label{tab:tamil_prompts_inventory}
+\begin{tabular}{lp{6.5cm}p{6.5cm}}
+\toprule
+\textbf{Tier} & \textbf{Phonetic Transliteration} & \textbf{English Semantic Translation} \\
+\midrule
+Short 1 & Nee nalamaa irukkiyaa? & Are you doing well? \\
+Short 2 & Indru maalai kadarkaraikku povomaa? & Shall we visit the beach this evening? \\
+Short 3 & Enakku konjam thanni venum. & I need some drinking water. \\
+Short 4 & Indha puthagam romba nallaa irukku. & This book is exceptionally good. \\
+Short 5 & Neratha veenadikka koodadhu. & We should not waste our time. \\
+Short 6 & Veettukku poga neramaachu. & It is time to head back home. \\
+\midrule
+Medium 1 & Romba naalukku appuram unna paarthadhula enakku romba sandhosham. & I am delighted to see you after so many days. \\
+Medium 2 & Innaikku kaalayila irundhu nallaa kaathu veesudhu, mazhai varum pola irukku. & Breezes have blown since morning; it feels like rain. \\
+Medium 3 & Graamathula thiruvizhaa nadakkum bodhu makkal ellaam romba urchaagamaa iruppaanga. & During village temple festivals, people are filled with great joy. \\
+\midrule
+Midlong 1 & Dhinamum kaalayila endhirichu konja dhooram nadandhaa udambukku manasukku romba nalladhu. & Walking every morning revitalizes both body and mind. \\
+Midlong 2 & Engal oor kulathukkarayila irukkira pachai vayalgalum thendral marangalum paarkkave azhagaa irukkum. & The green paddy fields and coconut groves by our village pond are scenic. \\
+\midrule
+Long 1 & Kudumbathodu serndhu pandigaigalai kondaadum bodhu nammidaiye irukkum anbu innum adhigaamagum. & Celebrating festivals with family deepens mutual love and affection. \\
+Long 2 & Veyilum mazhaiyum paaraamal vivasaayigal nilathil kashtappattu uzhaippadhaal thaan namakku unavu kidaikkiradhu. & Because farmers labor regardless of rain or heat, we receive our sustenance. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Hindi Dataset Inventory}
+Table~\ref{tab:hindi_prompts_inventory} documents representative Hindi evaluation prompts across standardized duration tiers, accompanied by Romanized phonetic transcription and English semantic translations.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Curated Hindi Evaluation Prompts across Standardized Tiers}
+\label{tab:hindi_prompts_inventory}
+\begin{tabular}{lp{6.5cm}p{6.5cm}}
+\toprule
+\textbf{Tier} & \textbf{Phonetic Transliteration} & \textbf{English Semantic Translation} \\
+\midrule
+Short 1 & Kya aapne khaana khaa liya? & Have you finished your meal? \\
+Short 2 & Aaj ka mausam bahut suhaavana hai. & The weather is exceptionally pleasant today. \\
+Short 3 & Kya hum kal shaam ko mil sakte hain? & Can we meet tomorrow evening? \\
+Short 4 & Mujhe thoda paani chaahiye. & I would like some water. \\
+Short 5 & Ab ghar jaane ka samay ho gaya hai. & It is now time to return home. \\
+\midrule
+Medium 1 & Bahut dinon ke baad aapse milkar mujhe bahut khushi hui. & I am so glad to meet you after such a long time. \\
+Medium 2 & Aaj subah se thandi hava chal rahi hai, lagta hai baarish hogi. & Cool wind has been blowing; it seems rain is imminent. \\
+Medium 3 & Hamaare gaanv mein tyauhaar ke samay sabhi log bahut utsaahit hote hain. & During festivals in our village, everyone is full of enthusiasm. \\
+\midrule
+Midlong 1 & Har subah uthkar thodi der tahalne se dinbhar shareer mein taazgi aur oorja bani rahti hai. & Walking a bit every morning keeps one energetic throughout the day. \\
+Midlong 2 & Hamaare gaanv ke taalaab ke paas hare-bhare khet aur pedon ki sundarta man ko shaanti deti hai. & The lush green fields near our village pond bring serene peace. \\
+\midrule
+Long 1 & Parivaar ke saath milkar tyauhaar manaane se hamaare beech ka pyaar aur aapsi rishta aur bhi majboot hota hai. & Celebrating festivals with family strengthens our bonds and harmony. \\
+Long 2 & Kisaan dhoop aur baarish ki parvaah kiye bina kheton mein mehnat karte hain, tabhi humein ann milta hai. & Farmers toil without regard for sun or rain so that we may have food. \\
+\bottomrule
+\end{tabular}
+\end{table}

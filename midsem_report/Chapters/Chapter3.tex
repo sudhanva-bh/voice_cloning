@@ -1,0 +1,309 @@
+% Chapter 3
+\chapter{System Architecture and Algorithmic Formulation}
+\label{Chapter3}
+\lhead{Chapter 3. \emph{System Architecture}}
+
+\section{Heterogeneous Dual-Engine Pipeline Architecture}
+To simultaneously satisfy the competing demands of high-throughput English speech synthesis and native Indian zero-shot voice cloning, we formulate a \textbf{heterogeneous dual-engine pipeline architecture}. Rather than forcing a single compromise model to handle disparate phonetic systems, the architecture bifurcates execution into two specialized, mathematically complementary generative engines coordinated by an intelligent language router:
+
+\begin{enumerate}
+    \item \textbf{Engine 1: The English Baseline Engine (ZipVoice-Distill)}:
+    \begin{itemize}
+        \item \textit{Backbone Architecture}: A non-autoregressive Zipformer acoustic backbone comprising approximately 123 million parameters, pre-trained on the multi-speaker Emilia English-Chinese dataset.
+        \item \textit{Numerical Solver}: A 4-step distilled continuous flow-matching decoder.
+        \item \textit{Neural Vocoder}: A 24\,kHz Vocos vocoder (INT8 quantized to 54\,MB).
+        \item \textit{Execution Runtime}: Executed natively via \texttt{sherpa-onnx} C++ binaries wrapped in a background Flutter Dart Isolate.
+        \item \textit{Memory Footprint}: Approximately 104\,MB for the quantized INT8 acoustic graph.
+    \end{itemize}
+    
+    \item \textbf{Engine 2: The Indic Multilingual Engine (IndicF5)}:
+    \begin{itemize}
+        \item \textit{Backbone Architecture}: A 22-layer Diffusion Transformer (\gls{dit}) comprising 335 million parameters, pre-trained on 1,417 hours of curated multi-speaker Indic speech across 11 languages (Tamil, Telugu, Kannada, Hindi, Malayalam, Marathi, Gujarati, Bengali, Punjabi, Odia, Assamese).
+        \item \textit{Generative Formulation}: Continuous Optimal Transport Flow Matching (\gls{cfm}) solved via an 8-step Euler ODE numerical integrator incorporating Classifier-Free Guidance (\gls{cfg}) and non-linear sway scheduling ($\rho = -1.0$).
+        \item \textit{Neural Vocoder}: An INT8-quantized 24\,kHz Vocos Fourier vocoder (~22\,MB, 13.5M parameters) computing analytical Inverse Short-Time Fourier Transforms.
+        \item \textit{Execution Runtime}: Python desktop development environment (PyTorch safetensors baseline), static/dynamic INT8 ONNX graphs, and a custom native C++ engine (\texttt{libindicf5\_engine.so}) with a strategic migration path toward Google LiteRT.
+    \end{itemize}
+\end{enumerate}
+
+\section{Signal Preprocessing and Acoustic Feature Extraction}
+Raw audio ingested from consumer smartphone microphones or uploaded media containers exhibits wide variances in sampling rates, bit depths, channel configurations, and acoustic recording levels. To ensure numerical stability across the neural generative stages, every audio signal undergoes a standardized three-stage preprocessing pipeline:
+
+\subsection{Standardized Audio Ingestion and Format Transcoding}
+Arbitrary user-provided audio files (in \texttt{.mp3}, \texttt{.ogg}, \texttt{.m4a}, \texttt{.flac}, or \texttt{.wav} formats) are decoded and transcoded using FFmpeg into standardized 16-bit signed uncompressed Pulse Code Modulation (\gls{pcm}) mono WAV files at a target sampling frequency of:
+\begin{equation}
+    f_s = 24,000\,\text{Hz}
+    \label{eq:sampling_frequency}
+\end{equation}
+
+\subsection{Root-Mean-Square (RMS) Energy Normalization}
+Reference voice recordings exhibit severe dynamic range disparities, ranging from low-gain whispering to clipped, saturated speech. In continuous flow matching, acoustic amplitude directly modulates the magnitude of the conditioning mel frames $\mathbf{x}_{\text{ref}}$. If the reference audio energy is too low, the model predicts weak, muffled speech; conversely, excessive input gain introduces severe harmonic distortion and phase clipping.
+
+To standardize acoustic energy, all reference audio signals $\mathbf{y} \in \mathbb{R}^{N}$ are subjected to Root-Mean-Square (\gls{rms}) normalization. The instantaneous root-mean-square amplitude of the signal is defined as:
+\begin{equation}
+    \text{RMS}(\mathbf{y}) = \sqrt{\frac{1}{N} \sum_{n=1}^N y(n)^2}
+    \label{eq:rms_definition}
+\end{equation}
+The audio waveform is scaled linearly to match a target reference energy level $\text{RMS}_{\text{target}} = 0.10$:
+\begin{equation}
+    \mathbf{y}_{\text{norm}} = \mathbf{y} \cdot \left( \frac{\text{RMS}_{\text{target}}}{\text{RMS}(\mathbf{y}) + \epsilon} \right)
+    \label{eq:rms_scaling}
+\end{equation}
+where $\epsilon = 10^{-7}$ prevents division by zero during digital silence. Following scaling, peak amplitude values are clamped to the dynamic range $[-1.0, 1.0]$ to prevent integer overflow clipping:
+\begin{equation}
+    \tilde{y}(n) = \max\left( -1.0, \min\left( 1.0, y_{\text{norm}}(n) \right) \right)
+    \label{eq:clamping}
+\end{equation}
+
+\subsection{Log-Mel Filterbank Transformation}
+Continuous acoustic features are extracted by computing 100-channel log-mel spectrograms. Let $N_{\text{fft}} = 1024$ represent the Fast Fourier Transform analysis window size, and let $H = 256$ represent the hop size (frame shift). The Short-Time Fourier Transform (\gls{stft}) is computed using a periodic Hanning window:
+\begin{equation}
+    X(k, m) = \sum_{n=0}^{N_{\text{fft}}-1} \tilde{y}(n + mH) w(n) e^{-j \frac{2\pi}{N_{\text{fft}}} kn}
+    \label{eq:stft_analysis}
+\end{equation}
+where $k \in [0, \frac{N_{\text{fft}}}{2}]$ represents discrete frequency bins, and $m \in [0, M-1]$ denotes discrete time frames. 
+
+The physical power spectrum $|X(k, m)|^2$ is warped onto the perceptual mel scale via a bank of $C = 100$ triangular bandpass filters $H_c(k)$ spanning the frequency range $[0, \frac{f_s}{2}]$:
+\begin{equation}
+    S_{\text{mel}}(c, m) = \sum_{k=0}^{N_{\text{fft}}/2} |X(k, m)|^2 H_c(k), \quad c \in [1, 100]
+    \label{eq:mel_filterbank}
+\end{equation}
+The log-mel spectrogram tensor $\mathbf{x}_{\text{mel}} \in \mathbb{R}^{100 \times M}$ is obtained via logarithmic compression:
+\begin{equation}
+    \mathbf{x}_{\text{mel}}(c, m) = \log\left( \max\left( S_{\text{mel}}(c, m), 10^{-5} \right) \right)
+    \label{eq:log_compression}
+\end{equation}
+
+\section{Indic Akshara Dynamics and Syllabic Duration Modeling}
+\label{sec:duration_modeling}
+A critical challenge in non-autoregressive speech generation is determining the total sequence length of the target audio prior to synthesis. Autoregressive models terminate generation organically upon emitting an \texttt{<EOS>} token. Non-autoregressive flow-matching models, by contrast, must pre-allocate a fixed-dimensional noise canvas of shape $[1, 100, T_{\text{total}}]$.
+
+\subsection{The Linguistic Duration Mismatch Problem}
+In English text-to-speech, character counts correlate weakly with duration due to irregular spelling, but phoneme counts provide reasonable estimates ($\approx 80\text{--}120\text{ms}$ per phoneme). In Indian languages, written text consists of base consonants combined with dependent diacritics (\textit{matras}, \textit{viramas}, \textit{anusvaras}). 
+
+Early implementations of IndicF5 utilized an uncalibrated heuristic derived from English phoneme models:
+\begin{equation}
+    T_{\text{gen}}^{\text{naive}} = \left\lfloor \text{len}(\mathbf{w}_{\text{tgt}}) \times 15.0 \right\rfloor \quad \text{frames}
+    \label{eq:naive_duration}
+\end{equation}
+This formula resulted in severe acoustic pathologies. In Tamil, for example, a sentence containing 80 Unicode code points was allocated:
+\begin{equation}
+    T_{\text{gen}} = 80 \times 15 = 1,200\,\text{frames} \implies \frac{1200 \times 256}{24000} = 12.8\,\text{seconds}
+\end{equation}
+However, a native speaker articulates that same sentence in approximately 5.2 seconds (487 frames). Because the Diffusion Transformer was forced to integrate across a 1,200-frame canvas, the model articulated the speech correctly in the first 5 seconds, but spent the remaining 7.6 seconds producing \textbf{catastrophic tail hallucinations: heavy audible breathing, whispering babble, repeated syllables, and acoustic noise}. Conversely, under-allocating duration resulted in truncated words, clipping the final 2--3 words of sentences.
+
+\subsection{Mathematical Derivation of the Calibrated Syllabic Model}
+To resolve this defect, we derived a calibrated syllabic duration model grounded in the phonetic distributions of the IndicVoices corpus~\cite{indicvoices2024}. 
+
+Let $N_{\text{chars}} = \text{len}(\mathbf{w}_{\text{tgt}})$ denote the Unicode string length of the target Indic text. In Dravidian and Indo-Aryan scripts, a complete syllabic akshara decomposes into an average of 1.6 to 2.2 Unicode code points (e.g., base consonant + matra). Accounting for pauses, phrase-final lengthening, and punctuation cadence, the empirical acoustic duration per character glyph evaluates to:
+\begin{equation}
+    \tau_{\text{char}} \approx 54.0\,\text{ms} \quad \text{to} \quad 60.0\,\text{ms per Unicode character}
+    \label{eq:char_temporal_density}
+\end{equation}
+Converting this temporal density into discrete mel frames at a 256-sample hop size yields:
+\begin{equation}
+    k_{\text{mel}} = \frac{\tau_{\text{char}}}{\Delta t_{\text{frame}}} = \frac{0.055\,\text{s}}{\frac{256}{24000}\,\text{s}} \approx 6.445\,\text{mel frames / character}
+    \label{eq:mel_density_derivation}
+\end{equation}
+
+Incorporating an adjustable user speaking rate modifier $\alpha_{\text{speed}} \in [0.5, 2.0]$ and an explicit post-utterance acoustic padding buffer $\tau_{\text{pad}} = 0.30$\,seconds, the exact target frame duration is formulated as:
+\begin{equation}
+    T_{\text{gen}} = \left\lfloor \text{len}(\mathbf{w}_{\text{tgt}}) \times \frac{6.5}{\max(\alpha_{\text{speed}}, 0.1)} \right\rfloor
+    \label{eq:calibrated_gen_frames}
+\end{equation}
+\begin{equation}
+    T_{\text{pad}} = \left\lfloor \frac{\tau_{\text{pad}} \cdot f_s}{H} \right\rfloor = \left\lfloor \frac{0.30 \times 24000}{256} \right\rfloor = 28\,\text{frames}
+    \label{eq:pad_frames}
+\end{equation}
+\begin{equation}
+    T_{\text{total}} = T_{\text{ref}} + T_{\text{gen}} + T_{\text{pad}}
+    \label{eq:total_frames}
+\end{equation}
+where $T_{\text{ref}} = \lfloor \frac{N_{\text{ref\_samples}}}{H} \rfloor$ represents the exact mel frame length of the reference audio clip. This calibrated formulation (\eref{eq:total_frames}) establishes an optimal balance, completely eliminating both tail hallucinations and phoneme truncation.
+
+\section{Conditioning Representation and Sequence Concatenation}
+In the F5-TTS / IndicF5 paradigm, zero-shot voice cloning operates without an explicit phoneme duration aligner or CTC loss. The architecture achieves monotonic alignment implicitly by concatenating text representations and acoustic frames along the sequence dimensions:
+
+\subsection{Multilingual Character Tokenization}
+Text sequences are parsed using a shared multilingual character vocabulary (\texttt{vocab.txt}) comprising 187 discrete tokens. The vocabulary encompasses:
+\begin{itemize}
+    \item Latin alphabet characters ($a\text{--}z, A\text{--}Z$) for English baseline compatibility.
+    \item Devanagari Unicode blocks (U+0900 to U+097F) for Hindi and Marathi.
+    \item Tamil Unicode blocks (U+0B80 to U+0BFF) for Tamil.
+    \item Telugu Unicode blocks (U+0C00 to U+0C7F) for Telugu.
+    \item Kannada Unicode blocks (U+0C80 to U+0CFF) for Kannada.
+    \item Standard punctuation markers (periods, commas, question marks, exclamation marks, and the Devanagari danda).
+\end{itemize}
+
+\subsection{The Spatial Alignment Constraint (Reference Duration Law)}
+Let $\mathbf{w}_{\text{full}} = \mathbf{w}_{\text{ref}} \oplus \text{`` ''} \oplus \mathbf{w}_{\text{tgt}}$ represent the concatenated string. The text is passed through the ConvNeXt-V2 text encoder, producing a sequence of continuous text embeddings $\mathbf{E}_{\text{text}} \in \mathbb{R}^{512 \times N_{\text{tokens}}}$. 
+
+The model constructs an acoustic conditioning canvas $\mathbf{C} \in \mathbb{R}^{100 \times T_{\text{total}}}$:
+\begin{equation}
+    \mathbf{C}[:, t] = 
+    \begin{cases}
+        \mathbf{x}_{\text{ref}}[:, t], & \text{for } 0 \le t < T_{\text{ref}} \\
+        \mathbf{0}, & \text{for } T_{\text{ref}} \le t < T_{\text{total}}
+    \end{cases}
+    \label{eq:acoustic_canvas}
+\end{equation}
+
+\begin{remark}[The Reference Duration Boundary Law]
+In the F5-TTS ConvNeXt architecture, the text encoder places all text tokens contiguously at indices $0 \dots N_{\text{tokens}}$ at the start of the sequence. If the reference audio duration $T_{\text{ref}}$ is excessively long (e.g., $T_{\text{ref}} > 7.0$\,seconds), the text representations corresponding to the target utterance are positioned far behind the reference audio boundary. The self-attention layers suffer from positional degradation, attempting to synthesize speech across a temporal span where text conditioning is completely zero-padded, resulting in garbled noise.
+
+Conversely, if $T_{\text{ref}} < 3.0$\,seconds, the reference signal provides insufficient acoustic evidence to extract stable speaker pitch contours and room reverberation profiles. Hence, we establish the fundamental operational law:
+\begin{equation}
+    3.5\,\text{seconds} \le \Delta t_{\text{ref}} \le 5.0\,\text{seconds}
+    \label{eq:reference_duration_law}
+\end{equation}
+accompanied by a verbatim transcript matching the spoken reference audio exactly.
+\end{remark}
+
+\section{Continuous Flow Matching Sampling Formulation}
+The generation trajectory is initialized at $t=0$ by drawing pure Gaussian noise:
+\begin{equation}
+    \mathbf{x}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_{100 \times T_{\text{total}}})
+    \label{eq:gaussian_init}
+\end{equation}
+
+Numerical integration proceeds from $s=0$ to $s=1$ across $N$ discrete steps using the sway-warped schedule:
+\begin{equation}
+    s_i = \frac{i}{N}, \quad t_i = s_i + \rho \cdot s_i(1 - s_i)(1 - 2s_i), \quad i \in \{0, 1, \dots, N\}
+    \label{eq:sway_steps}
+\end{equation}
+with step size $\Delta t_i = t_{i+1} - t_i$ and sway parameter $\rho = -1.0$.
+
+At each step $i$, the velocity vector field is evaluated twice to apply Classifier-Free Guidance (\gls{cfg}):
+\begin{align}
+    \mathbf{v}_{\text{cond}} &= \mathbf{v}_\theta(\mathbf{x}_{t_i}, t_i, \mathbf{C}, \mathbf{E}_{\text{text}}) \label{eq:v_cond} \\
+    \mathbf{v}_{\text{uncond}} &= \mathbf{v}_\theta(\mathbf{x}_{t_i}, t_i, \mathbf{0}, \mathbf{0}) \label{eq:v_uncond} \\
+    \tilde{\mathbf{v}}_i &= (1 + \gamma)\mathbf{v}_{\text{cond}} - \gamma \mathbf{v}_{\text{uncond}} \label{eq:v_guided}
+\end{align}
+where $\gamma = 2.0$ amplifies linguistic and speaker conditioning while suppressing unconditional background noise.
+
+The state is updated via first-order Euler integration:
+\begin{equation}
+    \mathbf{x}_{t_{i+1}} = \mathbf{x}_{t_i} + \Delta t_i \cdot \tilde{\mathbf{v}}_i
+    \label{eq:euler_step}
+\end{equation}
+
+Upon reaching $t=1$, the integrated trajectory $\mathbf{x}_1 \in \mathbb{R}^{100 \times T_{\text{total}}}$ represents clean mel-spectrogram features. The unmasked target speech frames are extracted by slicing off the prefix reference window:
+\begin{equation}
+    \mathbf{x}_{\text{tgt}} = \mathbf{x}_1[:, T_{\text{ref}} : T_{\text{total}}] \in \mathbb{R}^{100 \times (T_{\text{gen}} + T_{\text{pad}})}
+    \label{eq:slicing_operation}
+\end{equation}
+
+\section{Vocos Neural Spectral Decoding via Inverse STFT}
+The extracted mel-spectrogram $\mathbf{x}_{\text{tgt}}$ is passed directly to the INT8 Vocos neural vocoder. The Vocos ConvNeXt backbone processes the 100 mel channels and emits:
+\begin{enumerate}
+    \item \textbf{Magnitude Matrix}: $|\mathbf{X}| \in \mathbb{R}^{513 \times T_{\text{out}}}$ representing Fourier frequency amplitudes.
+    \item \textbf{Phase Vectors}: $(\mathbf{P}_{\text{cos}}, \mathbf{P}_{\text{sin}}) \in \mathbb{R}^{513 \times T_{\text{out}}}$, normalized to unit length:
+    \begin{equation}
+        \hat{\mathbf{P}}_{\text{cos}} = \frac{\mathbf{P}_{\text{cos}}}{\sqrt{\mathbf{P}_{\text{cos}}^2 + \mathbf{P}_{\text{sin}}^2 + \epsilon}}, \quad \hat{\mathbf{P}}_{\text{sin}} = \frac{\mathbf{P}_{\text{sin}}}{\sqrt{\mathbf{P}_{\text{cos}}^2 + \mathbf{P}_{\text{sin}}^2 + \epsilon}}
+        \label{eq:phase_normalization}
+    \end{equation}
+\end{enumerate}
+
+The complex spectral matrix $\mathbf{Z} \in \mathbb{C}^{513 \times T_{\text{out}}}$ is assembled via Cartesian coordinates:
+\begin{equation}
+    \mathbf{Z}(f, t) = |\mathbf{X}(f, t)| \cdot \left( \hat{\mathbf{P}}_{\text{cos}}(f, t) + j \hat{\mathbf{P}}_{\text{sin}}(f, t) \right)
+    \label{eq:complex_assembly}
+\end{equation}
+
+The continuous time-domain speech waveform $\mathbf{y} \in \mathbb{R}^{N_{\text{samples}}}$ is computed via the Inverse Short-Time Fourier Transform:
+\begin{equation}
+    y(n) = \frac{\sum_{m=-\infty}^\infty w(n - mH) \left[ \frac{1}{N_{\text{fft}}} \sum_{k=0}^{N_{\text{fft}}-1} \mathbf{Z}(k, m) e^{j \frac{2\pi}{N_{\text{fft}}} kn} \right]}{\sum_{m=-\infty}^\infty w^2(n - mH)}
+    \label{eq:istft_formal}
+\end{equation}
+where $w(n)$ is a periodic Hanning analysis window of length $N_{\text{fft}} = 1024$ and frame hop $H = 256$.
+
+\section{Formal Algorithmic Specifications}
+The complete end-to-end mathematical procedures for Continuous Flow Matching Voice Cloning and Vocos Neural Spectral Inversion are formalized in Algorithm~\ref{alg:cfm_generation} and Algorithm~\ref{alg:vocos_inversion}.
+
+\begin{algorithm}[htbp]
+\caption{Continuous Flow Matching Zero-Shot Voice Synthesis}
+\label{alg:cfm_generation}
+\begin{algorithmic}[1]
+\Require Reference audio $\mathbf{y}_{\text{ref}} \in \mathbb{R}^N$, Reference text $\mathbf{w}_{\text{ref}}$, Target text $\mathbf{w}_{\text{tgt}}$, Model $v_\theta$, Vocoder $V_\phi$, Sampling steps $N$, Guidance weight $\gamma$, Speaking speed $\alpha$, Padding $\tau_{\text{pad}}$.
+\Ensure Cloned time-domain speech waveform $\mathbf{y}_{\text{tgt}} \in \mathbb{R}^M$.
+
+\State $\mathbf{y}_{\text{norm}} \gets \text{NormalizeRMS}(\mathbf{y}_{\text{ref}}, \text{target\_rms}=0.10)$
+\State $\mathbf{x}_{\text{ref}} \gets \text{MelFilterbank}(\mathbf{y}_{\text{norm}}, f_s=24000, H=256, N_{\text{fft}}=1024)$
+\State $T_{\text{ref}} \gets \text{Cols}(\mathbf{x}_{\text{ref}})$
+
+\State $T_{\text{gen}} \gets \lfloor \text{len}(\mathbf{w}_{\text{tgt}}) \times (6.5 / \alpha) \rfloor$
+\State $T_{\text{pad}} \gets \lfloor (\tau_{\text{pad}} \times 24000) / 256 \rfloor$
+\State $T_{\text{total}} \gets T_{\text{ref}} + T_{\text{gen}} + T_{\text{pad}}$
+
+\State $\mathbf{C} \gets \text{Zeros}(100, T_{\text{total}})$
+\State $\mathbf{C}[:, 0 : T_{\text{ref}}] \gets \mathbf{x}_{\text{ref}}$ \Comment{Set unmasked prefix acoustic prompt}
+
+\State $\mathbf{w}_{\text{full}} \gets \mathbf{w}_{\text{ref}} \oplus \text{`` ''} \oplus \mathbf{w}_{\text{tgt}}$
+\State $\mathbf{E}_{\text{text}} \gets \text{ConvNeXtEncoder}(\text{Tokenize}(\mathbf{w}_{\text{full}}))$
+
+\State $\mathbf{x}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_{100 \times T_{\text{total}}})$ \Comment{Initialize prior Gaussian noise}
+
+\For{$i = 0$ \textbf{to} $N-1$}
+    \State $s_i \gets i / N$; \quad $s_{i+1} \gets (i+1) / N$
+    \State $t_i \gets s_i - s_i(1 - s_i)(1 - 2s_i)$ \Comment{Sway schedule with $\rho = -1.0$}
+    \State $t_{i+1} \gets s_{i+1} - s_{i+1}(1 - s_{i+1})(1 - 2s_{i+1})$
+    \State $\Delta t_i \gets t_{i+1} - t_i$
+    
+    \State $\mathbf{v}_{\text{cond}} \gets \mathbf{v}_\theta(\mathbf{x}_{t_i}, t_i, \mathbf{C}, \mathbf{E}_{\text{text}})$
+    \State $\mathbf{v}_{\text{uncond}} \gets \mathbf{v}_\theta(\mathbf{x}_{t_i}, t_i, \mathbf{0}, \mathbf{0})$
+    \State $\tilde{\mathbf{v}}_i \gets (1 + \gamma)\mathbf{v}_{\text{cond}} - \gamma \mathbf{v}_{\text{uncond}}$ \Comment{Classifier-Free Guidance}
+    
+    \State $\mathbf{x}_{t_{i+1}} \gets \mathbf{x}_{t_i} + \Delta t_i \cdot \tilde{\mathbf{v}}_i$ \Comment{Euler ODE numerical update}
+\EndFor
+
+\State $\mathbf{x}_{\text{tgt}} \gets \mathbf{x}_1[:, T_{\text{ref}} : T_{\text{total}}]$ \Comment{Slice generated target mel frames}
+\State $\mathbf{y}_{\text{tgt}} \gets \text{VocosDecode}(V_\phi, \mathbf{x}_{\text{tgt}})$
+\State \Return $\mathbf{y}_{\text{tgt}}$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[htbp]
+\caption{Vocos Neural Fourier Audio Synthesis}
+\label{alg:vocos_inversion}
+\begin{algorithmic}[1]
+\Require Quantized Vocos Model $V_\phi$, Synthesized Mel-Spectrogram $\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{100 \times T}$.
+\Ensure Reconstructed PCM Audio Samples $\mathbf{y} \in \mathbb{R}^N$.
+
+\State $\mathbf{H}_{\text{features}} \gets \text{ConvNeXtBackbone}_\phi(\mathbf{x}_{\text{tgt}})$
+\State $|\mathbf{X}| \gets \exp\left(\text{LinearMagHead}_\phi(\mathbf{H}_{\text{features}})\right)$ \Comment{Predict magnitude spectra}
+\State $\mathbf{P}_{\text{cos}}, \mathbf{P}_{\text{sin}} \gets \text{LinearPhaseHead}_\phi(\mathbf{H}_{\text{features}})$
+
+\State $\mathbf{P}_{\text{norm}} \gets \sqrt{\mathbf{P}_{\text{cos}}^2 + \mathbf{P}_{\text{sin}}^2 + 10^{-8}}$
+\State $\hat{\mathbf{P}}_{\text{cos}} \gets \mathbf{P}_{\text{cos}} / \mathbf{P}_{\text{norm}}; \quad \hat{\mathbf{P}}_{\text{sin}} \gets \mathbf{P}_{\text{sin}} / \mathbf{P}_{\text{norm}}$
+
+\State $\mathbf{Z}_{\text{real}} \gets |\mathbf{X}| \odot \hat{\mathbf{P}}_{\text{cos}}; \quad \mathbf{Z}_{\text{imag}} \gets |\mathbf{X}| \odot \hat{\mathbf{P}}_{\text{sin}}$
+\State $\mathbf{Z} \gets \mathbf{Z}_{\text{real}} + j \mathbf{Z}_{\text{imag}} \in \mathbb{C}^{513 \times T}$
+
+\State $\mathbf{y} \gets \text{iSTFT}(\mathbf{Z}, N_{\text{fft}}=1024, H=256, \text{window}=\text{Hanning})$
+\State \Return $\mathbf{y}$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Comparative Model Architectural Matrix}
+To validate the selection of IndicF5 as our primary Indic backbone and ZipVoice-Distill as our English baseline, Table~\ref{tab:model_comparison_detailed} summarizes the architectural specifications, parameter counts, memory footprints, and edge feasibility of candidate models surveyed in the literature.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Comprehensive Architectural Comparison of Speech Synthesis Models}
+\label{tab:model_comparison_detailed}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Model} & \textbf{Params} & \textbf{Paradigm} & \textbf{Quantized} & \textbf{Zero-Shot} & \textbf{Indic Support} & \textbf{Edge Verdict} \\
+\midrule
+\textbf{IndicF5} & \textbf{335M} & \textbf{OT-CFM (DiT)} & \textbf{349\,MB (INT8)} & \textbf{Yes} & \textbf{Native (11 Lang)} & \textbf{Primary Indic} \\
+\textbf{ZipVoice} & 123M & OT-CFM (Zipf.) & 104\,MB (INT8) & Yes & None (En/Zh only) & English Baseline \\
+\textbf{GPT-SoVITS} & 77M & Hybrid AR+VITS & ~85\,MB (FP16) & Yes (5s) & Unofficial/Weak & Tier-B Spike \\
+\textbf{Chatterbox} & 110M & AR + 1-Step & Not Quantized & Yes & None (English) & Excluded \\
+\textbf{XTTS-v2} & 467M & AR Transformer & >1.8\,GB & Yes & Adaptable (Heavy) & Excluded (OOM) \\
+\textbf{Kokoro-82M} & 82M & StyleTTS2 & ~80\,MB & No & None (English) & Excluded \\
+\textbf{VITS (Base)} & ~35M & VAE + Flow & ~45\,MB & No (Fixed) & Per-Voice Training & Excluded \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+As substantiated by Table~\ref{tab:model_comparison_detailed}, IndicF5 is the solitary architecture that combines true zero-shot voice cloning with native out-of-the-box multilingual support for Indian languages, while remaining compressible into a sub-400\,MB INT8 mobile footprint.

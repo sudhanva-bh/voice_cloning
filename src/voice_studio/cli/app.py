@@ -56,9 +56,18 @@ def build_parser() -> argparse.ArgumentParser:
     del_p.add_argument("key", type=str, help="Voice key to delete")
     del_p.add_argument("--delete-audio", action="store_true", help="Also delete audio file from disk")
 
-    # 6. clone
+    # quick (default voice synthesis)
+    quick_p = subparsers.add_parser("quick", help="Quick single voice synthesis directly using the 'default' voice")
+    quick_p.add_argument("text", type=str, nargs="?", default="", help="Target text to synthesize")
+    quick_p.add_argument("--out", "-o", type=str, default="", help="Output audio file path")
+    quick_p.add_argument("--format", "-f", type=str, default="mp3", choices=["wav", "mp3", "ogg", "flac"], help="Output format (default: mp3)")
+    quick_p.add_argument("--steps", type=int, default=8, help="Diffusion steps (default: 8)")
+    quick_p.add_argument("--cfg", type=float, default=2.0, help="CFG strength (default: 2.0)")
+    quick_p.add_argument("--speed", type=float, default=1.0, help="Speech speed multiplier (default: 1.0)")
+
+    # clone
     clone_p = subparsers.add_parser("clone", help="Run IndicF5 single-utterance voice cloning")
-    clone_p.add_argument("--voice", "-v", type=str, default="", help="Preset voice key from catalog")
+    clone_p.add_argument("--voice", "-v", type=str, default="default", help="Preset voice key from catalog (default: 'default')")
     clone_p.add_argument("--ref", type=str, default="", help="Path to reference audio file")
     clone_p.add_argument("--ref-text", type=str, default="", help="Transcript of reference audio")
     clone_p.add_argument("--text", "-t", type=str, default="", help="Target text to synthesize")
@@ -109,6 +118,20 @@ def main():
         )
     elif args.command == "delete":
         cmd_delete(args.key, delete_audio=args.delete_audio, json_path=json_path)
+    elif args.command == "quick":
+        target = args.text
+        if not target:
+            target = "வணக்கம், நீங்கள் எப்படி இருக்கிறீர்கள்? நான் இப்போது உங்கள் குரலில் பேசுகிறேன்."
+        cmd_clone(
+            voice_key="default",
+            target_text=target,
+            out_path=args.out,
+            audio_format=args.format,
+            steps=args.steps,
+            cfg=args.cfg,
+            speed=args.speed,
+            json_path=json_path,
+        )
     elif args.command == "clone":
         cmd_clone(
             voice_key=args.voice,

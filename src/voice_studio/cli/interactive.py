@@ -268,21 +268,22 @@ def _select_voice(catalog_mgr: VoiceCatalog, prompt_msg: str = "Select a referen
 
 
 def ask_main_menu() -> str | None:
-    """Prompts main menu supporting both instant numeric hotkeys (1-7, 0, q) and arrow-key navigation."""
+    """Prompts main menu supporting both instant numeric hotkeys (1-8, 0, q) and arrow-key navigation."""
     choices = [
-        Choice(title="[1] List All Registered Voices", value="list"),
-        Choice(title="[2] Add New Reference Voice", value="add"),
-        Choice(title="[3] Inspect Voice Details & Transcript", value="info"),
-        Choice(title="[4] Test Single Voice Clone", value="clone"),
-        Choice(title="[5] Run Customizable Batch Synthesis", value="batch"),
-        Choice(title="[6] Browse Available Phrases Dataset", value="prompts"),
-        Choice(title="[7] Delete / Unregister a Voice", value="delete"),
+        Choice(title="[1] Quick Single Voice Clone (Default Voice)", value="quick"),
+        Choice(title="[2] Test Single Voice Clone (Choose Any Voice)", value="clone"),
+        Choice(title="[3] Run Customizable Batch Synthesis (Telugu, Tamil, Hindi)", value="batch"),
+        Choice(title="[4] List All Registered Voices & Health", value="list"),
+        Choice(title="[5] Add New Reference Voice (Auto-Validate & Move)", value="add"),
+        Choice(title="[6] Inspect Voice Details & Transcript", value="info"),
+        Choice(title="[7] Browse Available Phrases Dataset", value="prompts"),
+        Choice(title="[8] Delete / Unregister a Voice", value="delete"),
         Choice(title="[0] Exit", value="exit"),
     ]
 
     try:
         q = questionary.select(
-            "Select an option [1-7, 0]:",
+            "Select an option [1-8, 0]:",
             choices=choices,
             style=CUSTOM_STYLE,
             use_arrow_keys=True,
@@ -294,29 +295,33 @@ def ask_main_menu() -> str | None:
         # Instant numeric hotkey listeners (fires immediately upon pressing key)
         @kb.add("1", eager=True)
         def _(event):
-            event.app.exit(result="list")
+            event.app.exit(result="quick")
 
         @kb.add("2", eager=True)
         def _(event):
-            event.app.exit(result="add")
+            event.app.exit(result="clone")
 
         @kb.add("3", eager=True)
         def _(event):
-            event.app.exit(result="info")
+            event.app.exit(result="batch")
 
         @kb.add("4", eager=True)
         def _(event):
-            event.app.exit(result="clone")
+            event.app.exit(result="list")
 
         @kb.add("5", eager=True)
         def _(event):
-            event.app.exit(result="batch")
+            event.app.exit(result="add")
 
         @kb.add("6", eager=True)
         def _(event):
-            event.app.exit(result="prompts")
+            event.app.exit(result="info")
 
         @kb.add("7", eager=True)
+        def _(event):
+            event.app.exit(result="prompts")
+
+        @kb.add("8", eager=True)
         def _(event):
             event.app.exit(result="delete")
 
@@ -328,18 +333,20 @@ def ask_main_menu() -> str | None:
         return q.ask()
     except Exception:
         # Graceful fallback for non-TTY / redirected terminals
-        print("\n  [1] List All Registered Voices")
-        print("  [2] Add New Reference Voice")
-        print("  [3] Inspect Voice Details")
-        print("  [4] Test Single Voice Clone")
-        print("  [5] Run Customizable Batch Synthesis")
-        print("  [6] Browse Phrases Dataset")
-        print("  [7] Delete / Unregister a Voice")
+        print("\n  [1] Quick Single Voice Clone (Default Voice)")
+        print("  [2] Test Single Voice Clone (Choose Any Voice)")
+        print("  [3] Run Customizable Batch Synthesis")
+        print("  [4] List All Registered Voices")
+        print("  [5] Add New Reference Voice")
+        print("  [6] Inspect Voice Details")
+        print("  [7] Browse Phrases Dataset")
+        print("  [8] Delete / Unregister a Voice")
         print("  [0] Exit\n")
-        raw = input(" Select an option [0-7]: ").strip().lower()
+        raw = input(" Select an option [0-8]: ").strip().lower()
         mapping = {
-            "1": "list", "2": "add", "3": "info", "4": "clone",
-            "5": "batch", "6": "prompts", "7": "delete", "0": "exit", "q": "exit",
+            "1": "quick", "2": "clone", "3": "batch", "4": "list",
+            "5": "add", "6": "info", "7": "prompts", "8": "delete",
+            "0": "exit", "q": "exit",
         }
         return mapping.get(raw, None)
 
@@ -360,9 +367,77 @@ def interactive_shell(json_path: Path = VOICES_JSON):
             break
 
         # ==========================================
-        # 1. LIST VOICES
+        # 1. QUICK SINGLE CLONE (DEFAULT VOICE)
         # ==========================================
-        if main_action == "list":
+        if main_action == "quick":
+            default_text = "வணக்கம், நீங்கள் எப்படி இருக்கிறீர்கள்? நான் இப்போது உங்கள் குரலில் பேசுகிறேன்."
+            try:
+                target_text = questionary.text(
+                    "Target text to synthesize (Default Voice):",
+                    default=default_text,
+                    style=CUSTOM_STYLE,
+                    instruction=" ",
+                ).ask()
+            except Exception:
+                target_text = input(f" Target text [{default_text}]: ").strip()
+            if not target_text:
+                target_text = default_text
+
+            try:
+                audio_format = questionary.select(
+                    "Output container format:",
+                    choices=[
+                        Choice(title="MP3 (.mp3) - Compressed & universal", value="mp3"),
+                        Choice(title="WAV (.wav) - Uncompressed 16-bit PCM", value="wav"),
+                        Choice(title="OGG (.ogg) - High-quality Vorbis", value="ogg"),
+                        Choice(title="FLAC (.flac) - Lossless compression", value="flac"),
+                    ],
+                    style=CUSTOM_STYLE,
+                    instruction=" ",
+                ).ask()
+            except Exception:
+                audio_format = "mp3"
+            if not audio_format:
+                audio_format = "mp3"
+
+            try:
+                steps_choice = questionary.select(
+                    "Euler ODE Diffusion Steps:",
+                    choices=[
+                        Choice(title="8 steps (Recommended - Fast on CPU, high quality)", value=8),
+                        Choice(title="4 steps (Ultra-Fast - 2x faster, slight quality tradeoff)", value=4),
+                        Choice(title="16 steps (Maximum Quality - Studio fidelity)", value=16),
+                        Choice(title="Custom step count...", value="custom"),
+                    ],
+                    style=CUSTOM_STYLE,
+                    instruction=" ",
+                ).ask()
+
+                if steps_choice == "custom":
+                    custom_steps = questionary.text(
+                        "Enter custom step count [4-64]:",
+                        default="8",
+                        style=CUSTOM_STYLE,
+                        instruction=" ",
+                    ).ask()
+                    steps = int(custom_steps) if custom_steps and custom_steps.isdigit() else 8
+                else:
+                    steps = steps_choice if steps_choice else 8
+            except Exception:
+                steps = 8
+
+            cmd_clone(
+                voice_key="default",
+                target_text=target_text,
+                audio_format=audio_format,
+                steps=steps,
+                json_path=json_path,
+            )
+
+        # ==========================================
+        # 4. LIST VOICES
+        # ==========================================
+        elif main_action == "list":
             cmd_list(json_path)
 
         # ==========================================

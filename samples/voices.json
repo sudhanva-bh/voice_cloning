@@ -1,4 +1,9 @@
 {
+  "default": {
+    "audio": "samples/tamil_voices/jabez_denoise.mp3",
+    "transcript": "யாதும் ஊரே யாவரும் கேளிர் என்ற உயரிய சிந்தனை, உலகெங்கும் வாழும் மனிதர்களின் இதயங்களில் அன்பையும் அமைதியையும் விதைக்கட்டும்.",
+    "description": "Default Reference Voice (Clone of deep_classic)"
+  },
   "tamil_classic_pangram": {
     "audio": "samples/tamil_voices/tamil_classic_pangram.mp3",
     "transcript": "தமிழ்மொழியின் சிறப்பு அதன் இனிமையான ஒலியிலும், பழமையான இலக்கணத்திலும், உலகளாவிய சிந்தனையிலும் திகழ்கிறது.",

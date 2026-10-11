@@ -1,0 +1,273 @@
+% Chapter 2
+\chapter{Theoretical Foundations and Comprehensive Literature Survey}
+\label{Chapter2}
+\lhead{Chapter 2. \emph{Theoretical Foundations}}
+
+\section{Taxonomy of Deep Generative Speech Architectures}
+Neural generative speech synthesis involves modeling the probability distribution of high-dimensional acoustic representations conditioned on linguistic text and optional speaker descriptors. Modern deep generative paradigms can be broadly partitioned into four foundational mathematical families:
+
+\subsection{Autoregressive Acoustic Models}
+Autoregressive (\gls{ar}) architectures formulate speech generation as a sequential next-token prediction task. Representing the acoustic feature sequence as $\mathbf{X} = (\mathbf{x}_1, \mathbf{x}_2, \dots, \mathbf{x}_T)$, the joint probability is factored via the chain rule of probability:
+\begin{equation}
+    p(\mathbf{X} \mid \mathbf{W}) = \prod_{t=1}^T p(\mathbf{x}_t \mid \mathbf{x}_{<t}, \mathbf{W}; \theta)
+    \label{eq:ar_factorization}
+\end{equation}
+where $\mathbf{x}_{<t} = (\mathbf{x}_1, \dots, \mathbf{x}_{t-1})$ represents the historical acoustic context and $\mathbf{W}$ denotes the conditioning text sequence. Architectures such as Tacotron, AudioLM, and XTTS-v2~\cite{casanova2024xtts} leverage causal multi-head self-attention mechanisms~\cite{vaswani2017attention} to parameterize each conditional step. 
+
+While autoregressive models excel at modeling long-range expressive prosody, they present fatal computational bottlenecks for edge devices:
+\begin{enumerate}[label=(\alph*)]
+    \item \textbf{Inference Complexity $O(T)$}: Generating $T$ acoustic frames strictly requires $T$ sequential forward passes through the network. On a mobile CPU, where each forward pass consumes 15--30\,ms, generating a 10-second utterance ($T \approx 937$ frames) demands over 15 to 25 seconds of wall-clock compute ($\text{RTF} > 2.0$).
+    \item \textbf{Exposure Bias and Compounding Hallucinations}: Because the model is trained with teacher-forcing but tested with its own predictions, slight deviations at step $t$ compound recursively over time, frequently culminating in catastrophic phoneme deletions, unnatural pitch inflections, or infinite looping babble.
+    \item \textbf{KV-Cache Memory Bloat}: Retaining historical key-value tensors across deep transformer stacks linearly inflates RAM usage, posing severe \gls{lmk} risks on Android devices with 4\,GB RAM.
+\end{enumerate}
+
+\subsection{Variational Autoencoders and Normalizing Flows}
+Conditional Variational Autoencoders (\glspl{vae}) and finite normalizing flows—exemplified by VITS~\cite{kim2021vits}—model speech by maximizing the variational evidence lower bound (\gls{elbo}). By employing continuous normalizing flows parameterized by affine coupling layers, VITS establishes invertible bijective mappings between a standard Gaussian prior and the target mel distribution. While VITS achieves non-autoregressive parallel synthesis ($O(1)$ forward passes) with real-time execution speeds, its mathematical structure relies on monotonic alignment search (MAS) and complex dynamic programming alignment paths. These aligners degrade rapidly in zero-shot cross-lingual transfer, as the internal phonetic duration predictors cannot accommodate unseen multilingual scripts without dedicated acoustic phoneme dictionaries.
+
+\subsection{Score-Based Diffusion Generative Models}
+Denoising Diffusion Probabilistic Models (\gls{ddpm})~\cite{ho2020ddpm} and continuous score-based generative models~\cite{song2020score} synthesize data by reversing a progressive forward noising process. Formally, a forward \gls{sde} gradually corrupts the data distribution $p_{\text{data}}(\mathbf{x})$ into an isotropic Gaussian distribution $\mathcal{N}(\mathbf{0}, \mathbf{I})$ via an It\^o stochastic differential equation:
+\begin{equation}
+    d\mathbf{x} = \mathbf{f}(\mathbf{x}, t)dt + g(t)d\mathbf{w}
+    \label{eq:forward_sde}
+\end{equation}
+where $\mathbf{w}$ is standard Brownian motion. Generation is achieved by solving the reverse-time \gls{sde}:
+\begin{equation}
+    d\mathbf{x} = \left[ \mathbf{f}(\mathbf{x}, t) - g(t)^2 \nabla_{\mathbf{x}} \log p_t(\mathbf{x}) \right] dt + g(t)d\bar{\mathbf{w}}
+    \label{eq:reverse_sde}
+\end{equation}
+where $\nabla_{\mathbf{x}} \log p_t(\mathbf{x})$ is the score function, approximated by a deep neural network $\mathbf{s}_\theta(\mathbf{x}, t)$. 
+
+Although diffusion models generate pristine audio quality, their Brownian stochastic trajectories are inherently curved and turbulent. Simulating stochastic differential equations requires high-order numerical solvers across 50 to 1000 sampling steps. Even accelerated diffusion solvers (e.g., DPM-Solver) require at least 15 to 30 forward evaluations, incurring unviable computational latency on mobile ARM processors.
+
+\subsection{Continuous Flow Matching: The Modern Frontier}
+To circumvent the Brownian noise and curvature penalties of diffusion SDEs, Lipman et al.~\cite{lipman2022flow} formulated \textit{Continuous Flow Matching} (\gls{cfm}). CFM synthesizes data along deterministic probability trajectories governed by ordinary differential equations. By constructing optimal transport displacement interpolants, CFM ensures that trajectories between noise and clean speech are straight linear paths, establishing the mathematical foundation for ultra-fast, real-time edge synthesis.
+
+\section{Continuous Normalizing Flows and Optimal Transport Flow Matching}
+\label{sec:cfm_theory}
+Let $\mathbb{R}^d$ denote the data space representing flattened mel-spectrogram tensors. A \gls{cnf} defines a time-dependent push-forward transformation $\psi_t: \mathbb{R}^d \to \mathbb{R}^d$ for $t \in [0, 1]$, driven by a time-dependent vector field $\mathbf{v}_t: \mathbb{R}^d \to \mathbb{R}^d$ via the initial value problem (\gls{ode}):
+\begin{equation}
+    \frac{d}{dt} \psi_t(\mathbf{x}) = \mathbf{v}_t(\psi_t(\mathbf{x})), \quad \psi_0(\mathbf{x}) = \mathbf{x}
+    \label{eq:flow_ivp}
+\end{equation}
+The vector field induces a continuous probability density path $p_t(\mathbf{x})$ satisfying the continuity equation:
+\begin{equation}
+    \frac{\partial p_t(\mathbf{x})}{\partial t} + \nabla \cdot (p_t(\mathbf{x}) \mathbf{v}_t(\mathbf{x})) = 0
+    \label{eq:continuity_equation}
+\end{equation}
+where $p_0(\mathbf{x}) = \mathcal{N}(\mathbf{x}; \mathbf{0}, \mathbf{I})$ represents the tractable standard Gaussian prior, and $p_1(\mathbf{x}) = p_{\text{data}}(\mathbf{x})$ denotes the empirical target speech distribution.
+
+\subsection{Conditional Flow Matching (CFM)}
+Directly regressing the marginal vector field $\mathbf{v}_t(\mathbf{x})$ is computationally intractable because the marginal density $p_t(\mathbf{x}) = \int p_t(\mathbf{x} \mid \mathbf{x}_1) q(\mathbf{x}_1) d\mathbf{x}_1$ involves an intractable integral over the entire data manifold. Lipman et al.~\cite{lipman2022flow} proved that regressing conditional vector fields $\mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1)$ conditioned on individual data samples $\mathbf{x}_1$ yields identical parameter gradients:
+\begin{theorem}[Equivalence of CFM and Marginal Objectives~\cite{lipman2022flow}]
+Let $p_t(\mathbf{x} \mid \mathbf{x}_1)$ be a conditional probability path generated by conditional vector field $\mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1)$. Define the marginal vector field $\mathbf{v}_t(\mathbf{x}) = \int \mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1) \frac{p_t(\mathbf{x} \mid \mathbf{x}_1) q(\mathbf{x}_1)}{p_t(\mathbf{x})} d\mathbf{x}_1$. Then the objective:
+\begin{equation}
+    \mathcal{L}_{\text{CFM}}(\theta) = \mathbb{E}_{t \sim U[0, 1], \mathbf{x}_1 \sim q(\mathbf{x}_1), \mathbf{x} \sim p_t(\mathbf{x} \mid \mathbf{x}_1)} \left\| \mathbf{v}_\theta(\mathbf{x}, t) - \mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1) \right\|^2
+    \label{eq:cfm_objective}
+\end{equation}
+satisfies $\nabla_\theta \mathcal{L}_{\text{CFM}}(\theta) = \nabla_\theta \mathcal{L}_{\text{Marginal}}(\theta)$.
+\end{theorem}
+
+\subsection{Optimal Transport (OT) Displacement Interpolant}
+Among the infinite family of conditional probability paths connecting $p_0$ to $p_1$, the \textit{Optimal Transport} path minimizes kinetic energy $\int_0^1 \|\mathbf{v}_t\|^2 dt$. By pairing prior noise samples $\mathbf{x}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ directly with target mel-spectrograms $\mathbf{x}_1 \sim q(\mathbf{x}_1)$, the optimal transport displacement interpolant is defined as:
+\begin{equation}
+    \psi_t(\mathbf{x}_0) = (1 - (1 - \sigma_{\text{min}})t) \mathbf{x}_0 + t \mathbf{x}_1
+    \label{eq:ot_displacement}
+\end{equation}
+where $\sigma_{\text{min}} \approx 10^{-5}$ is an infinitesimal stability regularizer. Setting $\sigma_{\text{min}} \to 0$ yields the canonical linear trajectory:
+\begin{equation}
+    \mathbf{x}_t = (1 - t)\mathbf{x}_0 + t \mathbf{x}_1
+    \label{eq:linear_trajectory}
+\end{equation}
+Differentiating \eref{eq:linear_trajectory} with respect to time $t$ gives the target conditional velocity:
+\begin{equation}
+    \mathbf{u}_t(\mathbf{x}_t \mid \mathbf{x}_0, \mathbf{x}_1) = \frac{d\mathbf{x}_t}{dt} = \mathbf{x}_1 - \mathbf{x}_0
+    \label{eq:ot_velocity}
+\end{equation}
+Remarkably, the target velocity vector is constant with respect to time $t$. The neural network $v_\theta(\mathbf{x}_t, t, \mathbf{c})$ is trained simply to predict the displacement vector $(\mathbf{x}_1 - \mathbf{x}_0)$ given the intermediate noisy state $\mathbf{x}_t$, time step $t$, and conditioning context $\mathbf{c}$:
+\begin{equation}
+    \mathcal{L}_{\text{OT-CFM}}(\theta) = \mathbb{E}_{t, \mathbf{x}_0, \mathbf{x}_1} \left\| \mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c}) - (\mathbf{x}_1 - \mathbf{x}_0) \right\|_2^2
+    \label{eq:ot_cfm_loss}
+\end{equation}
+Because the ground-truth trajectory is a straight line, numerical integration during generation does not suffer from stochastic drift, enabling first-order Euler solvers to converge accurately in very few steps.
+
+\section{Diffusion Transformers (DiT) and Non-Autoregressive Sequence Modeling}
+To parameterize the velocity network $\mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c})$, state-of-the-art architectures have transitioned from traditional U-Net convolutional backbones to \textit{Diffusion Transformers} (\gls{dit})~\cite{peebles2023dit,chen2024f5tts}. 
+
+\subsection{Backbone Microarchitecture}
+In IndicF5, the velocity field estimator is structured as a 22-layer Diffusion Transformer. The architectural specifications are summarized as follows:
+\begin{itemize}
+    \item \textbf{Transformer Depth}: $L = 22$ identical transformer blocks.
+    \item \textbf{Model Hidden Dimension}: $D = 1024$.
+    \item \textbf{Attention Multi-Head Configuration}: $H = 16$ attention heads, yielding a per-head dimension of $d_h = \frac{D}{H} = 64$.
+    \item \textbf{Feed-Forward Multiplier}: $\text{mult}_{\text{FFN}} = 2$, establishing an intermediate MLP expansion dimension of $D_{\text{FFN}} = 2048$.
+    \item \textbf{Total Parameter Footprint}: Approximately 335 million parameters.
+\end{itemize}
+
+\subsection{Rotary Position Embeddings (RoPE)}
+Unlike traditional sinusoidal positional encodings that inject absolute coordinates into the input layer, IndicF5 employs \textit{Rotary Position Embeddings} (\gls{rope}) at every self-attention layer. Given a query vector $\mathbf{q}_m$ and key vector $\mathbf{k}_n$ at sequence positions $m$ and $n$, RoPE applies an orthogonal rotation matrix $\mathbf{R}_{\Theta, m}^d$:
+\begin{equation}
+    \tilde{\mathbf{q}}_m = \mathbf{R}_{\Theta, m}^d \mathbf{q}_m, \quad \tilde{\mathbf{k}}_n = \mathbf{R}_{\Theta, n}^d \mathbf{k}_n
+    \label{eq:rope_rotation}
+\end{equation}
+such that their inner product encodes relative positional displacement:
+\begin{equation}
+    \langle \tilde{\mathbf{q}}_m, \tilde{\mathbf{k}}_n \rangle = \mathbf{q}_m^T \mathbf{R}_{\Theta, n-m}^d \mathbf{k}_n = g(\mathbf{q}_m, \mathbf{k}_n, m - n)
+    \label{eq:rope_relative}
+\end{equation}
+This property enables the DiT to generalize to variable-length audio sequences during inference without positional coordinate degradation.
+
+\subsection{ConvNeXt-V2 Text Representation}
+Text tokens are mapped to a 512-dimensional embedding space. Rather than passing raw embeddings directly to cross-attention layers, IndicF5 processes the character token sequence through four \textit{ConvNeXt-V2} convolutional blocks incorporating depthwise convolutions, layer normalization, inverted bottlenecks, and Global Response Normalization (GRN). This extracts hierarchical local phonological representations prior to concatenation with the acoustic mel frames.
+
+\section{In-Context Speech Inpainting and Acoustic Timbre Transfer}
+The foundational breakthrough underlying modern zero-shot voice cloning is the realization that speaker identity transfer can be framed as \textit{in-context audio inpainting}~\cite{le2023voicebox,e2tts2024}. 
+
+Let $\mathbf{x}_{\text{ref}} \in \mathbb{R}^{C \times T_{\text{ref}}}$ denote the mel-spectrogram extracted from a reference audio clip, and let $\mathbf{w}_{\text{ref}}$ represent its transcript. The model constructs a composite conditioning tensor along the temporal dimension:
+\begin{equation}
+    \mathbf{x}_{\text{cond}} = \left[ \mathbf{x}_{\text{ref}} \;\Big\|\; \mathbf{0}_{C \times T_{\text{tgt}}} \right] \in \mathbb{R}^{C \times (T_{\text{ref}} + T_{\text{tgt}})}
+    \label{eq:conditioning_tensor}
+\end{equation}
+where $\|$ denotes concatenation along the time axis, and $\mathbf{0}_{C \times T_{\text{tgt}}}$ represents zero-padding across the target generation window. 
+
+During training, random spans of audio are masked. The model learns to reconstruct the masked acoustic frames conditioned on the unmasked frames and the complete text sequence $[\mathbf{w}_{\text{ref}} \,\|\, \mathbf{w}_{\text{tgt}}]$. 
+
+During inference, the reference audio $\mathbf{x}_{\text{ref}}$ is placed in the unmasked prefix region, while the target region is initialized with pure Gaussian noise $\mathbf{x}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$. Throughout the numerical ODE integration, the velocity network $v_\theta$ reads the acoustic context in the prefix frames via bidirectional self-attention. The model naturally extracts formant structure, glottal excitation timbre, speaking rate, and room acoustics from $\mathbf{x}_{\text{ref}}$, seamlessly propagating these characteristics into the synthesized target frames $\mathbf{x}_{\text{tgt}}$ without requiring explicit speaker classification losses or static d-vector bottlenecks.
+
+\section{Neural Vocoding Paradigms: Transposed Convolutions vs. Fourier Synthesis}
+Once the mel-spectrogram tensor $\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{C \times T_{\text{tgt}}}$ is synthesized by the flow-matching backbone, a neural vocoder must reconstruct the continuous time-domain speech waveform $y(t) \in \mathbb{R}^{N_{\text{samples}}}$.
+
+\subsection{The HiFi-GAN Paradigm and Edge Bottlenecks}
+For years, \gls{hifigan}~\cite{kong2020hifigan} stood as the de facto standard neural vocoder. HiFi-GAN operates entirely in the time domain, employing a multi-receptive field fusion (MRF) module driven by a cascade of transposed convolutions (fractionally strided convolutions) to upsample 100-channel mel frames (hop size 256) to 24\,kHz raw audio.
+
+While HiFi-GAN produces excellent audio quality, its architectural design is fundamentally hostile to mobile ARM processors:
+\begin{enumerate}
+    \item \textbf{Memory Bandwidth Bottleneck}: Upsampling audio by factors of $8 \times 8 \times 2 \times 2 = 256$ requires repeatedly allocating and writing massive intermediate feature buffers in memory, exhausting mobile L1/L2 caches.
+    \item \textbf{Kernel Dilations}: Multi-branch dilated convolutions induce strided memory access patterns, preventing continuous SIMD vectorization on ARM \gls{neon} units.
+\end{enumerate}
+
+\subsection{Vocos: Fourier Magnitude and Phase Synthesis}
+To overcome the physical bottlenecks of transposed convolutions, Siuzdak~\cite{siuzdak2023vocos} developed \textbf{Vocos}. Rather than predicting raw time-domain samples through iterative upsampling, Vocos frames audio generation as \textit{complex spectral coefficient prediction}.
+
+The Vocos backbone consists of a sequence of ConvNeXt blocks that operate directly at the mel frame rate without temporal upsampling. The network outputs two distinct spectral heads:
+\begin{enumerate}
+    \item \textbf{Magnitude Spectrogram Head}: Predicts real-valued Fourier magnitude spectra $|\mathbf{X}(f, t)| \in \mathbb{R}^{(\frac{N_{\text{fft}}}{2} + 1) \times T}$.
+    \item \textbf{Phase Spectrogram Head}: Directly predicts unit complex numbers representing spectral phase angles $\phi(f, t) \in [-\pi, \pi]$ via two output channels $(\cos \phi, \sin \phi)$, normalized such that $\cos^2 \phi + \sin^2 \phi = 1$.
+\end{enumerate}
+
+The complex Short-Time Fourier Transform (\gls{stft}) representation is assembled via:
+\begin{equation}
+    \mathbf{X}(f, t) = |\mathbf{X}(f, t)| \odot \left( \cos \phi(f, t) + j \sin \phi(f, t) \right)
+    \label{eq:complex_stft}
+\end{equation}
+
+The time-domain audio waveform $y(t)$ is reconstructed analytically via the \textit{Inverse Short-Time Fourier Transform} (\gls{istft}):
+\begin{equation}
+    y(n) = \text{iSTFT}(\mathbf{X}(f, t)) = \frac{\sum_m \mathbf{x}_m(n - mH) w(n - mH)}{\sum_m w^2(n - mH)}
+    \label{eq:istft_synthesis}
+\end{equation}
+where $H = 256$ is the hop size and $w(n)$ is a Hanning synthesis window. 
+
+Because the Fourier inversion (\eref{eq:istft_synthesis}) is computed using highly optimized Fast Fourier Transform (\gls{simd}) libraries (e.g., ARM NEON FFT or vDSP), Vocos eliminates transposed convolutions entirely. On mobile ARM CPUs, Vocos operates \textbf{approximately $10\times$ faster than HiFi-GAN} while occupying an INT8 model footprint of \textbf{merely 22\,MB} (13.5M parameters).
+
+\section{Numerical Solvers and Trajectory Dynamics}
+During inference, sampling from the velocity field $\mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c})$ requires solving the initial value problem:
+\begin{equation}
+    \frac{d\mathbf{x}_t}{dt} = \mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c}), \quad \mathbf{x}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I}), \quad t \in [0, 1]
+    \label{eq:ode_sampling}
+\end{equation}
+
+\subsection{Euler Numerical Integration}
+Discretizing the time domain into $N$ uniform intervals with step size $\Delta t = \frac{1}{N}$, the first-order Euler update step is:
+\begin{equation}
+    \mathbf{x}_{t + \Delta t} = \mathbf{x}_t + \Delta t \cdot \tilde{\mathbf{v}}_\theta(\mathbf{x}_t, t, \mathbf{c})
+    \label{eq:euler_update}
+\end{equation}
+where $\tilde{\mathbf{v}}_\theta$ incorporates \textit{Classifier-Free Guidance} (\gls{cfg})~\cite{ho2022cfg} with guidance weight $\gamma = 2.0$:
+\begin{equation}
+    \tilde{\mathbf{v}}_\theta(\mathbf{x}_t, t, \mathbf{c}) = (1 + \gamma) \mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c}) - \gamma \mathbf{v}_\theta(\mathbf{x}_t, t, \emptyset)
+    \label{eq:cfg_formula}
+\end{equation}
+Evaluating \eref{eq:cfg_formula} requires two forward passes per ODE step (or batching the conditioned and unconditioned inputs together into a single $[2, C, T]$ forward pass).
+
+\subsection{Sway Sampling Parameterization}
+While uniform time steps $t_k = \frac{k}{N}$ are standard, the curvature of the learned vector field is non-uniform across the interval $[0, 1]$. Empirical studies demonstrate that vector field trajectories exhibit the greatest non-linearity near $t=0$ (where noise is initially structured into coarse acoustic formants) and near $t=1$ (where high-frequency harmonic overtones are synthesized).
+
+To optimize solver step distribution, IndicF5 implements \textit{Sway Sampling}~\cite{chen2024f5tts} parameterized by coefficient $\rho \in [-1, 1]$:
+\begin{equation}
+    t(s) = s + \rho \cdot s(1 - s)(1 - 2s), \quad s \in [0, 1]
+    \label{eq:sway_formula}
+\end{equation}
+Setting $\rho = -1.0$ warps the uniform discretization grid, clustering integration steps closer to the boundaries $t=0$ and $t=1$. This mathematical adjustment enables an \textbf{8-step Euler solver} to achieve acoustic Mean Opinion Scores equivalent to a 16-step or 32-step uniform solver, effectively slashing computational latency by 50\%.
+
+\section{Trajectory Straightening and Step Distillation}
+To push on-device synthesis speeds to absolute real-time thresholds on low-power hardware, the literature offers two cutting-edge mathematical methodologies:
+
+\subsection{Rectified Flow and Reflow (Liu et al., 2022)}
+While optimal transport continuous flow matching produces straight trajectories in expectation, individual sample trajectories can cross in high-dimensional space, forcing the neural network to learn an average velocity that introduces curvature. Liu et al.~\cite{liu2022flowstraight} proved that this curvature can be systematically eliminated through recursive \textit{Reflow}:
+
+\begin{definition}[The Reflow Operation~\cite{liu2022flowstraight}]
+Given a 1-rectified flow model $v_{\theta_1}$ trained on empirical pairs $(\mathbf{x}_0, \mathbf{x}_1)$, generate synthetic pairs $(\mathbf{x}_0, \mathbf{z}_1)$ by numerically integrating $\mathbf{x}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ to $t=1$ using $v_{\theta_1}$. The 2-rectified flow model $v_{\theta_2}$ is trained on these synthetic straight-line pairs:
+\begin{equation}
+    \mathcal{L}_{\text{Reflow}}(\theta_2) = \mathbb{E}_{\mathbf{x}_0, \mathbf{z}_1, t} \left\| \mathbf{v}_{\theta_2}((1-t)\mathbf{x}_0 + t\mathbf{z}_1, t) - (\mathbf{z}_1 - \mathbf{x}_0) \right\|^2
+    \label{eq:reflow_loss}
+\end{equation}
+\end{definition}
+By training on coupled pairs generated by the flow itself, trajectory intersections are untangled. The resulting vector field trajectories become perfectly straight lines, permitting numerical integration in \textbf{as few as 4 Euler steps} without perceptual loss of fidelity.
+
+\subsection{FlashSpeech and Consistency Distillation (Zhang et al., 2024)}
+FlashSpeech~\cite{flashspeech2024} applies adversarial consistency distillation to speech flow matching. Rather than stepping through an ODE, a student network is trained to learn a direct mapping $f_\theta(\mathbf{x}_t, t) = \mathbf{x}_1$ enforcing self-consistency:
+\begin{equation}
+    f_\theta(\mathbf{x}_{t_1}, t_1) = f_\theta(\mathbf{x}_{t_2}, t_2) \quad \forall \; t_1, t_2 \in [0, 1]
+    \label{eq:consistency_property}
+\end{equation}
+This mathematical property collapses the multi-step numerical solving loop into \textbf{one or two forward passes}, enabling sub-100\,ms voice cloning on embedded hardware.
+
+\section{Indic Linguistic Phonetics and Acoustic Corpora}
+Indian languages belong predominantly to two distinct linguistic families: the \textit{Dravidian family} (Tamil, Telugu, Kannada, Malayalam) and the \textit{Indo-Aryan family} (Hindi, Marathi, Gujarati, Bengali, Punjabi, Odia, Assamese). Unlike English, which employs a Latin alphabet requiring non-deterministic grapheme-to-phoneme conversion (e.g., the pronunciation difference of ``ough'' in \textit{through}, \textit{rough}, and \textit{thought}), Indic scripts are strictly phonetic and syllabic.
+
+\subsection{The Akshara Syllabic Structure}
+In Indic orthography, the core phonetic unit is the \textit{akshara}. An akshara is an orthographic syllable structured as:
+\begin{equation}
+    \text{Akshara} = C_0^k V
+    \label{eq:akshara_structure}
+\end{equation}
+representing zero or more consonants ($C$) followed by an inherent vowel ($V$, typically $/a/$). Consonants are modified by dependent vowel diacritics (\textit{matras}), vowel suppressors (\textit{viramas} or \textit{halant}), and nasalization marks (\textit{anusvaras}). When multiple consonants combine without intervening vowels, they form composite consonant conjuncts (\textit{samyuktaksharas}).
+
+\subsection{Acoustic Duration Properties (IndicVoices)}
+The IndicVoices speech corpus~\cite{indicvoices2024} comprises 1,417 hours of verified spontaneous and read speech recorded across 22 Indian languages. Acoustic analysis of this corpus demonstrates that an average Indic akshara possesses an acoustic duration spanning:
+\begin{equation}
+    \Delta t_{\text{akshara}} \approx 150\,\text{ms} \quad \text{to} \quad 220\,\text{ms}
+    \label{eq:akshara_duration}
+\end{equation}
+In digital mel-spectrogram representations utilizing a 24\,kHz sampling rate and a hop size of 256 samples, each mel frame spans:
+\begin{equation}
+    \Delta t_{\text{frame}} = \frac{256}{24000} \approx 10.667\,\text{ms}
+    \label{eq:frame_duration}
+\end{equation}
+Dividing the akshara duration (\eref{eq:akshara_duration}) by the frame duration (\eref{eq:frame_duration}) reveals that an Indic character glyph corresponds to an average density of \textbf{5.5 to 7.0 mel frames per Unicode character code point}. This linguistic reality forms the theoretical underpinning of our duration model calibrated in \cref{Chapter3}.
+
+\subsection{IndicF5 and ``Phir Hera Fairy'' (AI4Bharat, 2025)}
+IndicF5~\cite{indicf52025} represents the first large-scale adaptation of the F5-TTS architecture to the Indian subcontinent. Trained by AI4Bharat across 1,417 hours of multi-speaker Indic audio, IndicF5 achieves native zero-shot voice cloning across eleven Indian languages. By utilizing a shared multilingual character vocabulary of 187 tokens (encompassing Tamil, Telugu, Kannada, Hindi, and regional scripts), the model avoids fragile G2P lookups and learns cross-lingual phonological representations directly from raw text.
+
+\section{Edge Machine Learning Runtimes: Runtime Comparative Analysis}
+Deploying deep flow-matching models on mobile devices requires an efficient runtime engine capable of parsing ONNX or FlatBuffer graphs, executing quantized integer operators, and offloading tensor contractions to hardware accelerators. Three primary frameworks exist in the modern edge machine learning ecosystem:
+
+\subsection{Sherpa-ONNX}
+Developed by the Next-gen Kaldi team~\cite{sherpaonnx2023}, \texttt{sherpa-onnx} is a C++ embedded speech recognition and synthesis engine with native Flutter/Dart bindings. Sherpa-ONNX provides specialized C++ loaders for Zipformer, VITS, and Matcha-TTS architectures. However, Sherpa-ONNX currently \textbf{lacks native C++ graph loaders for Diffusion Transformers (DiT)} and F5-TTS, preventing direct execution of IndicF5.
+
+\subsection{ONNX Runtime Mobile (C++ / Dart FFI)}
+Microsoft's ONNX Runtime Mobile~\cite{onnxruntime2021} provides a generic C++ execution engine supporting any valid ONNX graph. It incorporates the XNNPACK execution provider for multi-threaded ARM NEON CPU acceleration and optional NNAPI/QNN delegates. However, executing custom multi-step ODE flow-matching loops requires developing dedicated C++ wrappers, custom dynamic libraries (\texttt{.so}), and manual Dart FFI bindings.
+
+\subsection{Google LiteRT (Formerly TensorFlow Lite)}
+Google's \textbf{LiteRT}~\cite{google_litert2024} represents the state-of-the-art in mobile ML runtimes. Designed specifically for edge generative AI, LiteRT provides:
+\begin{itemize}
+    \item Direct PyTorch conversion via \texttt{litert-torch}~\cite{litert_torch2024}, eliminating intermediate ONNX operator translation penalties.
+    \item A unified \texttt{CompiledModel} API supporting automatic accelerator selection:
+    \begin{itemize}
+        \item Qualcomm Hexagon Tensor Processor (HTP) via \textbf{Qualcomm AI Engine Direct (QNN)}~\cite{qualcomm_qnn2024}.
+        \item MediaTek APU via \textbf{MediaTek NeuroPilot}~\cite{mediatek_neuropilot2024}.
+        \item Multi-core ARM NEON fallback via \textbf{XNNPACK}.
+    \end{itemize}
+    \item Zero-copy hardware buffer management (\texttt{AHardwareBuffer}), minimizing memory transfers.
+\end{itemize}
+The architectural trade-offs across these runtimes are explored in \cref{Chapter3} and form the core of our future roadmap in \cref{Chapter5}.

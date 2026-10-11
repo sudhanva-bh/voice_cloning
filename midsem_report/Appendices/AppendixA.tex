@@ -1,0 +1,113 @@
+% Appendix A
+\chapter{Mathematical Derivations and Numerical Proofs}
+\label{AppendixA}
+\lhead{Appendix A. \emph{Mathematical Derivations}}
+
+\section{Derivation of the Optimal Transport Flow Matching Objective}
+In this section, we present the complete mathematical derivation demonstrating that regressing the intractable marginal vector field $\mathbf{v}_t(\mathbf{x})$ is equivalent to minimizing the conditional flow matching loss over individual data points, following the formulation established by Lipman et al.~\cite{lipman2022flow}.
+
+\subsection{Probability Paths and the Continuity Equation}
+Let $p_t(\mathbf{x})$ denote a time-dependent probability density function on $\mathbb{R}^d$ for $t \in [0, 1]$. The evolution of $p_t(\mathbf{x})$ driven by a vector field $\mathbf{v}_t(\mathbf{x})$ satisfies the continuity equation:
+\begin{equation}
+    \frac{\partial p_t(\mathbf{x})}{\partial t} = -\nabla \cdot \left( p_t(\mathbf{x}) \mathbf{v}_t(\mathbf{x}) \right)
+    \label{eq:app_continuity}
+\end{equation}
+Given a target empirical distribution $q(\mathbf{x}_1)$, let $p_t(\mathbf{x} \mid \mathbf{x}_1)$ represent a conditional probability path such that $p_0(\mathbf{x} \mid \mathbf{x}_1) = p_0(\mathbf{x}) = \mathcal{N}(\mathbf{x}; \mathbf{0}, \mathbf{I})$ and $p_1(\mathbf{x} \mid \mathbf{x}_1) \approx \delta(\mathbf{x} - \mathbf{x}_1)$. The marginal probability path is defined by:
+\begin{equation}
+    p_t(\mathbf{x}) = \int_{\mathbb{R}^d} p_t(\mathbf{x} \mid \mathbf{x}_1) q(\mathbf{x}_1) d\mathbf{x}_1
+    \label{eq:app_marginal_density}
+\end{equation}
+
+Differentiating \eref{eq:app_marginal_density} with respect to time $t$:
+\begin{align}
+    \frac{\partial p_t(\mathbf{x})}{\partial t} &= \int_{\mathbb{R}^d} \frac{\partial p_t(\mathbf{x} \mid \mathbf{x}_1)}{\partial t} q(\mathbf{x}_1) d\mathbf{x}_1 \nonumber \\
+    &= -\int_{\mathbb{R}^d} \nabla \cdot \left( p_t(\mathbf{x} \mid \mathbf{x}_1) \mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1) \right) q(\mathbf{x}_1) d\mathbf{x}_1 \nonumber \\
+    &= -\nabla \cdot \left( \int_{\mathbb{R}^d} p_t(\mathbf{x} \mid \mathbf{x}_1) \mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1) q(\mathbf{x}_1) d\mathbf{x}_1 \right)
+    \label{eq:app_continuity_expansion}
+\end{align}
+
+Comparing \eref{eq:app_continuity_expansion} directly with the marginal continuity equation \eref{eq:app_continuity}, the marginal vector field $\mathbf{v}_t(\mathbf{x})$ is uniquely determined by:
+\begin{equation}
+    p_t(\mathbf{x}) \mathbf{v}_t(\mathbf{x}) = \int_{\mathbb{R}^d} p_t(\mathbf{x} \mid \mathbf{x}_1) \mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1) q(\mathbf{x}_1) d\mathbf{x}_1
+    \label{eq:app_marginal_vector_field}
+\end{equation}
+Dividing both sides by $p_t(\mathbf{x})$ yields:
+\begin{equation}
+    \mathbf{v}_t(\mathbf{x}) = \int_{\mathbb{R}^d} \mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1) \frac{p_t(\mathbf{x} \mid \mathbf{x}_1) q(\mathbf{x}_1)}{p_t(\mathbf{x})} d\mathbf{x}_1 = \mathbb{E}_{\mathbf{x}_1 \sim q(\mathbf{x}_1 \mid \mathbf{x})} \left[ \mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1) \right]
+    \label{eq:app_vector_expectation}
+\end{equation}
+
+\subsection{Gradient Equivalence of the Loss Objective}
+The ideal marginal regression loss is given by:
+\begin{equation}
+    \mathcal{L}_{\text{Marginal}}(\theta) = \mathbb{E}_{t \sim U[0, 1], \mathbf{x} \sim p_t(\mathbf{x})} \left\| \mathbf{v}_\theta(\mathbf{x}, t) - \mathbf{v}_t(\mathbf{x}) \right\|^2
+    \label{eq:app_marginal_loss}
+\end{equation}
+Expanding the squared $L_2$ norm:
+\begin{equation}
+    \left\| \mathbf{v}_\theta(\mathbf{x}, t) - \mathbf{v}_t(\mathbf{x}) \right\|^2 = \|\mathbf{v}_\theta(\mathbf{x}, t)\|^2 - 2 \langle \mathbf{v}_\theta(\mathbf{x}, t), \mathbf{v}_t(\mathbf{x}) \rangle + \|\mathbf{v}_t(\mathbf{x})\|^2
+    \label{eq:app_norm_expansion}
+\end{equation}
+
+Now consider the Conditional Flow Matching (\gls{cfm}) objective:
+\begin{equation}
+    \mathcal{L}_{\text{CFM}}(\theta) = \mathbb{E}_{t, \mathbf{x}_1 \sim q(\mathbf{x}_1), \mathbf{x} \sim p_t(\mathbf{x} \mid \mathbf{x}_1)} \left\| \mathbf{v}_\theta(\mathbf{x}, t) - \mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1) \right\|^2
+    \label{eq:app_cfm_loss}
+\end{equation}
+Expanding the expectation:
+\begin{align}
+    \mathcal{L}_{\text{CFM}}(\theta) &= \int_0^1 \int \int \|\mathbf{v}_\theta(\mathbf{x}, t)\|^2 p_t(\mathbf{x} \mid \mathbf{x}_1) q(\mathbf{x}_1) d\mathbf{x} d\mathbf{x}_1 dt \nonumber \\
+    &\quad - 2 \int_0^1 \int \int \langle \mathbf{v}_\theta(\mathbf{x}, t), \mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1) \rangle p_t(\mathbf{x} \mid \mathbf{x}_1) q(\mathbf{x}_1) d\mathbf{x} d\mathbf{x}_1 dt \nonumber \\
+    &\quad + C_1
+    \label{eq:app_cfm_integral}
+\end{align}
+where $C_1 = \mathbb{E}[\|\mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1)\|^2]$ is independent of the model parameters $\theta$.
+
+Applying \eref{eq:app_marginal_vector_field} to the second term:
+\begin{align}
+    \int \int \langle \mathbf{v}_\theta(\mathbf{x}, t), \mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1) \rangle p_t(\mathbf{x} \mid \mathbf{x}_1) q(\mathbf{x}_1) d\mathbf{x}_1 d\mathbf{x} &= \int \langle \mathbf{v}_\theta(\mathbf{x}, t), \int \mathbf{v}_t(\mathbf{x} \mid \mathbf{x}_1) p_t(\mathbf{x} \mid \mathbf{x}_1) q(\mathbf{x}_1) d\mathbf{x}_1 \rangle d\mathbf{x} \nonumber \\
+    &= \int \langle \mathbf{v}_\theta(\mathbf{x}, t), p_t(\mathbf{x}) \mathbf{v}_t(\mathbf{x}) \rangle d\mathbf{x} \nonumber \\
+    &= \mathbb{E}_{\mathbf{x} \sim p_t(\mathbf{x})} \left[ \langle \mathbf{v}_\theta(\mathbf{x}, t), \mathbf{v}_t(\mathbf{x}) \rangle \right]
+    \label{eq:app_term_equivalence}
+\end{align}
+
+Similarly, the first term evaluates to:
+\begin{equation}
+    \int \int \|\mathbf{v}_\theta(\mathbf{x}, t)\|^2 p_t(\mathbf{x} \mid \mathbf{x}_1) q(\mathbf{x}_1) d\mathbf{x}_1 d\mathbf{x} = \mathbb{E}_{\mathbf{x} \sim p_t(\mathbf{x})} \left[ \|\mathbf{v}_\theta(\mathbf{x}, t)\|^2 \right]
+\end{equation}
+
+Therefore:
+\begin{equation}
+    \mathcal{L}_{\text{CFM}}(\theta) = \mathcal{L}_{\text{Marginal}}(\theta) + C(\mathbf{x}_1)
+    \label{eq:app_final_equivalence}
+\end{equation}
+Consequently, their gradients with respect to network parameters $\theta$ are identically equal:
+\begin{equation}
+    \nabla_\theta \mathcal{L}_{\text{CFM}}(\theta) \equiv \nabla_\theta \mathcal{L}_{\text{Marginal}}(\theta)
+\end{equation}
+This proves that optimizing the conditional objective over tractable individual training samples provably regresses the exact true marginal generative flow.
+
+\section{Analytical Formulation of the Inverse STFT with Window Overlap-Add}
+Let $\mathbf{Z}(k, m) \in \mathbb{C}$ denote the synthesized discrete complex Fourier matrix at frequency bin $k \in [0, N_{\text{fft}}-1]$ and time frame $m \in \mathbb{Z}$. The one-dimensional Inverse Discrete Fourier Transform (IDFT) of each individual column frame is:
+\begin{equation}
+    z_m(n) = \frac{1}{N_{\text{fft}}} \sum_{k=0}^{N_{\text{fft}}-1} \mathbf{Z}(k, m) e^{j \frac{2\pi}{N_{\text{fft}}} kn}, \quad n \in [0, N_{\text{fft}}-1]
+    \label{eq:app_idft}
+\end{equation}
+
+Each frame is weighted by a periodic synthesis Hanning window $w(n)$:
+\begin{equation}
+    w(n) = 0.5 \left( 1 - \cos\left( \frac{2\pi n}{N_{\text{fft}}} \right) \right), \quad n \in [0, N_{\text{fft}}-1]
+    \label{eq:app_hanning}
+\end{equation}
+
+The time-domain output $y(n)$ is reconstructed via the Weighted Overlap-Add (WOLA) method with frame hop $H = 256$:
+\begin{equation}
+    y(n) = \frac{\sum_{m=-\infty}^\infty z_m(n - mH) w(n - mH)}{\sum_{m=-\infty}^\infty w^2(n - mH)}
+    \label{eq:app_wola}
+\end{equation}
+
+When the synthesis window satisfies the Principle of Perfect Reconstruction:
+\begin{equation}
+    \sum_{m=-\infty}^\infty w^2(n - mH) = C_{\text{norm}} \quad \forall \; n
+\end{equation}
+the denominator in \eref{eq:app_wola} evaluates to a constant scalar, allowing the reconstruction to be computed in linear time $O(M \cdot N_{\text{fft}} \log N_{\text{fft}})$ using ARM NEON vector instructions.

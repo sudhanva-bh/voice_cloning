@@ -1,0 +1,173 @@
+% Chapter 5
+\chapter{Strategic Future Architecture: Google LiteRT Implementation and Edge Acceleration Roadmap}
+\label{Chapter5}
+\lhead{Chapter 5. \emph{Future Roadmap: Google LiteRT}}
+
+\section{Motivation and Architectural Rationale for Transitioning to Google LiteRT}
+While the custom native C++ engine (\texttt{libindicf5\_engine.so}) developed in Iteration~10 successfully executes INT8 ONNX graphs on mobile ARM CPUs, long-term deployment across commercial Android ecosystems requires addressing three systemic architectural limitations of custom ONNX Runtime pipelines:
+
+\begin{enumerate}
+    \item \textbf{The Intermediate ONNX Operator Penalty}: Exporting PyTorch Diffusion Transformers to ONNX requires decomposing native PyTorch multi-head attention blocks and rotary embeddings into hundreds of individual primitive nodes (\texttt{Transpose}, \texttt{Reshape}, \texttt{Concat}, \texttt{MatMul}). Intermediate tensor permutations introduce substantial memory layout thrashing, degrading L1/L2 data cache locality on mobile processors.
+    
+    \item \textbf{Heterogeneous Accelerator Fragmentation}: In standard ONNX Runtime Mobile, offloading tensor operations to dedicated on-device silicon (Neural Processing Units or \glspl{npu}) requires vendor-specific Execution Providers (such as the Qualcomm QNN Execution Provider). Building, configuring, and cross-compiling QNN EP shared libraries within the Android NDK introduces extreme build fragility, large binary sizes (>80\,MB for runtime libraries alone), and zero support for competing chipsets such as MediaTek Dimensity or Google Tensor.
+    
+    \item \textbf{Zero-Copy Memory Deficits}: Standard ONNX C++ wrappers copy tensors between Java/Kotlin, native C++ heap buffers, and hardware memory arenas, generating multiple redundant memory duplications per forward pass.
+\end{enumerate}
+
+To overcome these structural limitations, the central post-midsem engineering roadmap transitions the Indic speech generative pipeline to \textbf{Google LiteRT}~\cite{google_litert2024} (formerly TensorFlow Lite and AI Edge Torch). Table~\ref{tab:litert_vs_ort_comparison} presents an architectural comparison between custom ONNX Runtime Mobile and Google LiteRT.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{System Architecture Comparison: Custom ONNX Runtime vs. Google LiteRT}
+\label{tab:litert_vs_ort_comparison}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Architectural Dimension} & \textbf{Custom ONNX Runtime (C++)} & \textbf{Google LiteRT (LiteRT Torch)} \\
+\midrule
+Model Ingestion Path & PyTorch $\to$ ONNX $\to$ ORT & Direct PyTorch $\to$ \texttt{.tflite} FlatBuffer \\
+Graph Operator Dialect & Generic ONNX standard & Optimized TFLite / StableHLO dialect \\
+Transpose-Op Overhead & High (Pervasive Transpose nodes) & Low (Fused native tensor layouts) \\
+Snapdragon NPU Acceleration & Manual QNN Execution Provider & Native Qualcomm AI Engine Direct \\
+MediaTek APU Acceleration & Unstable Android NNAPI fallback & Native MediaTek NeuroPilot integration \\
+Buffer Allocation & Custom heap memory arenas & Zero-copy Android Hardware Buffers \\
+Runtime Binary Footprint & Heavy (>75\,MB \texttt{.so} dependencies) & Lightweight (~8--12\,MB runtime) \\
+Ecosystem Integration & Manual NDK CMake \& Dart FFI & Google Play On-Device AI (PODAI) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Direct PyTorch Conversion via LiteRT Torch (\texttt{litert-torch})}
+Historically, converting PyTorch generative models to TensorFlow Lite required exporting to ONNX, followed by conversion via \texttt{onnx2tf} or \texttt{tf2onnx}, an error-prone multi-stage process that frequently failed on complex dynamic shapes or custom attention kernels.
+
+The modern LiteRT toolchain introduces \textbf{LiteRT Torch} (\texttt{litert-torch})~\cite{litert_torch2024}, enabling direct compilation from native PyTorch code into optimized \texttt{.tflite} FlatBuffers:
+
+\begin{lstlisting}[language=Python,caption={Conceptual PyTorch-to-LiteRT Conversion Pipeline via litert-torch}]
+import torch
+import litert_torch
+
+# 1. Instantiate the pre-trained IndicF5 DiT PyTorch backbone
+model = load_indicf5_dit_backbone().eval()
+
+# 2. Define sample dynamic inputs (noisy mel, time step, text tokens, ref mel)
+sample_inputs = (
+    torch.randn(1, 100, 512, dtype=torch.float32),   # x_t
+    torch.tensor([0.5], dtype=torch.float32),         # time step t
+    torch.randint(0, 187, (1, 64), dtype=torch.int32),# text tokens
+    torch.randn(1, 100, 350, dtype=torch.float32),   # ref mel conditioning
+)
+
+# 3. Export model graph using PyTorch 2.x export infrastructure
+exported_program = torch.export.export(model, sample_inputs)
+
+# 4. Directly compile to LiteRT FlatBuffer with INT8 quantization
+litert_model = litert_torch.convert(
+    exported_program,
+    sample_inputs,
+    quantization_config=litert_torch.QuantizationConfig.int8_ptq()
+)
+
+# 5. Serialize FlatBuffer to disk
+litert_model.save("models/indicf5/indicf5_dit_int8.tflite")
+\end{lstlisting}
+
+\subsection{StableHLO Dialect and Operator Fusion}
+LiteRT Torch translates PyTorch operators into \textit{StableHLO} (Stable High-Level Optimizer) intermediate representations. Within the StableHLO dialect:
+\begin{itemize}
+    \item Multi-head self-attention projections ($\mathbf{Q}, \mathbf{K}, \mathbf{V}$ linear layers) are fused into single batched matrix contractions.
+    \item Rotary Position Embedding rotations (\eref{eq:rope_rotation}) are fused with attention dot-product kernels, eliminating redundant intermediate tensor allocations.
+    \item Layer normalization and ConvNeXt depthwise convolutions are transformed into optimized SIMD primitives.
+\end{itemize}
+
+\section{Hardware Acceleration via the CompiledModel API}
+A premier innovation of Google LiteRT is the \textbf{\texttt{CompiledModel} API}, which abstracts low-level vendor delegates behind a unified, declarative interface. 
+
+\subsection{Declarative Accelerator Prioritization}
+In Android edge applications, the developer specifies a hardware execution hierarchy. The runtime automatically probes the underlying silicon, binds to available vendor drivers, and falls back gracefully if hardware acceleration is unavailable:
+
+\begin{lstlisting}[language=Java,caption={Kotlin/Android CompiledModel Initialization with Accelerator Priority}]
+import com.google.ai.edge.litert.CompiledModel
+import com.google.ai.edge.litert.Accelerator
+
+val options = CompiledModel.Options().apply {
+    // Set hierarchical accelerator priority: NPU -> GPU -> CPU
+    setAcceleratorPriority(listOf(
+        Accelerator.NPU,
+        Accelerator.GPU,
+        Accelerator.CPU
+    ))
+    setNumThreads(4) // 4 threads for XNNPACK CPU fallback
+}
+
+// Compile model ahead-of-time or on-device
+val compiledModel = CompiledModel.create(
+    context.assets.openFd("indicf5_dit_int8.tflite"),
+    options
+)
+\end{lstlisting}
+
+\subsection{Qualcomm AI Engine Direct (QNN) Integration}
+When running on devices powered by Qualcomm Snapdragon platforms (such as the Samsung Galaxy S23 featuring the Snapdragon 8 Gen 2):
+\begin{itemize}
+    \item LiteRT binds directly to \textbf{Qualcomm AI Engine Direct (QNN)}~\cite{qualcomm_qnn2024}.
+    \item Matrix multiplications in the DiT layers are offloaded to the \textbf{Hexagon Tensor Processor (HTP)}, executing 8-bit integer dot products at up to 35 Tera Operations Per Second (TOPS).
+    \item This hardware offloading reduces forward-pass latency from $\approx 85$\,ms on the CPU down to \textbf{$\approx 15\text{--}20$\,ms on the HTP}, projecting an overall synthesis Real-Time Factor below \textbf{$0.4\times$}.
+\end{itemize}
+
+\subsection{MediaTek NeuroPilot Integration}
+When running on devices powered by MediaTek Dimensity or Helio SoCs (such as the Samsung Galaxy M53 or commercial tablets):
+\begin{itemize}
+    \item LiteRT offloads operations to the MediaTek APU via the \textbf{MediaTek NeuroPilot}~\cite{mediatek_neuropilot2024} driver stack.
+    \item On lower-tier devices lacking dedicated APUs (such as the Helio P22T in the Lenovo Tab K10), LiteRT automatically triggers graceful fallback to \textbf{XNNPACK}, executing highly optimized 4-thread ARMv8 NEON assembly routines.
+\end{itemize}
+
+\section{Zero-Copy Memory Pipelines via Android Hardware Buffers}
+In traditional deep learning runtimes, passing generated mel-spectrogram tensors from the acoustic model to the neural vocoder and subsequently to the audio output track incurs substantial memory copying overhead:
+\begin{equation}
+    \text{Model Heap} \xrightarrow{\text{memcpy}} \text{Vocoder Input Buffer} \xrightarrow{\text{memcpy}} \text{PCM Audio Track}
+\end{equation}
+On memory-bandwidth-constrained edge SoCs, these copies generate memory bus stalls and inflate physical \gls{rss}.
+
+LiteRT resolves this via native support for \textbf{Android Hardware Buffers} (\texttt{AHardwareBuffer}):
+\begin{enumerate}
+    \item The output tensor of the DiT model and the input tensor of the Vocos vocoder are allocated in a shared, memory-mapped \texttt{AHardwareBuffer}.
+    \item The Fourier Inverse STFT synthesis is performed in-place within this memory-mapped hardware buffer.
+    \item The synthesized PCM audio samples are streamed directly to the Android low-latency audio subsystem (AAudio / OpenSL ES) without intermediate user-space buffer duplication.
+\end{enumerate}
+
+\section{Trajectory Distillation: 2-Step and 4-Step Sampling}
+While hardware acceleration reduces per-step evaluation latency, algorithmic acceleration reduces the total number of steps required to solve the continuous flow-matching ODE. As established in \cref{Chapter2}, our post-midsem roadmap incorporates two distinct trajectory distillation techniques:
+
+\subsection{Rectified Flow Trajectory Straightening (4-Step Reflow)}
+By retraining the IndicF5 DiT model on synthetic coupled pairs $(\mathbf{x}_0, \mathbf{z}_1)$ generated by the base 1-rectified model (\eref{eq:reflow_loss}), trajectory crossing is eliminated. In 2-rectified flow, the vector field paths become straight lines, allowing a \textbf{4-step Euler solver} to achieve Mean Opinion Scores equivalent to the current 8-step baseline, cutting overall computational requirements in half.
+
+\subsection{Consistency Distillation via FlashSpeech (2-Step Synthesis)}
+Applying consistency distillation principles~\cite{flashspeech2024} trains a student network enforcing $f_\theta(\mathbf{x}_{t_1}, t_1) = f_\theta(\mathbf{x}_{t_2}, t_2)$. This collapses the initial value problem into a \textbf{2-step sampling process}:
+\begin{itemize}
+    \item \textbf{Step 1 ($t = 0.0 \to 0.5$)}: Establishes coarse global harmonic structure, speaker formant resonance, and vocal tract identity.
+    \item \textbf{Step 2 ($t = 0.5 \to 1.0$)}: Synthesizes high-frequency fricatives, aspiration noise, and fine phonetic articulation.
+\end{itemize}
+Executing 2 steps on an NPU-accelerated mobile runtime projects end-to-end voice cloning latencies under \textbf{250\,ms}, achieving true instantaneous interactive voice cloning on mobile edge devices.
+
+\section{Comprehensive Physical Testing and Verification Protocol}
+The post-midsem implementation will be validated against a standardized, reproducible physical testing protocol across our four target device tiers:
+
+\begin{enumerate}
+    \item \textbf{Phase A: Graph Compilation and Validation}:
+    \begin{itemize}
+        \item Validate numerical parity between PyTorch FP32 outputs and LiteRT INT8 \texttt{.tflite} outputs (ensuring Spectral Mel-Cepstral Distortion $\text{MCD} < 3.5$\,dB).
+        \item Verify that INT8 quantization introduces zero audible quantization hiss or phase distortion across Vocos iSTFT reconstructions.
+    \end{itemize}
+    
+    \item \textbf{Phase B: Ahead-of-Time NPU Compilation and Delegate Profiling}:
+    \begin{itemize}
+        \item Measure per-operator execution times on Qualcomm QNN HTP (Galaxy S23) and MediaTek NeuroPilot (Galaxy M53).
+        \item Validate that 100\% of DiT layers and Vocos ConvNeXt blocks offload to the NPU without falling back to CPU execution.
+    \end{itemize}
+    
+    \item \textbf{Phase C: Real-World Battery, Thermal, and Memory Benchmarking}:
+    \begin{itemize}
+        \item Continuously synthesize 100 consecutive sentences from \texttt{prompts.json} to monitor thermal throttling curves and battery consumption.
+        \item Continuously profile \texttt{/proc/self/status} (\texttt{VmRSS}) on the Lenovo Tab K10 to guarantee that peak resident memory remains strictly below the \textbf{850\,MB ceiling}, eliminating \gls{lmk} termination risks.
+    \end{itemize}
+\end{enumerate}

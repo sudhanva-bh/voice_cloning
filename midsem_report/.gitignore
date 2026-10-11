@@ -1,0 +1,52 @@
+# ==========================================
+# LaTeX Auxiliary & Compilation Artifacts
+# ==========================================
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex
+*.synctex.gz
+*.synctex(busy)
+*.pdfsync
+
+# Glossaries, Acronyms & Index files
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.ist
+*.nlo
+*.nls
+*.ilg
+*.idx
+*.ind
+
+# BibLaTeX / Biber Artifacts
+*.bcf
+*.run.xml
+*-blx.bib
+*-blx.aux
+
+# Temporary & Build Directories
+.latex-build/
+_minted-*/
+
+# Operating System & Editor Files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+*.swp
+*.swo
+*~
+*.bak
+*.orig

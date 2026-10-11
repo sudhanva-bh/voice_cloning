@@ -37,8 +37,8 @@ def main():
     parser.add_argument(
         "--voice", "-v",
         type=str,
-        default=None,
-        help="Preset voice key from voices.json (e.g. deep_classic, tamil_classic_pangram)",
+        default="default",
+        help="Preset voice key from voices.json (default: 'default', clone of deep_classic)",
     )
     parser.add_argument(
         "--voices-json",

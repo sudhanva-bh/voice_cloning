@@ -1,0 +1,31 @@
+% Chapter 6
+\chapter{Conclusion and Research Summary}
+\label{Chapter6}
+\lhead{Chapter 6. \emph{Conclusion}}
+
+\section{Summary of Research Accomplishments and Milestones}
+This mid-semester investigation has developed, evaluated, and optimized an on-device, zero-shot multilingual neural voice cloning architecture capable of operating entirely offline on resource-constrained Android mobile hardware. Addressing the severe linguistic void in edge speech processing—wherein existing zero-shot engines exclusively support English and Chinese—this project successfully brings native Indian language voice synthesis to commodity mobile platforms.
+
+The primary engineering milestones accomplished during this reporting period include:
+\begin{enumerate}
+    \item \textbf{Deployment of the English Edge Baseline}: Successfully integrated and benchmarked the ZipVoice-Distill 123M flow-matching model and 24\,kHz Vocos vocoder within a production-grade Flutter application (\texttt{voice\_clone\_proto}), demonstrating real-time factor scaling and establishing empirical hardware baselines across physical Android devices.
+    \item \textbf{Verification of Native Indic Voice Cloning}: Ported and adapted AI4Bharat's 335M Diffusion Transformer (IndicF5) across Tamil, Telugu, Kannada, and Hindi, verifying high-fidelity acoustic speaker adaptation without requiring external grapheme-to-phoneme rule dictionaries.
+    \item \textbf{Formulation of the Syllabic Akshara Duration Model}: Discovered and resolved the critical duration mismatch defect that caused severe tail hallucinations (breathing, whispers, and repeating syllables), establishing a calibrated formulation of \textbf{6.5 mel frames per Unicode character} ($\approx 55$\,ms per character).
+    \item \textbf{Discovery of the Spatial Text-Mel Alignment Law}: Identified the sequence alignment constraints governing ConvNeXt text representations, proving that reference audio clips must be bounded strictly between \textbf{3.5 and 5.0 seconds} to avoid positional attention collapse.
+    \item \textbf{In-Memory Batch Benchmarking Engine and Dataset}: Engineered \texttt{batch.py} with warm RAM model caching and curated \texttt{prompts.json}, comprising \textbf{120 authentic conversational sentences} across Telugu, Tamil, and Hindi stratified across four duration tiers.
+    \item \textbf{Full Model Integer Quantization}: Exported and verified the complete static INT8 ONNX pipeline, achieving a \textbf{74\% reduction in model size} (from 1.35\,GB FP32 down to 349\,MB) for the DiT backbone and quantizing the Vocos vocoder down to 22\,MB.
+    \item \textbf{Memory Budget Elimination of Android OOM Risks}: Proven that the quantized system bounds operational physical memory to \textbf{801\,MB}, safely operating below the 1.5\,GB \textit{LowMemoryKiller} threshold on 4\,GB edge devices like the Lenovo Tab K10.
+    \item \textbf{Formulation of the Google LiteRT Roadmap}: Established the complete post-midsem architectural migration blueprint toward Google LiteRT, leveraging the unified \texttt{CompiledModel} API to offload computation to Qualcomm QNN Hexagon NPUs and MediaTek NeuroPilot APUs.
+\end{enumerate}
+
+\section{Key Scientific and Systems Contributions}
+The intellectual and engineering contributions of this treatise can be summarized across three foundational dimensions:
+
+\subsection{Theoretical and Linguistic Contributions}
+By synthesizing continuous flow matching with the syllabic morphology of Dravidian and Indo-Aryan scripts, this research provides the first systematic mathematical characterization of akshara frame density for continuous flow matching. We demonstrated that in-context audio inpainting effectively bridges linguistic families, allowing an English reference voice clip to accurately guide the pitch contour and timbre of native Tamil or Telugu speech.
+
+\subsection{Systems and Edge Deployment Contributions}
+Through in-kernel physical memory profiling (\texttt{/proc/self/status}) across three silicon tiers, this research demonstrated the empirical reality of the Fixed Overhead Anomaly and established rigorous memory budgets for edge generative AI. We demonstrated that by coupling static INT8 tensor graphs with Fourier-based Inverse STFT neural vocoders (Vocos), deep diffusion models can execute deterministically within the strict memory and compute boundaries of budget edge platforms.
+
+\section{Concluding Remarks and Immediate Horizon}
+The work completed during this phase bridges the gap between frontier continuous flow-matching theory and on-device edge execution for low-resource Indian languages. The immediate horizon focuses on executing the Google LiteRT migration, realizing 2-step consistency distillation, and conducting exhaustive on-device physical benchmarking across the target Lenovo Tab K10 hardware.
