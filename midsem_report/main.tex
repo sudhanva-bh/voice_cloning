@@ -10,10 +10,11 @@
 \documentclass[11pt, a4paper, oneside]{Thesis}
 
 \usepackage{lmodern}
+\usepackage{array}
+\usepackage{graphicx}
 \graphicspath{{Figures/}}
 
-\usepackage[backend=bibtex,sorting=none]{biblatex}
-\bibliography{Bibliography.bib}
+\usepackage[numbers,sort&compress]{natbib}
 
 \title{\ttitle}
 
@@ -45,7 +46,7 @@ This treatise presents the design, mathematical formulation, empirical benchmark
 \end{abstract}
 
 \begin{acknowledgements}
-{I express my sincere gratitude to Dr.~Jabez Christopher, Assistant Professor, Department of Computer Science and Information Systems, BITS-Pilani Hyderabad Campus, for his invaluable academic mentorship, technical guidance, and constructive critique throughout the course of this study and design project. His profound insights into artificial intelligence, embedded machine learning systems, and speech processing architectures have been instrumental in defining the trajectory and rigorous execution of this research. I also extend my appreciation to BITS-Pilani Hyderabad Campus for providing the academic infrastructure and computing resources that made this investigation possible.}
+{I express my sincere gratitude to Dr.~Jabez Christopher, Assistant Professor, and Reshma A.S., Co-Supervisor, Department of Computer Science and Information Systems, BITS-Pilani Hyderabad Campus, for their invaluable academic mentorship, technical guidance, and constructive critique throughout the course of this CS F377 Design Project. Their profound insights into artificial intelligence, embedded machine learning systems, and speech processing architectures have been instrumental in defining the trajectory and rigorous execution of this research. I also extend my appreciation to BITS-Pilani Hyderabad Campus for providing the academic infrastructure and computing resources that made this investigation possible.}
 \end{acknowledgements}
 
 %-------------------------------------------------------------------------------
@@ -98,6 +99,7 @@ This treatise presents the design, mathematical formulation, empirical benchmark
 \label{Bibliography}
 \lhead{\emph{Bibliography}}
 
-\printbibliography
+\bibliographystyle{unsrtnat}
+\bibliography{Bibliography}
 
 \end{document}

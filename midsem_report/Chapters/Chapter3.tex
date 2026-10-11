@@ -18,9 +18,9 @@ To simultaneously satisfy the competing demands of high-throughput English speec
     
     \item \textbf{Engine 2: The Indic Multilingual Engine (IndicF5)}:
     \begin{itemize}
-        \item \textit{Backbone Architecture}: A 22-layer Diffusion Transformer (\gls{dit}) comprising 335 million parameters, pre-trained on 1,417 hours of curated multi-speaker Indic speech across 11 languages (Tamil, Telugu, Kannada, Hindi, Malayalam, Marathi, Gujarati, Bengali, Punjabi, Odia, Assamese).
-        \item \textit{Generative Formulation}: Continuous Optimal Transport Flow Matching (\gls{cfm}) solved via an 8-step Euler ODE numerical integrator incorporating Classifier-Free Guidance (\gls{cfg}) and non-linear sway scheduling ($\rho = -1.0$).
-        \item \textit{Neural Vocoder}: An INT8-quantized 24\,kHz Vocos Fourier vocoder (~22\,MB, 13.5M parameters) computing analytical Inverse Short-Time Fourier Transforms.
+        \item \textit{Backbone Architecture}: A 22-layer Diffusion Transformer (\gls{dit}) comprising 335 million parameters, pre-trained on 1,417 hours of multi-speaker speech across eleven major Indian languages.
+        \item \textit{Generative Formulation}: Continuous Flow Matching (\gls{cfm}) solved via an 8-step Euler ODE solver with Classifier-Free Guidance and sway scheduling ($\rho = -1.0$).
+        \item \textit{Neural Vocoder}: An INT8-quantized 24\,kHz Vocos vocoder (~22\,MB, 13.5M parameters) computing analytical \gls{istft} acoustic waveforms.
         \item \textit{Execution Runtime}: Python desktop development environment (PyTorch safetensors baseline), static/dynamic INT8 ONNX graphs, and a custom native C++ engine (\texttt{libindicf5\_engine.so}) with a strategic migration path toward Google LiteRT.
     \end{itemize}
 \end{enumerate}
@@ -80,7 +80,7 @@ A critical challenge in non-autoregressive speech generation is determining the 
 \subsection{The Linguistic Duration Mismatch Problem}
 In English text-to-speech, character counts correlate weakly with duration due to irregular spelling, but phoneme counts provide reasonable estimates ($\approx 80\text{--}120\text{ms}$ per phoneme). In Indian languages, written text consists of base consonants combined with dependent diacritics (\textit{matras}, \textit{viramas}, \textit{anusvaras}). 
 
-Early implementations of IndicF5 utilized an uncalibrated heuristic derived from English phoneme models:
+Early IndicF5 implementations utilized an uncalibrated heuristic derived from English phoneme models:
 \begin{equation}
     T_{\text{gen}}^{\text{naive}} = \left\lfloor \text{len}(\mathbf{w}_{\text{tgt}}) \times 15.0 \right\rfloor \quad \text{frames}
     \label{eq:naive_duration}
@@ -288,9 +288,9 @@ To validate the selection of IndicF5 as our primary Indic backbone and ZipVoice-
 
 \begin{table}[htbp]
 \centering
-\small
 \caption{Comprehensive Architectural Comparison of Speech Synthesis Models}
 \label{tab:model_comparison_detailed}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 \textbf{Model} & \textbf{Params} & \textbf{Paradigm} & \textbf{Quantized} & \textbf{Zero-Shot} & \textbf{Indic Support} & \textbf{Edge Verdict} \\
@@ -303,7 +303,8 @@ To validate the selection of IndicF5 as our primary Indic backbone and ZipVoice-
 \textbf{Kokoro-82M} & 82M & StyleTTS2 & ~80\,MB & No & None (English) & Excluded \\
 \textbf{VITS (Base)} & ~35M & VAE + Flow & ~45\,MB & No (Fixed) & Per-Voice Training & Excluded \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 As substantiated by Table~\ref{tab:model_comparison_detailed}, IndicF5 is the solitary architecture that combines true zero-shot voice cloning with native out-of-the-box multilingual support for Indian languages, while remaining compressible into a sub-400\,MB INT8 mobile footprint.

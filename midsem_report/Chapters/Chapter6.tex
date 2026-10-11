@@ -8,14 +8,14 @@ This mid-semester investigation has developed, evaluated, and optimized an on-de
 
 The primary engineering milestones accomplished during this reporting period include:
 \begin{enumerate}
-    \item \textbf{Deployment of the English Edge Baseline}: Successfully integrated and benchmarked the ZipVoice-Distill 123M flow-matching model and 24\,kHz Vocos vocoder within a production-grade Flutter application (\texttt{voice\_clone\_proto}), demonstrating real-time factor scaling and establishing empirical hardware baselines across physical Android devices.
+    \item \textbf{Deployment of the English Edge Baseline}: Successfully integrated and benchmarked the ZipVoice-Distill 123M flow-matching model and 24\,kHz Vocos vocoder within a production Flutter application (\texorpdfstring{\texttt{voice\_clone\_proto}}{voice\_clone\_proto}), demonstrating real-time factor scaling across physical Android devices.
     \item \textbf{Verification of Native Indic Voice Cloning}: Ported and adapted AI4Bharat's 335M Diffusion Transformer (IndicF5) across Tamil, Telugu, Kannada, and Hindi, verifying high-fidelity acoustic speaker adaptation without requiring external grapheme-to-phoneme rule dictionaries.
     \item \textbf{Formulation of the Syllabic Akshara Duration Model}: Discovered and resolved the critical duration mismatch defect that caused severe tail hallucinations (breathing, whispers, and repeating syllables), establishing a calibrated formulation of \textbf{6.5 mel frames per Unicode character} ($\approx 55$\,ms per character).
     \item \textbf{Discovery of the Spatial Text-Mel Alignment Law}: Identified the sequence alignment constraints governing ConvNeXt text representations, proving that reference audio clips must be bounded strictly between \textbf{3.5 and 5.0 seconds} to avoid positional attention collapse.
     \item \textbf{In-Memory Batch Benchmarking Engine and Dataset}: Engineered \texttt{batch.py} with warm RAM model caching and curated \texttt{prompts.json}, comprising \textbf{120 authentic conversational sentences} across Telugu, Tamil, and Hindi stratified across four duration tiers.
     \item \textbf{Full Model Integer Quantization}: Exported and verified the complete static INT8 ONNX pipeline, achieving a \textbf{74\% reduction in model size} (from 1.35\,GB FP32 down to 349\,MB) for the DiT backbone and quantizing the Vocos vocoder down to 22\,MB.
     \item \textbf{Memory Budget Elimination of Android OOM Risks}: Proven that the quantized system bounds operational physical memory to \textbf{801\,MB}, safely operating below the 1.5\,GB \textit{LowMemoryKiller} threshold on 4\,GB edge devices like the Lenovo Tab K10.
-    \item \textbf{Formulation of the Google LiteRT Roadmap}: Established the complete post-midsem architectural migration blueprint toward Google LiteRT, leveraging the unified \texttt{CompiledModel} API to offload computation to Qualcomm QNN Hexagon NPUs and MediaTek NeuroPilot APUs.
+    \item \textbf{Formulation of the Google LiteRT Roadmap}: Established the post-midsem architectural roadmap toward Google LiteRT, leveraging the \texttt{CompiledModel} API to offload matrix operations to Qualcomm Hexagon NPUs and MediaTek APUs.
 \end{enumerate}
 
 \section{Key Scientific and Systems Contributions}

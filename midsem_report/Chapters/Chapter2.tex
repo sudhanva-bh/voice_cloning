@@ -4,7 +4,7 @@
 \lhead{Chapter 2. \emph{Theoretical Foundations}}
 
 \section{Taxonomy of Deep Generative Speech Architectures}
-Neural generative speech synthesis involves modeling the probability distribution of high-dimensional acoustic representations conditioned on linguistic text and optional speaker descriptors. Modern deep generative paradigms can be broadly partitioned into four foundational mathematical families:
+Neural generative speech synthesis models the probability distribution of acoustic representations conditioned on linguistic text and speaker descriptors. Modern deep generative paradigms partition into four foundational mathematical families:
 
 \subsection{Autoregressive Acoustic Models}
 Autoregressive (\gls{ar}) architectures formulate speech generation as a sequential next-token prediction task. Representing the acoustic feature sequence as $\mathbf{X} = (\mathbf{x}_1, \mathbf{x}_2, \dots, \mathbf{x}_T)$, the joint probability is factored via the chain rule of probability:
@@ -150,7 +150,7 @@ To overcome the physical bottlenecks of transposed convolutions, Siuzdak~\cite{s
 
 The Vocos backbone consists of a sequence of ConvNeXt blocks that operate directly at the mel frame rate without temporal upsampling. The network outputs two distinct spectral heads:
 \begin{enumerate}
-    \item \textbf{Magnitude Spectrogram Head}: Predicts real-valued Fourier magnitude spectra $|\mathbf{X}(f, t)| \in \mathbb{R}^{(\frac{N_{\text{fft}}}{2} + 1) \times T}$.
+    \item \textbf{Magnitude Head}: Predicts real-valued magnitude spectra $|\mathbf{X}(f, t)| \in \mathbb{R}^{(N_{\text{fft}}/2 + 1) \times T}$.
     \item \textbf{Phase Spectrogram Head}: Directly predicts unit complex numbers representing spectral phase angles $\phi(f, t) \in [-\pi, \pi]$ via two output channels $(\cos \phi, \sin \phi)$, normalized such that $\cos^2 \phi + \sin^2 \phi = 1$.
 \end{enumerate}
 
@@ -247,7 +247,17 @@ In digital mel-spectrogram representations utilizing a 24\,kHz sampling rate and
 Dividing the akshara duration (\eref{eq:akshara_duration}) by the frame duration (\eref{eq:frame_duration}) reveals that an Indic character glyph corresponds to an average density of \textbf{5.5 to 7.0 mel frames per Unicode character code point}. This linguistic reality forms the theoretical underpinning of our duration model calibrated in \cref{Chapter3}.
 
 \subsection{IndicF5 and ``Phir Hera Fairy'' (AI4Bharat, 2025)}
-IndicF5~\cite{indicf52025} represents the first large-scale adaptation of the F5-TTS architecture to the Indian subcontinent. Trained by AI4Bharat across 1,417 hours of multi-speaker Indic audio, IndicF5 achieves native zero-shot voice cloning across eleven Indian languages. By utilizing a shared multilingual character vocabulary of 187 tokens (encompassing Tamil, Telugu, Kannada, Hindi, and regional scripts), the model avoids fragile G2P lookups and learns cross-lingual phonological representations directly from raw text.
+\label{subsec:indicf5_phir_hera}
+IndicF5, formulated by Praveen et~al.~\cite{indicf52025} under the direction of Mitesh M.~Khapra at AI4Bharat (IIT Madras) in their seminal work \textit{``Phir Hera Fairy: An English Fairytaler is a Strong Faker of Fluent Speech in Low-Resource Indian Languages''}, represents the first comprehensive adaptation of non-autoregressive continuous flow matching to the multilingual landscape of the Indian subcontinent. 
+
+The investigation addressed a central architectural hypothesis: whether an English-pretrained flow-matching checkpoint (F5-TTS~\cite{chen2024f5tts}) could effectively generalize to low-resource, phonologically distinct Indian languages, or whether de novo pre-training was mandatory. Praveen et~al.\ evaluated three distinct optimization paradigms:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Training from Scratch}: Initializing the 22-layer DiT backbone with randomized weights on Indian corpora. This yielded poor phonological convergence and unstable mel trajectories given data scarcity in several languages.
+    \item \textbf{Joint Bilingual / Multilingual Pre-training}: Fine-tuning simultaneously on paired English and Indic datasets. While stable, this suffered from language competition and degraded prosodic expression in regional dialects.
+    \item \textbf{Exclusive Indic Fine-Tuning of the English Prior}: Fine-tuning the pre-trained English F5-TTS checkpoint exclusively on Indic speech data. Empirically, this paradigm achieved the highest naturalness (MOS) and speaker similarity, proving that flow-matching vector fields learned from dense English acoustic priors provide superior generative inductive biases that transfer seamlessly across phonetic boundaries without catastrophic forgetting.
+\end{enumerate}
+
+Trained across \textbf{1,417 hours} of multi-speaker studio and field speech sourced from IndicVoices-R~\cite{indicvoices2024}, Rasa, IndicTTS, and LIMMITS across eleven official languages (Assamese, Bengali, Gujarati, Hindi, Kannada, Malayalam, Marathi, Odia, Punjabi, Tamil, and Telugu), IndicF5 demonstrates remarkable polyglot zero-shot cloning. An unseen speaker supplying a reference prompt in one language (e.g., Kannada or Odia) can synthesize fluent speech in another language (e.g., Hindi or Tamil) while maintaining vocal timbre, pitch trajectory, and natural cadence. Furthermore, by defining a compact unified character tokenizer spanning 187 Unicode glyphs across Indic scripts and Latin characters, the model completely eliminates error-prone G2P rule tables and learns multilingual text-acoustic alignments end-to-end.
 
 \section{Edge Machine Learning Runtimes: Runtime Comparative Analysis}
 Deploying deep flow-matching models on mobile devices requires an efficient runtime engine capable of parsing ONNX or FlatBuffer graphs, executing quantized integer operators, and offloading tensor contractions to hardware accelerators. Three primary frameworks exist in the modern edge machine learning ecosystem:

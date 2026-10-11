@@ -30,7 +30,7 @@ We developed the standalone evaluation tool \texttt{english\_tts.py} (and legacy
 \subsection{Findings and Milestones}
 Executing on a desktop Intel/AMD multi-core processor, the 4-step flow-matching engine successfully cloned reference voices in approximately 1.8 to 2.4 seconds, achieving $\text{RTF} \approx 0.35$ for a 6-second utterance. This empirically confirmed that 4-step distilled continuous flow matching eliminates the multi-minute latency penalties of score-based diffusion models.
 
-\section{Iteration 2: Flutter Mobile Application Prototype (\texttt{voice\_clone\_proto})}
+\section{Iteration 2: Flutter Mobile Prototype (\texorpdfstring{\texttt{voice\_clone\_proto}}{voice\_clone\_proto})}
 \subsection{Objective and UI Architecture}
 Having validated the baseline in Python, Iteration~2 migrated the English pipeline into a production-grade, cross-platform Android application named \texttt{voice\_clone\_proto}.
 
@@ -80,9 +80,9 @@ The measured Real-Time Factors (\gls{rtf}), Peak Resident Set Sizes (\gls{rss}),
 
 \begin{table}[htbp]
 \centering
-\small
 \caption{Empirical On-Device Baseline Benchmarks across Physical Android Devices}
 \label{tab:empirical_benchmarks_detailed}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{llccccc}
 \toprule
 \textbf{Device Model} & \textbf{Processor (SoC)} & \textbf{RAM} & \textbf{Tier} & \textbf{RTF (Median)} & \textbf{Peak RSS} & \textbf{Status} \\
@@ -101,7 +101,8 @@ Samsung Galaxy M53 & Dimensity 900 & 8\,GB & Long (~65w) & \textbf{2.531} & \tex
 \midrule
 Lenovo Tab K10 & Helio P22T (No NPU) & 4\,GB & All Tiers & \textit{> 5.0 (Est.)} & \textit{> Budget} & CRITICAL \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Critical Analysis of Baseline Benchmarks}
@@ -166,9 +167,9 @@ We established the operational rule that reference audio clips must be bounded s
 Iterative research and model validation required evaluating scores of sentences across multiple speakers, languages, and duration tiers. Loading the 1.35\,GB PyTorch model weights from disk on every invocation incurred a 12-second cold-start penalty per sentence.
 
 \subsection{System Architecture}
-We engineered the dedicated batch synthesis engine \texttt{batch.py} (and \texttt{src/voice\_studio/engines/batch\_indicf5.py}):
+We engineered the dedicated batch synthesis engine \texttt{batch.py} within the backend architecture:
 \begin{itemize}
-    \item \textbf{In-Memory Model Caching}: The 1.35\,GB model weights, tokenizer vocabularies, and Vocos neural vocoder are loaded into RAM exactly once during initialization. Subsequent synthesis requests reuse the warm in-memory pipeline, eliminating cold-load latency.
+    \item \textbf{In-Memory Model Caching}: The 1.35\,GB model weights, vocabularies, and Vocos vocoder are loaded into RAM exactly once during initialization. Subsequent synthesis requests reuse the warm pipeline, eliminating cold-load latency.
     \item \textbf{Auto-Incrementing Batch Storage}: Each execution automatically creates the next incremental output directory (\texttt{generated/batches/batch-1/}, \texttt{batch-2/}, etc.).
     \item \textbf{Multi-Processing Concurrency}: Implemented an optional multi-worker process pool (\texttt{--parallel --workers N}) utilizing inter-process queues for parallel benchmark throughput.
 \end{itemize}
@@ -190,14 +191,14 @@ To eliminate ad-hoc scripting and establish a modular codebase, the backend was 
     \item \texttt{audio/io.py}: Format decoding, FFmpeg transcoding, and RMS normalization.
     \item \texttt{catalog/manager.py}: Voice catalog CRUD operations, automatic metadata extraction, and audio sanitization.
     \item \texttt{dataset/prompts.py}: Tier-based phrase parsing and range selection.
-    \item \texttt{engines/}: Unified engine interfaces for \texttt{IndicF5Engine}, \texttt{ZipVoiceEngine}, and \texttt{IndicF5BatchRunner}.
+    \item \texttt{engines/}: Unified engine interfaces for IndicF5, ZipVoice, and batch runner execution.
     \item \texttt{cli/}: Unified entry point via \texttt{main.py}, supporting an interactive Terminal User Interface (TUI) and direct subcommands (\texttt{list}, \texttt{info}, \texttt{add}, \texttt{prompts}, \texttt{clone}, \texttt{batch}).
 \end{itemize}
 
 \subsection{Dynamic Catalog Management (\texttt{samples/voices.json})}
 The catalog tracks registered speaker reference clips, storing voice keys, spoken transcripts, descriptions, audio durations, and creation timestamps. When users register a new voice via \texttt{python main.py add}, the system automatically validates audio integrity, measures duration, normalizes RMS energy, and copies or moves the file into \texttt{samples/added/}.
 
-\section{Iteration 9: Graph Optimization, FP32 Export, and Static/Dynamic INT8 Quantization}
+\section[Iteration 9: Graph Optimization and INT8 Quantization]{Iteration 9: Graph Optimization, FP32 Export, and Static/Dynamic INT8 Quantization}
 \subsection{Objective: Escaping PyTorch Edge Dependency}
 Deploying IndicF5 onto Android devices requires decoupling the model from the heavy Python runtime, Librosa, and PyTorch (which exceed 2.5\,GB on disk). Iteration~9 developed the complete graph optimization and integer quantization export pipeline under \texttt{models/indicf5/}.
 
@@ -226,18 +227,18 @@ The native engine implements:
         x_{t+\Delta t}[k] = x_t[k] + \Delta t \cdot \left( (1 + \gamma) v_{\text{cond}}[k] - \gamma v_{\text{uncond}}[k] \right)
     \end{equation}
     accelerated via multi-threaded ARM NEON execution kernels.
-    \item A clean, struct-padding-safe C ABI interface (\texttt{indicf5\_c\_api.h}) exposing functions \texttt{indicf5\_create()}, \texttt{indicf5\_synthesize()}, \texttt{indicf5\_destroy()}, and \texttt{indicf5\_free\_buffer()}.
+    \item A clean, struct-padding-safe C ABI interface (\texttt{indicf5\_c\_api.h}) exposing core lifecycle and synthesis routines (\texttt{indicf5\_create}, \texttt{indicf5\_synthesize}, \texttt{indicf5\_destroy}).
     \item A Dart FFI bridge service (\texttt{indicf5\_service.dart}) enabling the Flutter application to invoke native C++ inference in background Dart Isolates without bridging overhead.
 \end{itemize}
 
-\section{Hardware Memory Budget Analysis on 4\,GB RAM Platforms}
+\section{Hardware Memory Budget Analysis on \texorpdfstring{4\,GB}{4 GB} RAM Platforms}
 To verify that the quantized system eliminates Android Out-Of-Memory (\gls{lmk}) crashes on budget devices like the Lenovo Tab K10, Table~\ref{tab:ram_budget_comparison} details the comparative physical memory budget.
 
 \begin{table}[htbp]
 \centering
-\small
 \caption{Physical RAM Budget Comparison on 4\,GB Android Edge Hardware}
 \label{tab:ram_budget_comparison}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lcc}
 \toprule
 \textbf{Memory Subsystem Component} & \textbf{Unquantized Baseline (FP32)} & \textbf{Quantized System (Ours)} \\
@@ -251,7 +252,8 @@ Flutter Runtime, Dart VM \& UI Buffers & 150\,MB & 150\,MB \\
 Android LowMemoryKiller Ceiling & $\approx 1,500\text{--}1,800$\,MB & $\approx 1,500\text{--}1,800$\,MB \\
 \textbf{Safety Margin / Operational Verdict} & \textbf{EXCEEDED (Crash / SIGKILL)} & \textbf{+699\,MB SAFE HEADROOM} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 By compressing the operational footprint to \textbf{801\,MB}, our quantized architecture guarantees stable execution within the physical memory constraints of budget mobile edge devices.

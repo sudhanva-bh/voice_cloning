@@ -18,9 +18,9 @@ To overcome these structural limitations, the central post-midsem engineering ro
 
 \begin{table}[htbp]
 \centering
-\small
 \caption{System Architecture Comparison: Custom ONNX Runtime vs. Google LiteRT}
 \label{tab:litert_vs_ort_comparison}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lcc}
 \toprule
 \textbf{Architectural Dimension} & \textbf{Custom ONNX Runtime (C++)} & \textbf{Google LiteRT (LiteRT Torch)} \\
@@ -34,7 +34,8 @@ Buffer Allocation & Custom heap memory arenas & Zero-copy Android Hardware Buffe
 Runtime Binary Footprint & Heavy (>75\,MB \texttt{.so} dependencies) & Lightweight (~8--12\,MB runtime) \\
 Ecosystem Integration & Manual NDK CMake \& Dart FFI & Google Play On-Device AI (PODAI) \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \section{Direct PyTorch Conversion via LiteRT Torch (\texttt{litert-torch})}
@@ -121,7 +122,7 @@ When running on devices powered by MediaTek Dimensity or Helio SoCs (such as the
     \item On lower-tier devices lacking dedicated APUs (such as the Helio P22T in the Lenovo Tab K10), LiteRT automatically triggers graceful fallback to \textbf{XNNPACK}, executing highly optimized 4-thread ARMv8 NEON assembly routines.
 \end{itemize}
 
-\section{Zero-Copy Memory Pipelines via Android Hardware Buffers}
+\section{Zero-Copy Pipelines via Android Hardware Buffers}
 In traditional deep learning runtimes, passing generated mel-spectrogram tensors from the acoustic model to the neural vocoder and subsequently to the audio output track incurs substantial memory copying overhead:
 \begin{equation}
     \text{Model Heap} \xrightarrow{\text{memcpy}} \text{Vocoder Input Buffer} \xrightarrow{\text{memcpy}} \text{PCM Audio Track}
