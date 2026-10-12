@@ -85,7 +85,7 @@ Consequently, their gradients with respect to network parameters $\theta$ are id
 \begin{equation}
     \nabla_\theta \mathcal{L}_{\text{CFM}}(\theta) \equiv \nabla_\theta \mathcal{L}_{\text{Marginal}}(\theta)
 \end{equation}
-This proves that optimizing the conditional objective over tractable individual training samples provably regresses the exact true marginal generative flow.
+This confirms that optimizing the conditional objective over individual training samples yields parameter gradients identical to those of the marginal generative flow.
 
 \section{Analytical Formulation of the Inverse STFT with Window Overlap-Add}
 Let $\mathbf{Z}(k, m) \in \mathbb{C}$ denote the synthesized discrete complex Fourier matrix at frequency bin $k \in [0, N_{\text{fft}}-1]$ and time frame $m \in \mathbb{Z}$. The one-dimensional Inverse Discrete Fourier Transform (IDFT) of each individual column frame is:

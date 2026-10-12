@@ -5,39 +5,37 @@
 \lhead{Chapter 6. \emph{Conclusion}}
 
 \section{Summary of Research Accomplishments and Milestones}
-This mid-semester investigation has developed, evaluated, and optimized an on-device, zero-shot multilingual neural voice cloning architecture capable of operating entirely offline on resource-constrained Android mobile hardware. Addressing the severe linguistic void in edge speech processing—wherein existing zero-shot engines exclusively support English and Chinese—this project successfully brings native Indian language voice synthesis to commodity mobile platforms.
+This mid-semester investigation developed, evaluated, and optimized an on-device, zero-shot multilingual neural voice cloning pipeline capable of operating entirely offline on resource-constrained Android mobile hardware. Addressing the lack of Indian language support in edge speech processing, where existing zero-shot engines exclusively target English and Chinese, this project brings native Indian language voice synthesis to commodity mobile platforms.
 
 The primary engineering milestones accomplished during this reporting period include:
 \begin{enumerate}
-    \item \textbf{Deployment of the English Edge Baseline}: Successfully integrated and benchmarked the ZipVoice-Distill 123M flow-matching model and 24\,kHz Vocos vocoder within a production Flutter application (\texorpdfstring{\texttt{voice\_clone\_proto}}{voice\_clone\_proto}), demonstrating physical memory stability and throughput scaling across physical Android devices.
-    \item \textbf{Verification of Native Indic Voice Cloning}: Ported and adapted AI4Bharat's 335M Diffusion Transformer (IndicF5) across Tamil, Telugu, Kannada, and Hindi, verifying high-fidelity acoustic speaker adaptation without requiring external grapheme-to-phoneme rule dictionaries.
-    \item \textbf{Formulation of the Syllabic Akshara Duration Model}: Discovered and resolved the critical duration mismatch defect that caused severe tail hallucinations (breathing, whispers, and repeating syllables), establishing a calibrated formulation of \textbf{6.5 mel frames per Unicode character} ($\approx 55$\,ms per character).
-    \item \textbf{Discovery of the Spatial Text-Mel Alignment Law}: Identified the sequence alignment constraints governing ConvNeXt text representations, proving that reference audio clips must be bounded strictly between \textbf{3.5 and 5.0 seconds} to avoid positional attention collapse.
+    \item \textbf{Deployment of the English Edge Baseline}: Integrated and benchmarked the ZipVoice-Distill 123M flow-matching model and 24\,kHz Vocos vocoder within a Flutter application (\texorpdfstring{\texttt{voice\_clone\_proto}}{voice\_clone\_proto}), demonstrating physical memory stability and throughput scaling across Android devices.
+    \item \textbf{Verification of Native Indic Voice Cloning}: Ported and adapted AI4Bharat's 335M Diffusion Transformer (IndicF5) across Tamil, Telugu, Kannada, and Hindi, verifying acoustic speaker adaptation without requiring external grapheme-to-phoneme rule dictionaries.
+    \item \textbf{Formulation of the Syllabic Akshara Duration Model}: Identified and resolved the duration mismatch defect that caused trailing silence and repeated syllables, establishing a calibrated formulation of \textbf{6.5 mel frames per Unicode character} ($\approx 55$\,ms per character).
+    \item \textbf{Identification of the Reference Duration Boundary}: Characterized the sequence alignment constraints governing ConvNeXt text representations, demonstrating that reference audio clips must be bounded strictly between \textbf{3.5 and 5.0 seconds} to avoid positional attention collapse.
     \item \textbf{In-Memory Batch Benchmarking Engine and Dataset}: Engineered \texttt{batch.py} with warm RAM model caching and curated \texttt{prompts.json}, comprising \textbf{120 authentic conversational sentences} across Tamil, Telugu, and Hindi stratified across four duration tiers.
-    \item \textbf{Full Model Integer Quantization}: Exported and verified the complete static INT8 ONNX pipeline, achieving a \textbf{74\% reduction in model size} (from 1.35\,GB FP32 down to 349\,MB) for the DiT backbone and quantizing the Vocos vocoder down to 22\,MB.
-    \item \textbf{Memory Budget Elimination of Android OOM Risks}: Proven that the quantized system bounds operational physical memory to \textbf{801\,MB}, safely operating below the 1.5\,GB \textit{LowMemoryKiller} threshold on 4\,GB edge devices like the Lenovo Tab K10.
-    \item \textbf{Formulation of the Google LiteRT Roadmap}: Established the post-midsem architectural roadmap toward Google LiteRT, leveraging the \texttt{CompiledModel} API to offload matrix operations to Qualcomm Hexagon NPUs and MediaTek APUs.
+    \item \textbf{Full Model Integer Quantization}: Exported and verified the static INT8 ONNX pipeline, achieving a \textbf{74\% reduction in model size} (from 1.35\,GB FP32 down to 349\,MB) for the DiT backbone and quantizing the Vocos vocoder down to 22\,MB.
+    \item \textbf{Memory Budget Safety on Edge Devices}: Confirmed that the quantized system bounds operational physical memory to \textbf{801\,MB}, safely operating below the 1.5\,GB \textit{LowMemoryKiller} threshold on 4\,GB edge devices like the Lenovo Tab K10.
+    \item \textbf{Formulation of the Google LiteRT Roadmap}: Established the post-midsem roadmap toward Google LiteRT, leveraging the compiled model API to offload matrix operations to Qualcomm Hexagon and MediaTek NPUs.
 \end{enumerate}
 
 \section{Key Scientific and Systems Contributions}
-The intellectual and engineering contributions of this treatise can be summarized across three foundational dimensions:
+The technical contributions of this project span two primary dimensions:
 
 \subsection{Theoretical and Linguistic Contributions}
-By synthesizing continuous flow matching with the syllabic morphology of Dravidian and Indo-Aryan scripts, this research provides the first systematic mathematical characterization of akshara frame density for continuous flow matching. We demonstrated that in-context audio inpainting effectively bridges linguistic families, allowing an English reference voice clip to accurately guide the pitch contour and timbre of native Tamil or Telugu speech.
+By connecting continuous flow matching with the syllabic structure of Dravidian and Indo-Aryan scripts, this research provides an empirical characterization of akshara frame density for flow-matching TTS. We demonstrated that in-context audio inpainting bridges linguistic families, allowing an English reference voice clip to guide the pitch contour and timbre of native Tamil or Telugu speech.
 
 \subsection{Systems and Edge Deployment Contributions}
-Through in-kernel physical memory profiling (\texttt{/proc/self/status}) across three silicon tiers, this research demonstrated the empirical reality of the Fixed Overhead Anomaly and established rigorous memory budgets for edge generative AI. We demonstrated that by coupling static INT8 tensor graphs with Fourier-based Inverse STFT neural vocoders (Vocos), deep diffusion models can execute deterministically within the strict memory and compute boundaries of budget edge platforms.
+Through in-kernel physical memory profiling (\texttt{/proc/self/status}) across three silicon tiers, this research demonstrated the empirical reality of the Fixed Overhead Anomaly and established rigorous memory budgets for edge generative AI. We showed that by pairing static INT8 tensor graphs with Fourier-based Inverse STFT neural vocoders (Vocos), deep diffusion models can execute deterministically within the strict memory and compute boundaries of budget edge platforms.
 
-\section{Concluding Remarks and Immediate Horizon}
-The work completed during this phase bridges the gap between frontier continuous flow-matching theory and on-device edge execution for low-resource Indian languages. The fundamental thesis of this investigation—that high-fidelity multilingual voice cloning can execute fully offline on budget commodity hardware, without ever transmitting a user's biometric voice signature to a remote server—has been substantiated through rigorous mathematical formulation, ten consecutive engineering iterations, and physical hardware profiling across four distinct silicon tiers.
-
-This is not merely an academic contribution: it is a step toward democratizing a technology that was previously gated behind cloud infrastructure costs, GPU clusters, and English-centric data pipelines. The path to putting voice identity in the hands of 1.4 billion Indian language speakers—entirely on-device—is now empirically charted.
+\section{Concluding Remarks and Immediate Priorities}
+The work completed during this phase demonstrates that zero-shot multilingual voice cloning can execute fully offline on budget commodity hardware, without transmitting user biometric voice data to remote servers. The technical feasibility of this approach has been substantiated through mathematical formulation, ten consecutive engineering iterations, and physical hardware profiling across four distinct silicon tiers.
 
 The immediate priorities for the post-midsem phase are ordered as follows:
 \begin{enumerate}
     \item \textbf{Google LiteRT Migration}: Execute the \texttt{litert-torch} PyTorch-to-FlatBuffer conversion and validate numerical parity (MCD $<$ 3.5\,dB) against the PyTorch FP32 baseline.
     \item \textbf{NPU Hardware Delegation}: Profile and verify 100\% DiT operator offloading to Qualcomm QNN HTP (Galaxy S23) and MediaTek NeuroPilot (Galaxy M53).
     \item \textbf{2-Step Consistency Distillation}: Apply FlashSpeech consistency distillation to reduce the ODE solver from 8 steps to 2 steps, targeting sub-2$\times$ RTF on budget CPU hardware.
-    \item \textbf{Lenovo Tab K10 Benchmarking}: Conduct exhaustive on-device memory profiling under sustained synthesis load to guarantee RSS $<$ 850\,MB and zero LMK terminations.
+    \item \textbf{Lenovo Tab K10 Benchmarking}: Conduct on-device memory profiling under sustained synthesis load to guarantee RSS $<$ 850\,MB and zero LMK terminations.
     \item \textbf{Flutter Dual-Engine UI Integration}: Wire the native IndicF5 Dart FFI service into the Flutter application, completing the bilingual user-facing pipeline.
 \end{enumerate}

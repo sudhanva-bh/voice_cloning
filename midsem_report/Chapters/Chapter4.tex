@@ -4,54 +4,54 @@
 \label{Chapter4}
 \lhead{Chapter 4. \emph{Engineering Iterations}}
 
-\section{Introduction to the Iterative Engineering Methodology}
-Deploying zero-shot deep generative speech architectures to resource-constrained embedded systems is an inherently iterative undertaking. Discrepancies between high-level machine learning frameworks (e.g., PyTorch, TorchScript) and physical edge execution environments (e.g., ARM NEON, Android NDK, Flutter runtime) manifest across numerical, memory, and linguistic boundaries.
+\section{Iterative Engineering Methodology}
+Deploying zero-shot deep generative speech architectures to resource-constrained embedded systems requires addressing disparities between high-level machine learning frameworks (PyTorch, TorchScript) and physical edge execution environments (ARM NEON, Android NDK, Flutter runtime). These differences emerge across numerical precision, memory allocation, and linguistic tokenization boundaries.
 
-To trace the development of this project with complete academic rigor and reproducibility, this chapter systematically documents the \textbf{ten consecutive engineering iterations} executed to date. Each iteration documents:
+To document the development of this project with academic rigor and experimental reproducibility, this chapter details the ten engineering iterations completed during this phase. Each iteration outlines:
 \begin{enumerate}[label=(\roman*)]
     \item The operational objective and architectural hypotheses;
     \item The technical implementation and system modifications;
-    \item The critical defects, anomalies, or hardware bottlenecks encountered; and
-    \item The mathematical and algorithmic resolutions formulated.
+    \item The defects, runtime anomalies, or hardware bottlenecks encountered; and
+    \item The algorithmic and systems-level resolutions applied.
 \end{enumerate}
 
 \section{Iteration 1: English Baseline Implementation via Sherpa-ONNX}
 \subsection{Objective and Setup}
-The initial milestone sought to validate whether non-autoregressive flow-matching models could execute zero-shot speaker adaptation directly on local client hardware without cloud server dependencies, establishing an empirical edge baseline prior to addressing Indian languages.
+The initial milestone verified whether non-autoregressive flow-matching models could execute zero-shot speaker adaptation directly on client hardware without cloud server dependencies. This established an empirical performance baseline prior to addressing Indian languages.
 
 \subsection{Implementation Details}
-We developed the standalone evaluation tool \texttt{english\_tts.py} (and legacy \texttt{zipvoice-tts.py}) utilizing the Python C++ bindings of \texttt{sherpa-onnx}~\cite{sherpaonnx2023}. The model architecture incorporated:
+We developed the standalone evaluation script \texttt{english\_tts.py} (and legacy \texttt{zipvoice-tts.py}) utilizing the Python C++ bindings of \texttt{sherpa-onnx}~\cite{sherpaonnx2023}. The model architecture incorporated:
 \begin{itemize}
     \item An INT8-quantized ZipVoice encoder (\texttt{encoder.int8.onnx}, ~5.5\,MB);
     \item An INT8-quantized Zipformer flow-matching decoder (\texttt{decoder.int8.onnx}, ~124\,MB);
     \item An espeak-ng Grapheme-to-Phoneme lexicon mapping English orthography to phonetic tokens; and
-    \item An unquantized 24\,kHz Vocos vocoder graph (\texttt{vocos\_24khz.onnx}, ~54\,MB).
+    \item A 24\,kHz Vocos vocoder graph (\texttt{vocos\_24khz.onnx}, ~54\,MB).
 \end{itemize}
 
 \subsection{Findings and Milestones}
-Executing on a desktop Intel/AMD multi-core processor, the 4-step flow-matching engine successfully cloned reference voices in approximately 1.8 to 2.4 seconds, achieving $\text{RTF} \approx 0.35$ for a 6-second utterance. This empirically confirmed that 4-step distilled continuous flow matching eliminates the multi-minute latency penalties of score-based diffusion models.
+Executing on a multi-core desktop CPU, the 4-step flow-matching engine cloned reference voices in approximately 1.8 to 2.4 seconds, achieving $\text{RTF} \approx 0.35$ for a 6-second utterance. This confirmed that 4-step distilled continuous flow matching eliminates the multi-minute latency bottlenecks associated with classical score-based diffusion models.
 
 \section{Iteration 2: Flutter Mobile Prototype (\texorpdfstring{\texttt{voice\_clone\_proto}}{voice\_clone\_proto})}
 \subsection{Objective and UI Architecture}
-Having validated the baseline in Python, Iteration~2 migrated the English pipeline into a production-grade, cross-platform Android application named \texttt{voice\_clone\_proto}.
+Following Python validation, Iteration~2 migrated the English pipeline into a cross-platform Android application named \texttt{voice\_clone\_proto}.
 
 \subsection{System Implementation}
-The application was engineered in Flutter utilizing Google's Material 3 dark design tokens. To guide non-technical users through the acoustic cloning process, the user interface was structured as a guided 4-step sequential wizard:
+The application was built in Flutter using Material 3 design tokens. The user interface was structured into a guided 4-step workflow:
 \begin{enumerate}
-    \item \textbf{Step 1: Reference Script Selection}: The user selects a phonetically rich English pangram (e.g., \textit{``The quick brown fox jumps over the lazy dog''}) or enters a custom transcript.
-    \item \textbf{Step 2: Reference Audio Acquisition}: Audio is captured via live microphone recording using the \texttt{record} package or imported from device storage using \texttt{file\_picker}.
-    \item \textbf{Step 3: Target Text Entry}: The user inputs target sentences, categorized by duration presets (Short, Medium, Long).
-    \item \textbf{Step 4: Generation and Waveform Playback}: Synthesizes audio and renders a seekable, interactive waveform visualization widget.
+    \item \textbf{Step 1: Reference Script Selection}: The user selects an English phonetically rich phrase (such as \textit{``The quick brown fox jumps over the lazy dog''}) or inputs custom text.
+    \item \textbf{Step 2: Reference Audio Acquisition}: Audio is captured via live microphone recording using the \texttt{record} package or imported from device storage via \texttt{file\_picker}.
+    \item \textbf{Step 3: Target Text Entry}: The user inputs target sentences categorized by duration presets (Short, Medium, Long).
+    \item \textbf{Step 4: Generation and Waveform Playback}: Synthesizes speech and renders an interactive waveform visualization widget.
 \end{enumerate}
 
 \subsection{Concurrency and Background Isolate Decoupling}
-Deep neural network inference executed on the main UI thread induces severe frame drops (jank), dropping UI rendering from 60\,FPS to 0\,FPS and triggering Android \textit{Application Not Responding} (ANR) dialogs. To ensure a fluid user experience, the entire Sherpa-ONNX C++ runtime was decoupled into a background \textbf{Dart Isolate} via \texttt{Isolate.run()}. 
+Executing neural network inference on the main UI thread causes frame drops and triggers Android Application Not Responding (ANR) warnings. To maintain interface responsiveness, the Sherpa-ONNX C++ runtime was decoupled into a background \textbf{Dart Isolate} via \texttt{Isolate.run()}.
 
-Furthermore, to accommodate arbitrary user recordings (e.g., compressed AAC \texttt{.m4a} files from WhatsApp or voice memos), we integrated \texttt{ffmpeg\_kit\_flutter\_new\_audio} to automatically transcode audio into 16-bit 24\,kHz mono PCM WAV prior to memory ingestion.
+To handle arbitrary user recordings (such as AAC \texttt{.m4a} files), we integrated an audio transcoding library based on FFmpeg to convert recordings into 16-bit 24\,kHz mono PCM WAV prior to inference.
 
 \section{Iteration 3: Empirical Multi-Device Benchmarking and In-Kernel RSS Profiling}
 \subsection{Benchmarking Methodology}
-To rigorously evaluate edge hardware behavior, we deployed \texttt{voice\_clone\_proto} across three physical Android devices representing distinct silicon tiers:
+To evaluate hardware performance across silicon tiers, we deployed \texttt{voice\_clone\_proto} across three physical Android devices representing different performance brackets:
 \begin{enumerate}
     \item \textbf{Flagship Tier}: Samsung Galaxy S23 (Qualcomm Snapdragon 8 Gen 2, 8\,GB RAM, dedicated NPU).
     \item \textbf{Upper Mid-Range Tier}: Samsung Galaxy Tab S9 FE+ (Samsung Exynos 1380, 8\,GB RAM, dedicated NPU).
@@ -59,7 +59,7 @@ To rigorously evaluate edge hardware behavior, we deployed \texttt{voice\_clone\
     \item \textbf{Target Budget Baseline}: Lenovo Tab K10 (MediaTek Helio P22T, 4\,GB RAM, CPU-only execution).
 \end{enumerate}
 
-To measure exact physical memory consumption, the Flutter background isolate was instrumented to read \texttt{/proc/self/status} directly from the Linux kernel virtual filesystem upon completion of each utterance:
+To measure exact physical memory consumption, the Flutter background isolate was instrumented to poll \texttt{/proc/self/status} directly from the Linux kernel virtual filesystem upon completion of each utterance:
 \begin{lstlisting}[language=Java,caption={Dart In-Kernel Memory Profiling Hook via /proc/self/status}]
 int rssMB = 0;
 final file = File('/proc/self/status');
@@ -106,77 +106,77 @@ Lenovo Tab K10 & Helio P22T (No NPU) & 4\,GB & All Tiers & \textit{> 5.0 (Est.)}
 }
 \end{table}
 
-\subsection{Critical Analysis of Baseline Benchmarks}
+\subsection{Analysis of Baseline Benchmarks}
 \begin{enumerate}
-    \item \textbf{Verification of Fixed Overhead Dominance}: Across all devices, short utterances exhibited severely inflated RTFs ($3.8\times$ to $9.3\times$). The model initialization, lexicon resolution, and vocoder start costs represent an invariant $\approx 1.2$\,s baseline overhead.
-    \item \textbf{Peak Memory Escalation on Long Utterances}: On long sentences, physical memory consumption reached \textbf{1,772\,MB} on the Exynos 1380 and \textbf{1,562\,MB} on the Snapdragon 8 Gen 2. On an 8\,GB device, this remains within operating system tolerances. However, on budget 4\,GB hardware (Lenovo Tab K10), user-space processes exceeding 1,500\,MB trigger an instant \gls{lmk} process kill. This demonstrated that uncompressed FP32 models could not be deployed without integer quantization and pre-allocated static memory arenas.
+    \item \textbf{Fixed Overhead Dominance}: Across all devices, short utterances exhibited elevated RTFs ($3.8\times$ to $9.3\times$). Model initialization, lexicon loading, and vocoder startup represent an invariant baseline cost of $\approx 1.2$\,seconds.
+    \item \textbf{Peak Memory Escalation on Long Utterances}: On long sentences, physical memory reached 1,772\,MB on the Exynos 1380 and 1,562\,MB on the Snapdragon 8 Gen 2. On an 8\,GB device, this remains within acceptable operating boundaries. However, on budget 4\,GB devices (such as the Lenovo Tab K10), foreground processes exceeding 1,500\,MB risk termination by the Android LowMemoryKiller. This demonstrated that uncompressed FP32 models cannot be deployed without integer quantization and pre-allocated static memory arenas.
 \end{enumerate}
 
 \section{Iteration 4: IndicF5 Model Adaptation and Desktop PyTorch Verification}
 \subsection{Objective}
-Having established the English baseline and its edge resource constraints, Iteration~4 transitioned to solving the core linguistic challenge: zero-shot voice cloning for Indian languages.
+Having established the English baseline and its edge resource constraints, Iteration~4 addressed the core linguistic problem: zero-shot voice cloning for Indian languages.
 
 \subsection{Model Setup and Adaptation}
-We cloned and adapted AI4Bharat's IndicF5 repository under \texttt{scratch/indicf5\_repo/}. Developed in PyTorch using safetensors serializations, the base model (\texttt{model.safetensors}) occupied 1.35\,GB in memory. We engineered the standalone command-line verification script \texttt{clone.py} (and \texttt{test\_indicf5\_clone.py}) implementing the complete Continuous Flow Matching pipeline with the 22-layer DiT backbone and 24\,kHz Vocos vocoder.
+We adapted AI4Bharat's IndicF5 repository under \texttt{scratch/indicf5\_repo/}. Developed in PyTorch using safetensors serialization, the base model (\texttt{model.safetensors}) occupied 1.35\,GB in memory. We engineered the standalone command-line verification script \texttt{clone.py} (and \texttt{test\_indicf5\_clone.py}) implementing the continuous flow-matching pipeline with the 22-layer DiT backbone and 24\,kHz Vocos vocoder.
 
 \subsection{Validation Across Indian Languages}
 We validated synthesis across four major Indian languages:
 \begin{itemize}
-    \item \textbf{Tamil}: Synthesizing classical literary and conversational Tamil phrases (e.g., \textit{``Vanakkam, neengal eppadi irukkireergal?''});
-    \item \textbf{Telugu}: Synthesizing Telugu conversational phrases (e.g., \textit{``Namaskaram, meeru ela unnaaru?''});
+    \item \textbf{Tamil}: Synthesizing conversational phrases (e.g., {\tamilfont வணக்கம், நீங்கள் எப்படி இருக்கிறீர்கள்?});
+    \item \textbf{Telugu}: Synthesizing conversational phrases (e.g., {\telugufont నమస్కారం, మీరు ఎలా ఉన్నారు?});
     \item \textbf{Kannada}: Testing Kannada phonetic prompts (e.g., \textit{``Namaskara, neevu hegiddira?''}); and
-    \item \textbf{Hindi}: Testing Devanagari conversational prompts (e.g., \textit{``Namaste, aap kaise hain?''}).
+    \item \textbf{Hindi}: Testing Devanagari prompts (e.g., {\indicfont नमस्ते, आप कैसे हैं?}).
 \end{itemize}
-The model demonstrated native articulation without requiring external language-specific G2P dictionaries, validating the shared multilingual character tokenization approach.
+The model produced intelligible pronunciation without external G2P dictionaries, validating the unified character tokenization approach.
 
-\section{Iteration 5: Syllabic Duration Calibration (Resolving Audio Truncation and Silence Babbling)}
-\subsection{The Phenomenon: The Tail Hallucination Defect}
-During early testing with IndicF5, synthesized audio clips suffered from a severe acoustic pathology:
+\section{Iteration 5: Syllabic Duration Calibration (Resolving Audio Truncation and Trailing Silence)}
+\subsection{The Duration Mismatch Issue}
+During early testing with IndicF5, synthesized audio clips suffered from a noticeable duration mismatch:
 \begin{quote}
-\textit{When synthesizing an Indic sentence, the model articulated the target speech with natural prosody during the initial 4 to 5 seconds. However, the generated audio file continued for another 6 to 8 seconds, during which the model generated dead silence, heavy breathing sounds, whispered babble, repeated syllables, or strange background acoustic noise.}
+\textit{When synthesizing an Indic sentence, the model articulated target speech with natural prosody during the initial 4 to 5 seconds. However, the generated audio file extended for an additional 6 to 8 seconds, during which the model generated trailing silence, audible breathing, whispered murmurs, repeated syllables, or background noise.}
 \end{quote}
 
 \subsection{Root Cause Investigation}
-Investigation revealed that the duration allocator was utilizing an uncalibrated linear heuristic ($T_{\text{gen}} = \text{len}(\mathbf{w}_{\text{tgt}}) \times 15.0$ frames). Because written Indic text contains numerous combining diacritics (\textit{matras}, \textit{viramas}), character length is inflated relative to spoken syllable counts. Allocating 15 mel frames per Unicode character resulted in a 12.8-second mel canvas for an utterance that naturally completes in 5.2 seconds. 
+Investigation revealed that the duration allocator utilized an uncalibrated linear heuristic ($T_{\text{gen}} = \text{len}(\mathbf{w}_{\text{tgt}}) \times 15.0$ frames). Because written Indic text contains numerous combining diacritics (\textit{matras}, \textit{viramas}), character string length is inflated relative to spoken syllable counts. Allocating 15 mel frames per Unicode character resulted in a 12.8-second mel canvas for an utterance that naturally completes in 5.2 seconds. 
 
-Because continuous flow matching integrates probability trajectories across the \textit{entire} allocated canvas, the model was forced to solve the ODE into a temporal region where text conditioning had terminated. The self-attention layers degenerated into predicting low-probability acoustic artifacts (breathing, murmurs, and repeating phonemes).
+Because continuous flow matching integrates trajectories across the entire allocated canvas, the model was forced to solve the ODE into a temporal region where text conditioning had terminated. The self-attention layers consequently synthesized low-probability acoustic artifacts (breathing, murmurs, and repeated phonemes).
 
-\subsection{The Resolution: Calibrated 6.5 Mel Frames per Character}
-As derived mathematically in \cref{sec:duration_modeling}, we re-calibrated the temporal density constant to:
+\subsection{Resolution: Calibrated 6.5 Mel Frames per Character}
+As derived in \cref{sec:duration_modeling}, we re-calibrated the temporal density constant to:
 \begin{equation}
     k_{\text{mel}} = 6.5 \quad \text{mel frames per character code point}
 \end{equation}
-Setting $k_{\text{mel}} = 6.5$ (at $H = 256, f_s = 24000$) perfectly matches the natural speaking cadence of $\approx 55$\,ms per character glyph. Post-utterance padding was constrained to an explicit 0.30-second acoustic buffer ($\tau_{\text{pad}} = 28$ frames). This fix completely eliminated tail hallucinations, yielding crisp sentence endings across Tamil, Telugu, and Hindi.
+Setting $k_{\text{mel}} = 6.5$ (at $H = 256, f_s = 24000$) matches the natural speaking cadence of $\approx 55$\,ms per character glyph. Post-utterance padding was constrained to an explicit 0.30-second acoustic buffer ($\tau_{\text{pad}} = 28$ frames). This adjustment eliminated trailing artifacts and yielded clean sentence endings across Tamil, Telugu, and Hindi.
 
-\section{Iteration 6: Spatial Text-Mel Alignment and The Reference Duration Boundary Law}
-\subsection{The Phenomenon: The Long-Reference Degradation Defect}
-In subsequent testing, we observed that when users supplied long reference audio clips (e.g., a 10.8-second recording, \texttt{sudhanva\_voic\_clone.wav}), the synthesized output degenerated into total acoustic gibberish and unintelligible static, even when the prompt text was brief.
+\section{Iteration 6: Sequence Alignment and Reference Audio Duration Constraints}
+\subsection{The Long-Reference Degradation Issue}
+In subsequent testing, we observed that when users supplied long reference audio clips (such as a 10.8-second recording, \texttt{sudhanva\_voic\_clone.wav}), the synthesized output degraded into unintelligible static, even when the prompt text was brief.
 
 \subsection{Root Cause Investigation}
-We traced this defect to the spatial alignment design of the F5-TTS ConvNeXt text encoder:
+We traced this issue to the spatial alignment design of the F5-TTS ConvNeXt text encoder:
 \begin{enumerate}
-    \item In F5-TTS, text tokens for the concatenated string $[\mathbf{w}_{\text{ref}} \oplus \mathbf{w}_{\text{tgt}}]$ are embedded contiguously at the beginning of the sequence ($0 \dots N_{\text{tokens}}$).
-    \item When a 10.8-second reference audio clip is ingested, $T_{\text{ref}} = 1016$ mel frames. The reference audio finishes at frame 1016, but the text representations for both reference and target text terminate at sequence index 228 (corresponding to $t \approx 1.6$\,s in normalized sequence coordinates).
-    \item Consequently, target audio synthesis was forced to occur in a temporal region ($t \in [1016, 1500]$ frames) where the text conditioning channel was completely zero-padded. The Diffusion Transformer lacked local cross-attention alignment to the target text, generating unconditioned noise.
+    \item In F5-TTS, text tokens for the concatenated string $[\mathbf{w}_{\text{ref}} \oplus \mathbf{w}_{\text{tgt}}]$ are embedded contiguously at the start of the sequence ($0 \dots N_{\text{tokens}}$).
+    \item When a 10.8-second reference audio clip is ingested, $T_{\text{ref}} = 1016$ mel frames. The reference audio finishes at frame 1016, but text representations for both reference and target text terminate at sequence index 228 (corresponding to $t \approx 1.6$\,s in normalized sequence coordinates).
+    \item Consequently, target audio synthesis occurred in a temporal region ($t \in [1016, 1500]$ frames) where the text conditioning channel was completely zero-padded. The Diffusion Transformer lacked local cross-attention alignment to target text tokens, generating unconditioned noise.
 \end{enumerate}
 
-\subsection{The Resolution: Operational Reference Boundary Law}
-We established the operational rule that reference audio clips must be bounded strictly between \textbf{3.5 seconds and 5.0 seconds} in duration ($T_{\text{ref}} \in [328, 468]$ frames). We recorded and verified clean, phonetically balanced 3.8-second reference clips (\texttt{samples/sudhanva\_short\_ref.wav} and \texttt{samples/tamil\_voices/tamil\_classic\_pangram.mp3}). When paired with verbatim reference transcripts, spatial text-mel alignment was restored, producing pristine phoneme articulation.
+\subsection{Resolution: Operational Reference Boundary Law}
+We established the operational rule that reference audio clips must be bounded strictly between 3.5 seconds and 5.0 seconds in duration ($T_{\text{ref}} \in [328, 468]$ frames). We recorded and verified clean, phonetically balanced 3.8-second reference clips (\texttt{samples/sudhanva\_short\_ref.wav} and \texttt{samples/tamil\_voices/tamil\_classic\_pangram.mp3}). When paired with verbatim reference transcripts, spatial text-mel alignment was maintained, restoring clear phonetic articulation.
 
-\section{Iteration 7: In-Memory Warm Model Batch Synthesis \& Dataset Curation}
-\subsection{Motivation and The Batch Engine}
-Iterative research and model validation required evaluating scores of sentences across multiple speakers, languages, and duration tiers. Loading the 1.35\,GB PyTorch model weights from disk on every invocation incurred a 12-second cold-start penalty per sentence.
+\section{Iteration 7: In-Memory Warm Model Batch Synthesis and Dataset Curation}
+\subsection{Motivation and Batch Engine}
+Iterative model validation required evaluating multiple sentences across diverse speakers, languages, and duration tiers. Loading the 1.35\,GB PyTorch model weights from disk on every invocation incurred a 12-second cold-start penalty per sentence.
 
 \subsection{System Architecture}
 We engineered the dedicated batch synthesis engine \texttt{batch.py} within the backend architecture:
 \begin{itemize}
-    \item \textbf{In-Memory Model Caching}: The 1.35\,GB model weights, vocabularies, and Vocos vocoder are loaded into RAM exactly once during initialization. Subsequent synthesis requests reuse the warm pipeline, eliminating cold-load latency.
+    \item \textbf{In-Memory Model Caching}: The 1.35\,GB model weights, vocabularies, and Vocos vocoder are loaded into RAM once during initialization. Subsequent synthesis requests reuse the warm pipeline, eliminating cold-load latency.
     \item \textbf{Auto-Incrementing Batch Storage}: Each execution automatically creates the next incremental output directory (\texttt{generated/batches/batch-1/}, \texttt{batch-2/}, etc.).
     \item \textbf{Multi-Processing Concurrency}: Implemented an optional multi-worker process pool (\texttt{--parallel --workers N}) utilizing inter-process queues for parallel benchmark throughput.
 \end{itemize}
 
 \subsection{The Multilingual Dataset (\texttt{prompts.json})}
-To standardize evaluation, we authored the curated dataset \texttt{prompts.json}, comprising \textbf{120 authentic conversational phrases} across \textbf{Tamil, Telugu, and Hindi}. To evaluate latency and duration scaling systematically, the dataset is stratified into four standardized tiers:
+To standardize evaluation, we authored the curated dataset \texttt{prompts.json}, comprising 120 authentic conversational phrases across Tamil, Telugu, and Hindi. To evaluate latency and duration scaling systematically, the dataset is stratified into four standardized tiers:
 \begin{enumerate}
     \item \textbf{Short Tier} (10 phrases/language, 4--7 words): Everyday conversational greetings and inquiries.
     \item \textbf{Medium Tier} (10 phrases/language, 12--18 words): Moderate-length social dialogues.
@@ -186,25 +186,25 @@ To standardize evaluation, we authored the curated dataset \texttt{prompts.json}
 
 \section{Iteration 8: Unified Voice Studio Suite and Dynamic Catalog Management}
 \subsection{System Architecture}
-To eliminate ad-hoc scripting and establish a modular codebase, the backend was refactored into the production Python package \texttt{src/voice\_studio/}, organized as follows:
+To establish a modular codebase, the backend was refactored into the Python package \texttt{src/voice\_studio/}, organized as follows:
 \begin{itemize}
-    \item \texttt{config.py}: Centralized path resolutions, hardware constants, and Windows UTF-8 unbuffered stream reconfigurations.
+    \item \texttt{config.py}: Centralized path resolutions, hardware constants, and UTF-8 stream configurations.
     \item \texttt{audio/io.py}: Format decoding, FFmpeg transcoding, and RMS normalization.
-    \item \texttt{catalog/manager.py}: Voice catalog CRUD operations, automatic metadata extraction, and audio sanitization.
+    \item \texttt{catalog/manager.py}: Voice catalog CRUD operations, automatic metadata extraction, and audio validation.
     \item \texttt{dataset/prompts.py}: Tier-based phrase parsing and range selection.
     \item \texttt{engines/}: Unified engine interfaces for IndicF5, ZipVoice, and batch runner execution.
     \item \texttt{cli/}: Unified entry point via \texttt{main.py}, supporting an interactive Terminal User Interface (TUI) and direct subcommands (\texttt{list}, \texttt{info}, \texttt{add}, \texttt{prompts}, \texttt{clone}, \texttt{batch}).
 \end{itemize}
 
 \subsection{Dynamic Catalog Management (\texttt{samples/voices.json})}
-The catalog tracks registered speaker reference clips, storing voice keys, spoken transcripts, descriptions, audio durations, and creation timestamps. When users register a new voice via \texttt{python main.py add}, the system automatically validates audio integrity, measures duration, normalizes RMS energy, and copies or moves the file into \texttt{samples/added/}.
+The catalog tracks registered speaker reference clips, storing voice keys, spoken transcripts, descriptions, audio durations, and creation timestamps. When users register a new voice via \texttt{python main.py add}, the system validates audio integrity, measures duration, normalizes RMS energy, and stores the file into \texttt{samples/added/}.
 
 \section[Iteration 9: Graph Optimization and INT8 Quantization]{Iteration 9: Graph Optimization, FP32 Export, and Static/Dynamic INT8 Quantization}
-\subsection{Objective: Escaping PyTorch Edge Dependency}
+\subsection{Objective: Decoupling from the PyTorch Runtime}
 Deploying IndicF5 onto Android devices requires decoupling the model from the heavy Python runtime, Librosa, and PyTorch (which exceed 2.5\,GB on disk). Iteration~9 developed the complete graph optimization and integer quantization export pipeline under \texttt{models/indicf5/}.
 
 \subsection{Exported Model Artifacts}
-We successfully exported and verified five distinct model graphs:
+We successfully exported and verified five model graphs:
 \begin{enumerate}
     \item \textbf{\texttt{model.safetensors}}: Baseline PyTorch weights (1.35\,GB, 335M parameters).
     \item \textbf{\texttt{indicf5\_dit\_fp32\_static.onnx}}: Static-shape unquantized FP32 graph (1.36\,GB, fixed at 128 mel frames).
@@ -216,24 +216,24 @@ We successfully exported and verified five distinct model graphs:
 
 \section{Iteration 10: Custom Native C++ Engine and Dart FFI Shared Library}
 \subsection{Motivation}
-Because \texttt{sherpa-onnx} lacks built-in C++ loaders for Diffusion Transformers and F5-TTS, we engineered a dedicated native shared library (\texttt{libindicf5\_engine.so}) linking directly to the \textbf{ONNX Runtime Mobile C++ API}.
+Because \texttt{sherpa-onnx} lacks built-in C++ loaders for Diffusion Transformers and F5-TTS, we engineered a dedicated native shared library (\texttt{libindicf5\_engine.so}) linking directly to the ONNX Runtime Mobile C++ API.
 
 \subsection{C++ Engine Architecture (\texttt{indicf5\_engine.cpp})}
 The native engine implements:
 \begin{itemize}
     \item Direct session management via \texttt{Ort::Session} for \texttt{indicf5\_dit\_int8\_static.onnx} and \texttt{indicf5\_vocos\_int8.onnx}.
-    \item Pre-allocated static tensor arenas, completely eliminating dynamic heap allocations across the 8 Euler ODE integration steps.
+    \item Pre-allocated static tensor arenas, eliminating dynamic heap allocations across the 8 Euler ODE integration steps.
     \item Native implementation of the Classifier-Free Guidance Euler update step:
     \begin{equation}
         x_{t+\Delta t}[k] = x_t[k] + \Delta t \cdot \left( (1 + \gamma) v_{\text{cond}}[k] - \gamma v_{\text{uncond}}[k] \right)
     \end{equation}
     accelerated via multi-threaded ARM NEON execution kernels.
-    \item A clean, struct-padding-safe C ABI interface (\texttt{indicf5\_c\_api.h}) exposing core lifecycle and synthesis routines (\texttt{indicf5\_create}, \texttt{indicf5\_synthesize}, \texttt{indicf5\_destroy}).
+    \item A C ABI interface (\texttt{indicf5\_c\_api.h}) exposing core lifecycle and synthesis routines (\texttt{indicf5\_create}, \texttt{indicf5\_synthesize}, \texttt{indicf5\_destroy}).
     \item A Dart FFI bridge service (\texttt{indicf5\_service.dart}) enabling the Flutter application to invoke native C++ inference in background Dart Isolates without bridging overhead.
 \end{itemize}
 
 \section{Hardware Memory Budget Analysis on \texorpdfstring{4\,GB}{4 GB} RAM Platforms}
-To verify that the quantized system eliminates Android Out-Of-Memory (\gls{lmk}) crashes on budget devices like the Lenovo Tab K10, Table~\ref{tab:ram_budget_comparison} details the comparative physical memory budget.
+To verify that the quantized system avoids Android LowMemoryKiller crashes on budget devices like the Lenovo Tab K10, Table~\ref{tab:ram_budget_comparison} details the comparative physical memory budget.
 
 \begin{table}[htbp]
 \centering
@@ -257,4 +257,4 @@ Android LowMemoryKiller Ceiling & $\approx 1,500\text{--}1,800$\,MB & $\approx 1
 }
 \end{table}
 
-By compressing the operational footprint to \textbf{801\,MB}, our quantized architecture guarantees stable execution within the physical memory constraints of budget mobile edge devices.
+By compressing the operational footprint to 801\,MB, the quantized architecture operates safely within the memory constraints of budget mobile edge devices, providing a 699\,MB safety margin on 4\,GB hardware.

@@ -5,10 +5,10 @@
 \lhead{Chapter 3. \emph{System Architecture}}
 
 \section{Heterogeneous Dual-Engine Pipeline Architecture}
-To simultaneously satisfy the competing demands of high-throughput English speech synthesis and native Indian zero-shot voice cloning, we formulate a \textbf{heterogeneous dual-engine pipeline architecture}. Rather than forcing a single compromise model to handle disparate phonetic systems, the architecture bifurcates execution into two specialized, mathematically complementary generative engines coordinated by an intelligent language router:
+To satisfy the requirements of high-throughput English speech synthesis and native Indian zero-shot voice cloning, we formulate a \textbf{heterogeneous dual-engine pipeline architecture}. Rather than relying on a single compromise model to handle disparate phonetic systems, the architecture separates execution into two specialized, complementary generative engines coordinated by a language router:
 
 \begin{enumerate}
-    \item \textbf{Engine 1: The English Baseline Engine (ZipVoice-Distill)}:
+    \item \textbf{Engine 1: English Baseline Engine (ZipVoice-Distill)}:
     \begin{itemize}
         \item \textit{Backbone Architecture}: A non-autoregressive Zipformer acoustic backbone comprising approximately 123 million parameters, pre-trained on the multi-speaker Emilia English-Chinese dataset.
         \item \textit{Numerical Solver}: A 4-step distilled continuous flow-matching decoder.
@@ -17,29 +17,29 @@ To simultaneously satisfy the competing demands of high-throughput English speec
         \item \textit{Memory Footprint}: Approximately 104\,MB for the quantized INT8 acoustic graph.
     \end{itemize}
     
-    \item \textbf{Engine 2: The Indic Multilingual Engine (IndicF5)}:
+    \item \textbf{Engine 2: Indic Multilingual Engine (IndicF5)}:
     \begin{itemize}
         \item \textit{Backbone Architecture}: A 22-layer Diffusion Transformer (\gls{dit}) comprising 335 million parameters, pre-trained on 1,417 hours of multi-speaker speech across eleven major Indian languages.
         \item \textit{Generative Formulation}: Continuous Flow Matching (\gls{cfm}) solved via an 8-step Euler ODE solver with Classifier-Free Guidance and sway scheduling ($\rho = -1.0$).
         \item \textit{Neural Vocoder}: An INT8-quantized 24\,kHz Vocos vocoder (~22\,MB, 13.5M parameters) computing analytical \gls{istft} acoustic waveforms.
-        \item \textit{Execution Runtime}: Python desktop development environment (PyTorch safetensors baseline), static/dynamic INT8 ONNX graphs, and a custom native C++ engine (\texttt{libindicf5\_engine.so}) with a strategic migration path toward Google LiteRT.
+        \item \textit{Execution Runtime}: Python environment (PyTorch safetensors baseline), static/dynamic INT8 ONNX graphs, and a custom native C++ engine with a migration path toward Google LiteRT.
     \end{itemize}
 \end{enumerate}
 
 \section{Signal Preprocessing and Acoustic Feature Extraction}
-Raw audio ingested from consumer smartphone microphones or uploaded media containers exhibits wide variances in sampling rates, bit depths, channel configurations, and acoustic recording levels. To ensure numerical stability across the neural generative stages, every audio signal undergoes a standardized three-stage preprocessing pipeline:
+Audio ingested from smartphone microphones or uploaded media containers exhibits variances in sampling rates, bit depths, channel configurations, and recording levels. To ensure numerical stability across the generative pipeline, every audio signal undergoes a standardized three-stage preprocessing pipeline:
 
 \subsection{Standardized Audio Ingestion and Format Transcoding}
-Arbitrary user-provided audio files (in \texttt{.mp3}, \texttt{.ogg}, \texttt{.m4a}, \texttt{.flac}, or \texttt{.wav} formats) are decoded and transcoded using FFmpeg into standardized 16-bit signed uncompressed Pulse Code Modulation (\gls{pcm}) mono WAV files at a target sampling frequency of:
+User-provided audio files (in \texttt{.mp3}, \texttt{.ogg}, \texttt{.m4a}, \texttt{.flac}, or \texttt{.wav} formats) are decoded and transcoded using FFmpeg into standardized 16-bit signed uncompressed Pulse Code Modulation (\gls{pcm}) mono WAV files at a sampling frequency of:
 \begin{equation}
     f_s = 24,000\,\text{Hz}
     \label{eq:sampling_frequency}
 \end{equation}
 
 \subsection{Root-Mean-Square (RMS) Energy Normalization}
-Reference voice recordings exhibit severe dynamic range disparities, ranging from low-gain whispering to clipped, saturated speech. In continuous flow matching, acoustic amplitude directly modulates the magnitude of the conditioning mel frames $\mathbf{x}_{\text{ref}}$. If the reference audio energy is too low, the model predicts weak, muffled speech; conversely, excessive input gain introduces severe harmonic distortion and phase clipping.
+Reference recordings exhibit noticeable dynamic range disparities, ranging from low-gain speech to saturated signals. In continuous flow matching, acoustic amplitude directly modulates the magnitude of the conditioning mel frames $\mathbf{x}_{\text{ref}}$. If the reference audio energy is too low, the model predicts weak, muffled speech; conversely, excessive input gain introduces harmonic distortion and phase clipping.
 
-To standardize acoustic energy, all reference audio signals $\mathbf{y} \in \mathbb{R}^{N}$ are subjected to Root-Mean-Square (\gls{rms}) normalization. The instantaneous root-mean-square amplitude of the signal is defined as:
+To standardize acoustic energy, all reference audio signals $\mathbf{y} \in \mathbb{R}^{N}$ undergo Root-Mean-Square (\gls{rms}) normalization. The root-mean-square amplitude of the signal is defined as:
 \begin{equation}
     \text{RMS}(\mathbf{y}) = \sqrt{\frac{1}{N} \sum_{n=1}^N y(n)^2}
     \label{eq:rms_definition}
@@ -49,14 +49,14 @@ The audio waveform is scaled linearly to match a target reference energy level $
     \mathbf{y}_{\text{norm}} = \mathbf{y} \cdot \left( \frac{\text{RMS}_{\text{target}}}{\text{RMS}(\mathbf{y}) + \epsilon} \right)
     \label{eq:rms_scaling}
 \end{equation}
-where $\epsilon = 10^{-7}$ prevents division by zero during digital silence. Following scaling, peak amplitude values are clamped to the dynamic range $[-1.0, 1.0]$ to prevent integer overflow clipping:
+where $\epsilon = 10^{-7}$ prevents division by zero during silence. Following scaling, peak amplitude values are clamped to the dynamic range $[-1.0, 1.0]$ to prevent clipping:
 \begin{equation}
     \tilde{y}(n) = \max\left( -1.0, \min\left( 1.0, y_{\text{norm}}(n) \right) \right)
     \label{eq:clamping}
 \end{equation}
 
 \subsection{Log-Mel Filterbank Transformation}
-Continuous acoustic features are extracted by computing 100-channel log-mel spectrograms. Let $N_{\text{fft}} = 1024$ represent the Fast Fourier Transform analysis window size, and let $H = 256$ represent the hop size (frame shift). The Short-Time Fourier Transform (\gls{stft}) is computed using a periodic Hanning window:
+Continuous acoustic features are extracted by computing 100-channel log-mel spectrograms. Let $N_{\text{fft}} = 1024$ represent the Fast Fourier Transform analysis window size, and let $H = 256$ represent the hop size. The Short-Time Fourier Transform (\gls{stft}) is computed using a periodic Hanning window:
 \begin{equation}
     X(k, m) = \sum_{n=0}^{N_{\text{fft}}-1} \tilde{y}(n + mH) w(n) e^{-j \frac{2\pi}{N_{\text{fft}}} kn}
     \label{eq:stft_analysis}
@@ -76,26 +76,26 @@ The log-mel spectrogram tensor $\mathbf{x}_{\text{mel}} \in \mathbb{R}^{100 \tim
 
 \section{Indic Akshara Dynamics and Syllabic Duration Modeling}
 \label{sec:duration_modeling}
-A critical challenge in non-autoregressive speech generation is determining the total sequence length of the target audio prior to synthesis. Autoregressive models terminate generation organically upon emitting an \texttt{<EOS>} token. Non-autoregressive flow-matching models, by contrast, must pre-allocate a fixed-dimensional noise canvas of shape $[1, 100, T_{\text{total}}]$.
+A key challenge in non-autoregressive speech generation is determining the sequence length of the target audio prior to synthesis. Autoregressive models terminate generation organically upon emitting an end-of-sequence token. Non-autoregressive flow-matching models, by contrast, must pre-allocate a fixed-dimensional noise canvas of shape $[1, 100, T_{\text{total}}]$.
 
 \subsection{The Linguistic Duration Mismatch Problem}
-In English text-to-speech, character counts correlate weakly with duration due to irregular spelling, but phoneme counts provide reasonable estimates ($\approx 80\text{--}120\text{ms}$ per phoneme). In Indian languages, written text consists of base consonants combined with dependent diacritics (\textit{matras}, \textit{viramas}, \textit{anusvaras}). 
+In English text-to-speech, character counts correlate loosely with duration due to irregular orthography, but phoneme counts provide reasonable estimates ($\approx 80\text{--}120$\,ms per phoneme). In Indian languages, written text consists of base consonants combined with dependent diacritics (\textit{matras}, \textit{viramas}, \textit{anusvaras}). 
 
 Early IndicF5 implementations utilized an uncalibrated heuristic derived from English phoneme models:
 \begin{equation}
     T_{\text{gen}}^{\text{naive}} = \left\lfloor \text{len}(\mathbf{w}_{\text{tgt}}) \times 15.0 \right\rfloor \quad \text{frames}
     \label{eq:naive_duration}
 \end{equation}
-This formula resulted in severe acoustic pathologies. In Tamil, for example, a sentence containing 80 Unicode code points was allocated:
+This formula resulted in severe duration over-allocation. In Tamil, for example, an utterance containing 80 Unicode code points was allocated:
 \begin{equation}
     T_{\text{gen}} = 80 \times 15 = 1,200\,\text{frames} \implies \frac{1200 \times 256}{24000} = 12.8\,\text{seconds}
 \end{equation}
-However, a native speaker articulates that same sentence in approximately 5.2 seconds (487 frames). Because the Diffusion Transformer was forced to integrate across a 1,200-frame canvas, the model articulated the speech correctly in the first 5 seconds, but spent the remaining 7.6 seconds producing \textbf{catastrophic tail hallucinations: heavy audible breathing, whispering babble, repeated syllables, and acoustic noise}. Conversely, under-allocating duration resulted in truncated words, clipping the final 2--3 words of sentences.
+However, a native speaker articulates that same sentence in approximately 5.2 seconds (487 frames). Because the Diffusion Transformer was forced to integrate across a 1,200-frame canvas, the model articulated the speech correctly in the initial 5 seconds, but spent the remaining 7.6 seconds producing acoustic artifacts: audible breathing, murmuring sounds, repeated syllables, and background noise. Conversely, under-allocating duration resulted in truncated words, clipping the final words of sentences.
 
 \subsection{Mathematical Derivation of the Calibrated Syllabic Model}
-To resolve this defect, we derived a calibrated syllabic duration model grounded in the phonetic distributions of the IndicVoices corpus~\cite{indicvoices2024}. 
+To resolve this issue, we derived a calibrated syllabic duration model grounded in the phonetic distributions of the IndicVoices corpus~\cite{indicvoices2024}. 
 
-Let $N_{\text{chars}} = \text{len}(\mathbf{w}_{\text{tgt}})$ denote the Unicode string length of the target Indic text. In Dravidian and Indo-Aryan scripts, a complete syllabic akshara decomposes into an average of 1.6 to 2.2 Unicode code points (e.g., base consonant + matra). Accounting for pauses, phrase-final lengthening, and punctuation cadence, the empirical acoustic duration per character glyph evaluates to:
+Let $N_{\text{chars}} = \text{len}(\mathbf{w}_{\text{tgt}})$ denote the Unicode string length of the target Indic text. In Dravidian and Indo-Aryan scripts, a complete syllabic akshara decomposes into an average of 1.6 to 2.2 Unicode code points (such as base consonant plus matra). Accounting for pauses, phrase-final lengthening, and punctuation cadence, the empirical acoustic duration per character glyph evaluates to:
 \begin{equation}
     \tau_{\text{char}} \approx 54.0\,\text{ms} \quad \text{to} \quad 60.0\,\text{ms per Unicode character}
     \label{eq:char_temporal_density}
@@ -119,10 +119,10 @@ Incorporating an adjustable user speaking rate modifier $\alpha_{\text{speed}} \
     T_{\text{total}} = T_{\text{ref}} + T_{\text{gen}} + T_{\text{pad}}
     \label{eq:total_frames}
 \end{equation}
-where $T_{\text{ref}} = \lfloor \frac{N_{\text{ref\_samples}}}{H} \rfloor$ represents the exact mel frame length of the reference audio clip. This calibrated formulation (\eref{eq:total_frames}) establishes an optimal balance, completely eliminating both tail hallucinations and phoneme truncation.
+where $T_{\text{ref}} = \lfloor \frac{N_{\text{ref\_samples}}}{H} \rfloor$ represents the exact mel frame length of the reference audio clip. This calibrated formulation (\eref{eq:total_frames}) eliminates both tail hallucinations and phoneme truncation across test utterances.
 
 \section{Conditioning Representation and Sequence Concatenation}
-In the F5-TTS / IndicF5 paradigm, zero-shot voice cloning operates without an explicit phoneme duration aligner or CTC loss. The architecture achieves monotonic alignment implicitly by concatenating text representations and acoustic frames along the sequence dimensions:
+In the F5-TTS and IndicF5 paradigm, zero-shot voice cloning operates without an explicit phoneme duration aligner or CTC loss. The architecture achieves monotonic alignment implicitly by concatenating text representations and acoustic frames along the sequence dimensions:
 
 \subsection{Multilingual Character Tokenization}
 Text sequences are parsed using a shared multilingual character vocabulary (\texttt{vocab.txt}) comprising 187 discrete tokens. The vocabulary encompasses:
@@ -149,9 +149,9 @@ The model constructs an acoustic conditioning canvas $\mathbf{C} \in \mathbb{R}^
 \end{equation}
 
 \begin{remark}[The Reference Duration Boundary Law]
-In the F5-TTS ConvNeXt architecture, the text encoder places all text tokens contiguously at indices $0 \dots N_{\text{tokens}}$ at the start of the sequence. If the reference audio duration $T_{\text{ref}}$ is excessively long (e.g., $T_{\text{ref}} > 7.0$\,seconds), the text representations corresponding to the target utterance are positioned far behind the reference audio boundary. The self-attention layers suffer from positional degradation, attempting to synthesize speech across a temporal span where text conditioning is completely zero-padded, resulting in garbled noise.
+In the F5-TTS ConvNeXt architecture, the text encoder places text tokens contiguously at indices $0 \dots N_{\text{tokens}}$ at the start of the sequence. If the reference audio duration $T_{\text{ref}}$ is excessively long (for example, $T_{\text{ref}} > 7.0$\,seconds), the text representations corresponding to the target utterance are positioned far behind the reference audio boundary. The self-attention layers suffer from positional degradation, attempting to synthesize speech across a temporal span where text conditioning is completely zero-padded, resulting in garbled output.
 
-Conversely, if $T_{\text{ref}} < 3.0$\,seconds, the reference signal provides insufficient acoustic evidence to extract stable speaker pitch contours and room reverberation profiles. Hence, we establish the fundamental operational law:
+Conversely, if $T_{\text{ref}} < 3.0$\,seconds, the reference signal provides insufficient acoustic context to extract stable speaker pitch contours and room reverberation profiles. Hence, we establish the operational guideline:
 \begin{equation}
     3.5\,\text{seconds} \le \Delta t_{\text{ref}} \le 5.0\,\text{seconds}
     \label{eq:reference_duration_law}
@@ -160,7 +160,7 @@ accompanied by a verbatim transcript matching the spoken reference audio exactly
 \end{remark}
 
 \section{Continuous Flow Matching Sampling Formulation}
-The generation trajectory is initialized at $t=0$ by drawing pure Gaussian noise:
+The generation trajectory is initialized at $t=0$ by drawing Gaussian noise:
 \begin{equation}
     \mathbf{x}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_{100 \times T_{\text{total}}})
     \label{eq:gaussian_init}
@@ -187,7 +187,7 @@ The state is updated via first-order Euler integration:
     \label{eq:euler_step}
 \end{equation}
 
-Upon reaching $t=1$, the integrated trajectory $\mathbf{x}_1 \in \mathbb{R}^{100 \times T_{\text{total}}}$ represents clean mel-spectrogram features. The unmasked target speech frames are extracted by slicing off the prefix reference window:
+Upon reaching $t=1$, the integrated trajectory $\mathbf{x}_1 \in \mathbb{R}^{100 \times T_{\text{total}}}$ represents clean mel-spectrogram features. The target speech frames are extracted by slicing off the prefix reference window:
 \begin{equation}
     \mathbf{x}_{\text{tgt}} = \mathbf{x}_1[:, T_{\text{ref}} : T_{\text{total}}] \in \mathbb{R}^{100 \times (T_{\text{gen}} + T_{\text{pad}})}
     \label{eq:slicing_operation}
@@ -218,7 +218,7 @@ The continuous time-domain speech waveform $\mathbf{y} \in \mathbb{R}^{N_{\text{
 where $w(n)$ is a periodic Hanning analysis window of length $N_{\text{fft}} = 1024$ and frame hop $H = 256$.
 
 \section{Formal Algorithmic Specifications}
-The complete end-to-end mathematical procedures for Continuous Flow Matching Voice Cloning and Vocos Neural Spectral Inversion are formalized in Algorithm~\ref{alg:cfm_generation} and Algorithm~\ref{alg:vocos_inversion}.
+The end-to-end mathematical procedures for Continuous Flow Matching Voice Cloning and Vocos Neural Spectral Inversion are formalized in Algorithm~\ref{alg:cfm_generation} and Algorithm~\ref{alg:vocos_inversion}.
 
 \begin{algorithm}[htbp]
 \caption{Continuous Flow Matching Zero-Shot Voice Synthesis}
@@ -308,4 +308,4 @@ To validate the selection of IndicF5 as our primary Indic backbone and ZipVoice-
 }
 \end{table}
 
-As substantiated by Table~\ref{tab:model_comparison_detailed}, IndicF5 is the solitary architecture that combines true zero-shot voice cloning with native out-of-the-box multilingual support for Indian languages, while remaining compressible into a sub-400\,MB INT8 mobile footprint.
+As shown in Table~\ref{tab:model_comparison_detailed}, IndicF5 combines zero-shot voice cloning with native multilingual support for Indian languages, while remaining compressible into a sub-400\,MB INT8 mobile footprint.

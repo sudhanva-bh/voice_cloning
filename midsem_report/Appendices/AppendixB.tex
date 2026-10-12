@@ -9,13 +9,13 @@ To evaluate voice cloning fidelity, articulation clarity, and edge execution thr
 To quantify temporal scaling dynamics and verify our syllabic duration formula across diverse utterance lengths, the corpus is stratified into four standardized duration tiers:
 \begin{enumerate}
     \item \textbf{Short Tier} ($\sim 4\text{--}7$ words): Everyday inquiries, greetings, and brief conversational exchanges.
-    \item \textbf{Medium Tier} ($\sim 12\text{--}18$ words): Single-clause sentences conveying social activities and emotional reflections.
+    \item \textbf{Medium Tier} ($\sim 12\text{--}18$ words): Single-clause sentences conveying social activities and observations.
     \item \textbf{Midlong Tier} ($\sim 20\text{--}25$ words): Compound descriptive sentences containing coordinate clauses.
     \item \textbf{Long Tier} ($\sim 28\text{--}35$ words): Complex narrative sentences designed to stress-test attention mechanisms and RAM allocations.
 \end{enumerate}
 
 \section{Telugu Dataset Inventory}
-Table~\ref{tab:telugu_prompts_inventory} documents representative Telugu evaluation prompts across standardized duration tiers, accompanied by Romanized phonetic transcription and English semantic translations.
+Table~\ref{tab:telugu_prompts_inventory} documents representative Telugu evaluation prompts across standardized duration tiers, displaying the native Telugu script along with English semantic translations.
 
 \begin{table}[htbp]
 \centering
@@ -23,35 +23,35 @@ Table~\ref{tab:telugu_prompts_inventory} documents representative Telugu evaluat
 \caption{Curated Telugu Evaluation Prompts across Standardized Tiers}
 \label{tab:telugu_prompts_inventory}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{l>{\raggedright\arraybackslash}p{7.2cm}>{\raggedright\arraybackslash}p{7.2cm}}
+\begin{tabular}{l>{\telugufont\raggedright\arraybackslash}p{8.5cm}>{\raggedright\arraybackslash}p{7.0cm}}
 \toprule
-\textbf{Tier} & \textbf{Phonetic Transliteration} & \textbf{English Semantic Translation} \\
+\textbf{Tier} & \multicolumn{1}{l}{\textbf{Target Utterance (Telugu Script)}} & \textbf{English Semantic Translation} \\
 \midrule
-Short 1 & Nuvvu bhojanam chesaavaa? & Have you eaten your meal? \\
-Short 2 & Eeroju vaataavaranam chaalaa baagundi. & The weather is very pleasant today. \\
-Short 3 & Repu saayantram kaluddaamaa? & Shall we meet tomorrow evening? \\
-Short 4 & Naaku kaasinni neellu kaavaali. & I need some water, please. \\
-Short 5 & Intiki velle time ayyindi. & It is time to head back home. \\
-Short 6 & Ee pustakam chadavadame naaku nachindi. & I enjoyed reading this book. \\
-Short 7 & Andaru baagunnaaraa? & Is everyone doing well? \\
+Short 1 & నువ్వు భోజనం చేశావా? & Have you had your meal? \\
+Short 2 & ఈరోజు వాతావరణం చాలా బాగుంది. & The weather is very pleasant today. \\
+Short 3 & రేపు సాయంత్రం కలుద్దామా? & Shall we meet tomorrow evening? \\
+Short 4 & నాకు కాసిన్ని నీళ్లు కావాలి. & I need some water, please. \\
+Short 5 & ఇంటికి వెళ్లే టైం అయ్యింది. & It is time to head back home. \\
+Short 6 & ఈ పుస్తకం చదవడం నాకు నచ్చింది. & I enjoyed reading this book. \\
+Short 7 & అందరూ బాగున్నారా? & Is everyone doing well? \\
 \midrule
-Medium 1 & Chaalaa rojula tharvaatha ninnu choodatam chaalaa santhoshamgaa undi. & I am so glad to see you after such a long time. \\
-Medium 2 & Eeroju udayam nundi challagaa undi, varsham vachelaa undi. & It has been cool since morning; it looks like rain. \\
-Medium 3 & Maa oorlo pandaga timelo andaru chaalaa utsaahamgaa untaaru. & Everyone in our village is vibrant during festival time. \\
-Medium 4 & Pillalu thotalo puvvulu choosthu santhoshamgaa aadukuntunnaaru. & Children are happily playing in the garden admiring flowers. \\
+Medium 1 & చాలా రోజుల తర్వాత నిన్ను చూడటం చాలా సంతోషంగా ఉంది. & I am glad to see you after such a long time. \\
+Medium 2 & ఈరోజు ఉదయం నుండి చల్లగా ఉంది, వర్షం వచ్చేలా ఉంది. & It has been cool since morning; it looks like rain. \\
+Medium 3 & మా ఊర్లో పండగ టైంలో అందరూ చాలా ఉత్సాహంగా ఉంటారు. & Everyone in our village is energetic during festival time. \\
+Medium 4 & పిల్లలు తోటలో పువ్వులు చూస్తూ సంతోషంగా ఆడుకుంటున్నారు. & Children are happily playing in the garden admiring flowers. \\
 \midrule
-Midlong 1 & Prathiroju udayam lechi konchem sepu nadisthe rojanthaa churukgaa, aarogyamgaa untundi. & Walking every morning keeps one active and healthy throughout the day. \\
-Midlong 2 & Maa oori cheruvu daggara pachani polaalu, thaati chetlu, pakshula arupulu choosthunte manasuki chaalaa baaguntundi. & The green fields, palm trees, and birds by our village pond are truly delightful. \\
+Midlong 1 & ప్రతిరోజూ ఉదయం లేచి కొంచెం సేపు నడిస్తే రోజంతా చురుగ్గా, ఆరోగ్యంగా ఉంటుంది. & Walking every morning keeps one active and healthy throughout the day. \\
+Midlong 2 & మా ఊరి చెరువు దగ్గర పచ్చని పొలాలు, తాటి చెట్లు, పక్షుల అరుపులు చూస్తుంటే మనసుకి చాలా బాగుంటుంది. & The green fields, palm trees, and birds by our village pond are delightful. \\
 \midrule
-Long 1 & Mana kutumbamlo andaram kalisi pandagalu cheskovadam valla mana madhya anubandham inkaa balamgaa avuthundi. & Celebrating festivals together strengthens our family bonds and mutual love. \\
-Long 2 & Raithulu endainaa vaanainaa lekka cheyakundaa polamlo kashtapadi pani chesthaaru kaabatte manandariki thintaaniki thindi dorukuthundi. & Because farmers work tirelessly through sun and rain, we have food to eat every day. \\
+Long 1 & మన కుటుంబంలో అందరం కలిసి పండగలు చేసుకోవడం వల్ల మన మధ్య అనుబంధం ఇంకా బలంగా అవుతుంది. & Celebrating festivals together strengthens our family bonds. \\
+Long 2 & రైతులు ఎండైనా వానైనా లెక్క చేయకుండా పొలంలో కష్టపడి పని చేస్తారు కాబట్టే మనందరికీ తినడానికి తిండి దొరుకుతుంది. & Because farmers work tirelessly through sun and rain, we have food to eat. \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
 \section{Tamil Dataset Inventory}
-Table~\ref{tab:tamil_prompts_inventory} documents representative Tamil evaluation prompts across standardized duration tiers, accompanied by Romanized phonetic transcription and English semantic translations.
+Table~\ref{tab:tamil_prompts_inventory} documents representative Tamil evaluation prompts across standardized duration tiers, displaying the native Tamil script along with English semantic translations.
 
 \begin{table}[htbp]
 \centering
@@ -59,33 +59,35 @@ Table~\ref{tab:tamil_prompts_inventory} documents representative Tamil evaluatio
 \caption{Curated Tamil Evaluation Prompts across Standardized Tiers}
 \label{tab:tamil_prompts_inventory}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{l>{\raggedright\arraybackslash}p{7.2cm}>{\raggedright\arraybackslash}p{7.2cm}}
+\begin{tabular}{l>{\tamilfont\raggedright\arraybackslash}p{8.5cm}>{\raggedright\arraybackslash}p{7.0cm}}
 \toprule
-\textbf{Tier} & \textbf{Phonetic Transliteration} & \textbf{English Semantic Translation} \\
+\textbf{Tier} & \multicolumn{1}{l}{\textbf{Target Utterance (Tamil Script)}} & \textbf{English Semantic Translation} \\
 \midrule
-Short 1 & Nee nalamaa irukkiyaa? & Are you doing well? \\
-Short 2 & Indru maalai kadarkaraikku povomaa? & Shall we visit the beach this evening? \\
-Short 3 & Enakku konjam thanni venum. & I need some drinking water. \\
-Short 4 & Indha puthagam romba nallaa irukku. & This book is exceptionally good. \\
-Short 5 & Neratha veenadikka koodadhu. & We should not waste our time. \\
-Short 6 & Veettukku poga neramaachu. & It is time to head back home. \\
+Short 1 & நீ நலமா இருக்கியா? & Are you doing well? \\
+Short 2 & இன்று மாலை கடற்கரைக்குப் போவோமா? & Shall we go to the beach this evening? \\
+Short 3 & எனக்கு கொஞ்சம் தண்ணி வேணும். & I need some drinking water. \\
+Short 4 & இந்த புத்தகம் ரொம்ப நல்லா இருக்கு. & This book is very good. \\
+Short 5 & நேரத்த வீணடிக்க கூடாது. & We should not waste our time. \\
+Short 6 & வீட்டுக்குப் போக நேரமாச்சு. & It is time to head back home. \\
+Short 7 & உன்னைப் பார்த்ததுல ரொம்ப சந்தோஷம். & I am very glad to see you. \\
 \midrule
-Medium 1 & Romba naalukku appuram unna paarthadhula enakku romba sandhosham. & I am delighted to see you after so many days. \\
-Medium 2 & Innaikku kaalayila irundhu nallaa kaathu veesudhu, mazhai varum pola irukku. & Breezes have blown since morning; it feels like rain. \\
-Medium 3 & Graamathula thiruvizhaa nadakkum bodhu makkal ellaam romba urchaagamaa iruppaanga. & During village temple festivals, people are filled with great joy. \\
+Medium 1 & நீண்ட நாளுக்கு அப்புறம் உன் குரலக் கேட்டது ரொம்ப சந்தோஷமா இருக்கு. & Hearing your voice after a long time brings great joy. \\
+Medium 2 & இன்று காலையிலிருந்து குளிர் காத்து வீசுது, மழை வரலாம் போல. & A cool breeze has been blowing since morning; it looks like rain. \\
+Medium 3 & தோட்டத்துல பூக்கள் மலர்ந்து இருக்கு, வீடு முழுக்க வாசனை. & Flowers have bloomed in the garden, filling the house with fragrance. \\
+Medium 4 & குழந்தைங்க மாலையில ஒண்ணா சேர்ந்து விளையாடுறது பார்க்க நல்லா இருக்கு. & Watching children play together in the evening is lovely. \\
 \midrule
-Midlong 1 & Dhinamum kaalayila endhirichu konja dhooram nadandhaa udambukku manasukku romba nalladhu. & Walking every morning revitalizes both body and mind. \\
-Midlong 2 & Engal oor kulathukkarayila irukkira pachai vayalgalum thendral marangalum paarkkave azhagaa irukkum. & The green paddy fields and coconut groves by our village pond are scenic. \\
+Midlong 1 & தினமும் காலையில எழுந்து கொஞ்ச நேரம் நடந்தா, நாள் முழுக்க உடம்பு லேசா இருக்கும். & Walking a bit every morning keeps the body feeling refreshed throughout the day. \\
+Midlong 2 & எங்க ஊரு வயல் வெளி, பனை மரங்கள், பறவைகளோட சத்தம் எல்லாம் ரொம்ப அழகா இருக்கும். & The open fields, palm trees, and birds in our village are scenic. \\
 \midrule
-Long 1 & Kudumbathodu serndhu pandigaigalai kondaadum bodhu nammidaiye irukkum anbu innum adhigaamagum. & Celebrating festivals with family deepens mutual love and affection. \\
-Long 2 & Veyilum mazhaiyum paaraamal vivasaayigal nilathil kashtappattu uzhaippadhaal thaan namakku unavu kidaikkiradhu. & Because farmers labor regardless of rain or heat, we receive our sustenance. \\
+Long 1 & நம்ம குடும்பத்துல எல்லாரும் சேர்ந்து பண்டிகை கொண்டாடுறது நம்ம பந்தத்த இன்னும் பலமா ஆக்கும். & Celebrating festivals together strengthens our family ties. \\
+Long 2 & விவசாயிகள் வெயில், மழை பாக்காம இரவு பகலா உழைக்கிறதால தான் நமக்கு சாப்பாடு கிடைக்குது, அவங்கள மதிக்கணும். & Because farmers labor day and night regardless of heat or rain, we have food to eat. \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
 \section{Hindi Dataset Inventory}
-Table~\ref{tab:hindi_prompts_inventory} documents representative Hindi evaluation prompts across standardized duration tiers, accompanied by Romanized phonetic transcription and English semantic translations.
+Table~\ref{tab:hindi_prompts_inventory} documents representative Hindi evaluation prompts across standardized duration tiers, displaying the native Devanagari script along with English semantic translations.
 
 \begin{table}[htbp]
 \centering
@@ -93,25 +95,28 @@ Table~\ref{tab:hindi_prompts_inventory} documents representative Hindi evaluatio
 \caption{Curated Hindi Evaluation Prompts across Standardized Tiers}
 \label{tab:hindi_prompts_inventory}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{l>{\raggedright\arraybackslash}p{7.2cm}>{\raggedright\arraybackslash}p{7.2cm}}
+\begin{tabular}{l>{\indicfont\raggedright\arraybackslash}p{8.5cm}>{\raggedright\arraybackslash}p{7.0cm}}
 \toprule
-\textbf{Tier} & \textbf{Phonetic Transliteration} & \textbf{English Semantic Translation} \\
+\textbf{Tier} & \multicolumn{1}{l}{\textbf{Target Utterance (Devanagari Script)}} & \textbf{English Semantic Translation} \\
 \midrule
-Short 1 & Kya aapne khaana khaa liya? & Have you finished your meal? \\
-Short 2 & Aaj ka mausam bahut suhaavana hai. & The weather is exceptionally pleasant today. \\
-Short 3 & Kya hum kal shaam ko mil sakte hain? & Can we meet tomorrow evening? \\
-Short 4 & Mujhe thoda paani chaahiye. & I would like some water. \\
-Short 5 & Ab ghar jaane ka samay ho gaya hai. & It is now time to return home. \\
+Short 1 & तुम कैसे हो? & How are you doing? \\
+Short 2 & आज शाम घूमने चलें? & Shall we go out for a walk this evening? \\
+Short 3 & मुझे थोड़ा पानी चाहिए। & I would like some water. \\
+Short 4 & यह किताब बहुत अच्छी है। & This book is very good. \\
+Short 5 & समय बर्बाद नहीं करना चाहिए। & We should not waste time. \\
+Short 6 & घर जाने का समय हो गया। & It is time to head back home. \\
+Short 7 & तुमसे मिलकर अच्छा लगा। & It was pleasant meeting you. \\
 \midrule
-Medium 1 & Bahut dinon ke baad aapse milkar mujhe bahut khushi hui. & I am so glad to meet you after such a long time. \\
-Medium 2 & Aaj subah se thandi hava chal rahi hai, lagta hai baarish hogi. & Cool wind has been blowing; it seems rain is imminent. \\
-Medium 3 & Hamaare gaanv mein tyauhaar ke samay sabhi log bahut utsaahit hote hain. & During festivals in our village, everyone is full of enthusiasm. \\
+Medium 1 & इतने दिनों बाद तुमसे बात करके बहुत अच्छा लग रहा है। & It feels wonderful speaking with you after so many days. \\
+Medium 2 & आज सुबह से ठंडी हवा चल रही है, लगता है बारिश आएगी। & Cool breeze has been blowing since morning; it seems rain is coming. \\
+Medium 3 & बगीचे में फूल खिले हैं, पूरा घर महक रहा है। & Flowers are blooming in the garden, and the whole house smells fresh. \\
+Medium 4 & शाम को बच्चों को साथ खेलते देखना अच्छा लगता है। & Watching children play together in the evening is heartwarming. \\
 \midrule
-Midlong 1 & Har subah uthkar thodi der tahalne se dinbhar shareer mein taazgi aur oorja bani rahti hai. & Walking a bit every morning keeps one energetic throughout the day. \\
-Midlong 2 & Hamaare gaanv ke taalaab ke paas hare-bhare khet aur pedon ki sundarta man ko shaanti deti hai. & The lush green fields near our village pond bring serene peace. \\
+Midlong 1 & रोज सुबह उठकर थोड़ी देर टहलने से पूरे दिन शरीर हल्का और तरोताज़ा रहता है। & Walking a little every morning keeps the body active and fresh all day. \\
+Midlong 2 & गाँव के खेत, पेड़ और पक्षियों की आवाज़ें मन को बहुत सुकून देती हैं। & The village fields, trees, and chirping birds bring peace of mind. \\
 \midrule
-Long 1 & Parivaar ke saath milkar tyauhaar manaane se hamaare beech ka pyaar aur aapsi rishta aur bhi majboot hota hai. & Celebrating festivals with family strengthens our bonds and harmony. \\
-Long 2 & Kisaan dhoop aur baarish ki parvaah kiye bina kheton mein mehnat karte hain, tabhi humein ann milta hai. & Farmers toil without regard for sun or rain so that we may have food. \\
+Long 1 & हमारे घर में सब मिलकर त्योहार मनाते हैं, इससे हमारा आपसी रिश्ता और मजबूत होता है। & Celebrating festivals together as a family deepens our mutual relationships. \\
+Long 2 & किसान धूप और बारिश की परवाह किए बिना दिन-रात मेहनत करते हैं, इसी वजह से हमें खाना मिलता है, इसलिए उनका सम्मान करना चाहिए। & Because farmers work tirelessly day and night regardless of sun or rain, we have food. \\
 \bottomrule
 \end{tabular}%
 }
