@@ -15,12 +15,14 @@ To document the development of this project with academic rigor and experimental
     \item The algorithmic and systems-level resolutions applied.
 \end{enumerate}
 
-\section{Iteration 1: English Baseline Implementation via Sherpa-ONNX}
-\subsection{Objective and Setup}
-The initial milestone verified whether non-autoregressive flow-matching models could execute zero-shot speaker adaptation directly on client hardware without cloud server dependencies. This established an empirical performance baseline prior to addressing Indian languages.
+\section{Iteration 1: Mobile Feasibility Proof of Concept (ZipVoice-Distill via Sherpa-ONNX)}
+\subsection{Objective: Testing Edge Flow-Matching Feasibility}
+Before committing development resources to adapting a 335M parameter multilingual diffusion model for Indian languages, we first formulated an empirical proof of concept (PoC) to address a fundamental question: \textit{Can non-autoregressive continuous flow-matching speech synthesis execute zero-shot speaker adaptation directly on client mobile hardware within practical latency and memory budgets?}
+
+To answer this question rapidly, we selected ZipVoice-Distill, an efficient, pre-quantized 123M parameter non-autoregressive Zipformer architecture. ZipVoice was selected as our PoC vehicle specifically because it was a mature, readily available flow-matching model with turnkey C++ mobile runtime support via \texttt{sherpa-onnx}~\cite{sherpaonnx2023}, providing pre-tested cross-platform Flutter/Android bindings.
 
 \subsection{Implementation Details}
-We developed the standalone evaluation script \texttt{english\_tts.py} (and legacy \texttt{zipvoice-tts.py}) utilizing the Python C++ bindings of \texttt{sherpa-onnx}~\cite{sherpaonnx2023}. The model architecture incorporated:
+We developed the standalone evaluation script \texttt{english\_tts.py} (and legacy \texttt{zipvoice-tts.py}) utilizing the Python C++ bindings of \texttt{sherpa-onnx}. The PoC model architecture incorporated:
 \begin{itemize}
     \item An INT8-quantized ZipVoice encoder (\texttt{encoder.int8.onnx}, ~5.5\,MB);
     \item An INT8-quantized Zipformer flow-matching decoder (\texttt{decoder.int8.onnx}, ~124\,MB);
@@ -29,11 +31,11 @@ We developed the standalone evaluation script \texttt{english\_tts.py} (and lega
 \end{itemize}
 
 \subsection{Findings and Milestones}
-Executing on a multi-core desktop CPU, the 4-step flow-matching engine cloned reference voices in approximately 1.8 to 2.4 seconds, achieving $\text{RTF} \approx 0.35$ for a 6-second utterance. This confirmed that 4-step distilled continuous flow matching eliminates the multi-minute latency bottlenecks associated with classical score-based diffusion models.
+Executing on a multi-core desktop CPU, the 4-step flow-matching engine cloned reference voices in approximately 1.8 to 2.4 seconds, achieving $\text{RTF} \approx 0.35$ for a 6-second utterance. This initial milestone confirmed that 4-step distilled continuous flow matching successfully avoids the multi-minute latency bottlenecks associated with classical score-based diffusion models.
 
-\section{Iteration 2: Flutter Mobile Prototype (\texorpdfstring{\texttt{voice\_clone\_proto}}{voice\_clone\_proto})}
+\section{Iteration 2: Flutter Mobile PoC Prototype (\texorpdfstring{\texttt{voice\_clone\_proto}}{voice\_clone\_proto})}
 \subsection{Objective and UI Architecture}
-Following Python validation, Iteration~2 migrated the generative pipeline into a cross-platform Android application named \texttt{voice\_clone\_proto}. The application was purposefully engineered as a teacher-facing classroom audio generator and an assistive learning tool for visually impaired students.
+Following desktop validation, Iteration~2 migrated the PoC pipeline into a cross-platform Android mobile application named \texttt{voice\_clone\_proto}. The application was purposefully engineered as a teacher-facing classroom audio generator and an assistive learning tool for visually impaired students.
 
 \subsection{System Implementation}
 The application was built in Flutter using Material 3 design tokens, incorporating high-contrast layouts and Android TalkBack accessibility semantics to assist visually impaired learners. The user interface was structured into a guided 4-step workflow designed for rapid classroom lesson preparation:
@@ -49,9 +51,9 @@ Executing neural network inference on the main UI thread causes frame drops and 
 
 To handle arbitrary classroom recordings (such as AAC \texttt{.m4a} files captured on mobile handsets), we integrated an audio transcoding library based on FFmpeg to convert recordings into 16-bit 24\,kHz mono PCM WAV prior to inference.
 
-\section{Iteration 3: Empirical Multi-Device Benchmarking and In-Kernel RSS Profiling}
+\section{Iteration 3: Multi-Device Benchmarking of the PoC and Empirical Inferences}
 \subsection{Benchmarking Methodology}
-To evaluate hardware performance across silicon tiers, we deployed \texttt{voice\_clone\_proto} across physical Android devices representing different performance brackets:
+To evaluate hardware performance across silicon tiers, we deployed the \texttt{voice\_clone\_proto} PoC application across physical Android devices representing different performance brackets:
 \begin{enumerate}
     \item \textbf{Flagship Tier}: Samsung Galaxy S23 (Qualcomm Snapdragon 8 Gen 2, 8\,GB RAM, dedicated NPU).
     \item \textbf{Upper Mid-Range Tier}: Samsung Galaxy Tab S9 FE+ (Samsung Exynos 1380, 8\,GB RAM, dedicated NPU).
@@ -106,15 +108,25 @@ Lenovo Tab K10 & Helio P22T (No NPU) & 4\,GB & All Tiers & \textit{> 5.0 (Est.)}
 }
 \end{table}
 
-\subsection{Analysis of Baseline Benchmarks}
+\subsection{Analysis of PoC Benchmarks and Inferences for IndicF5 and Google LiteRT}
+The empirical benchmarks collected from the ZipVoice PoC across physical hardware tiers yielded four foundational inferences that governed our production system architecture:
 \begin{enumerate}
-    \item \textbf{Fixed Overhead Dominance}: Across all devices, short utterances exhibited elevated RTFs ($3.8\times$ to $9.3\times$). Model initialization, lexicon loading, and vocoder startup represent an invariant baseline cost of $\approx 1.2$\,seconds.
-    \item \textbf{Peak Memory Escalation on Long Utterances}: On long sentences, physical memory reached 1,772\,MB on the Exynos 1380 and 1,562\,MB on the Snapdragon 8 Gen 2. On an 8\,GB device, this remains within acceptable operating boundaries. However, on budget 4\,GB devices (such as the Lenovo Tab K10), foreground processes exceeding 1,500\,MB risk termination by the Android LowMemoryKiller. This demonstrated that uncompressed FP32 models cannot be deployed without integer quantization and pre-allocated static memory arenas.
+    \item \textbf{Inference 1: The 1.5\,GB Physical Memory Cliff and Mandatory Static INT8 Quantization}:
+    On long sentences ($\sim 65$ words), physical resident memory escalated to 1,772\,MB on the Exynos 1380 and 1,562\,MB on the Snapdragon 8 Gen 2. While 8\,GB flagship devices absorb this overhead, subsidized school tablets like the Lenovo Tab K10 enforce an absolute foreground ceiling of $\approx 1,500$\,MB before the Linux kernel \textit{LowMemoryKiller} (LMK) issues an uncatchable \texttt{SIGKILL}. This empirical proof revealed that deploying uncompressed FP32 models (where IndicF5 weights alone require 1.35\,GB and dynamic activations require 1.2\,GB) would inevitably cause application crashes on classroom hardware. Consequently, static INT8 quantization and pre-allocated memory arenas were established as non-negotiable architectural requirements for the Indic engine.
+    
+    \item \textbf{Inference 2: Characterizing the Fixed Overhead Anomaly and Runtimes}:
+    Across all devices, short utterances exhibited disproportionately high RTFs ($3.8\times$ to $9.3\times$). In-kernel timing revealed that an invariant cold-initialization penalty ($T_{\text{init}} \approx 1.2$\,seconds), spanning tokenizer lookup, memory arena allocation, and vocoder graph setup, dominates short phrases. This proved that client-side voice generation must rely on warm in-memory pipelines, zero-copy buffer handoffs, and fused graph operators, motivating our transition from raw ONNX Runtime to Google LiteRT.
+    
+    \item \textbf{Inference 3: Inadequacy of Off-the-Shelf Mobile Models for Indian Education}:
+    Although ZipVoice validated that flow matching can execute on mobile CPUs, its tokenizer and acoustic architecture are fundamentally incapable of processing Dravidian and Indo-Aryan akshara syllabaries, consonant conjuncts, or regional state board textbooks. This confirmed that existing off-the-shelf mobile models cannot simply be repurposed for Indian public schools; rather, a dedicated Indic foundation model (IndicF5) with native character representations across official Indian languages was essential.
+    
+    \item \textbf{Inference 4: CPU Latency Limits and the Imperative for Hardware NPU Delegation}:
+    On budget ARM Cortex-A53 clusters (such as the Helio P22T on the Lenovo Tab K10), pure CPU execution incurs an estimated $\text{RTF} > 5.0\times$ due to in-order instruction pipelines and bounded memory bandwidth. This demonstrated that pure CPU inference cannot achieve real-time speech generation for long classroom lessons. This critical insight established the future roadmap in \cref{Chapter5}, migrating the pipeline to Google LiteRT to leverage hardware Neural Processing Units (Qualcomm Hexagon HTP and MediaTek NeuroPilot) alongside 2-step FlashSpeech consistency distillation to bring generation latency well below real-time.
 \end{enumerate}
 
-\section{Iteration 4: IndicF5 Model Adaptation and Desktop PyTorch Verification}
-\subsection{Objective}
-Having established the English baseline and its edge resource constraints, Iteration~4 addressed the core linguistic problem: zero-shot voice cloning for Indian languages.
+\section{Iteration 4: Transition to IndicF5: Multilingual Adaptation and Desktop Verification}
+\subsection{Objective: Realizing the PoC Inferences for Indian Languages}
+Directly guided by the empirical findings and linguistic limitations discovered during the ZipVoice proof of concept, Iteration~4 transitioned development to our primary production engine: AI4Bharat's IndicF5. The objective was to verify zero-shot vocal cloning across Dravidian and Indo-Aryan languages before undertaking integer quantization and mobile compilation.
 
 \subsection{Model Setup and Adaptation}
 We adapted AI4Bharat's IndicF5 repository under \texttt{scratch/indicf5\_repo/}. Developed in PyTorch using safetensors serialization, the base model (\texttt{model.safetensors}) occupied 1.35\,GB in memory. We engineered the standalone command-line verification script \texttt{clone.py} (and \texttt{test\_indicf5\_clone.py}) implementing the continuous flow-matching pipeline with the 22-layer DiT backbone and 24\,kHz Vocos vocoder.

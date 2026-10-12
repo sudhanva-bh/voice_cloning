@@ -4,26 +4,41 @@
 \label{Chapter3}
 \lhead{Chapter 3. \emph{System Architecture}}
 
-\section{Heterogeneous Dual-Engine Pipeline Architecture}
-To satisfy the requirements of high-throughput English speech synthesis and native Indian zero-shot voice cloning, we formulate a \textbf{heterogeneous dual-engine pipeline architecture}. Rather than relying on a single compromise model to handle disparate phonetic systems, the architecture separates execution into two specialized, complementary generative engines coordinated by a language router:
+\section{System Architecture: Architectural Progression from Proof of Concept to Production Pipeline}
+To realize robust zero-shot voice cloning on resource-constrained Android hardware for government schools, the engineering methodology followed an evidence-driven architectural progression. Rather than deploying an unproven 335M parameter multilingual Diffusion Transformer directly to mobile devices without prior hardware characterization, we structured the investigation into three sequential phases:
 
 \begin{enumerate}
-    \item \textbf{Engine 1: English Baseline Engine (ZipVoice-Distill)}:
+    \item \textbf{Phase 1: Mobile Feasibility Proof of Concept (PoC) (ZipVoice-Distill)}:
     \begin{itemize}
-        \item \textit{Backbone Architecture}: A non-autoregressive Zipformer acoustic backbone comprising approximately 123 million parameters, pre-trained on the multi-speaker Emilia English-Chinese dataset.
+        \item \textit{Motivation}: To determine whether non-autoregressive continuous flow-matching speech synthesis could execute within mobile latency and memory budgets before undertaking complex Indic adaptation.
+        \item \textit{Backbone Architecture}: A non-autoregressive Zipformer acoustic backbone comprising approximately 123 million parameters, pre-trained on the Emilia dataset.
         \item \textit{Numerical Solver}: A 4-step distilled continuous flow-matching decoder.
         \item \textit{Neural Vocoder}: A 24\,kHz Vocos vocoder (INT8 quantized to 54\,MB).
-        \item \textit{Execution Runtime}: Executed natively via \texttt{sherpa-onnx} C++ binaries wrapped in a background Flutter Dart Isolate.
+        \item \textit{Execution Runtime}: Executed natively via \texttt{sherpa-onnx} C++ binaries wrapped in a background Flutter Dart Isolate (\texttt{voice\_clone\_proto}).
         \item \textit{Memory Footprint}: Approximately 104\,MB for the quantized INT8 acoustic graph.
     \end{itemize}
     
-    \item \textbf{Engine 2: Indic Multilingual Engine (IndicF5)}:
+    \item \textbf{Empirical PoC Findings and Inferences}:
+    Hardware profiling of this PoC across physical Android silicon tiers (detailed in \cref{Chapter4}) demonstrated that 4-step flow matching is viable on mobile ARM CPUs, achieving median Real-Time Factors ($\text{RTF} \approx 1.28$ to $2.51$) on mid-to-high tiers. Crucially, the PoC yielded four vital engineering inferences:
+    \begin{itemize}
+        \item \textit{Linguistic Limitation}: ZipVoice is strictly restricted to English and Chinese orthography. It cannot process Dravidian and Indo-Aryan syllabic scripts (such as Telugu, Tamil, and Hindi) required for state school curricula.
+        \item \textit{Physical Memory Cliff}: On long utterances, unquantized activations pushed process memory to 1,772\,MB, which exceeds the Android Linux kernel \textit{LowMemoryKiller} (LMK) limit ($\approx 1,500$\,MB) on 4\,GB school tablets like the Lenovo Tab K10. This proved that static INT8 quantization and pre-allocated memory arenas are mandatory prerequisites.
+        \item \textit{Fixed Initialization Overhead}: An invariant cold-start penalty ($\approx 1.2$\,seconds) dominated short utterances, demonstrating that on-device synthesis must use warm, resident memory pipelines.
+        \item \textit{Runtime Inflexibility}: Sherpa-ONNX provided C++ loaders for Zipformer, but lacked support for modern Diffusion Transformers, requiring a dedicated native execution engine.
+    \end{itemize}
+    
+    \item \textbf{Phase 2: Primary Indic Production Engine (IndicF5)}:
+    Directly addressing the limitations exposed by the PoC, our primary system centers on IndicF5, an in-context flow-matching engine capable of authentic zero-shot voice cloning across Indian languages:
     \begin{itemize}
         \item \textit{Backbone Architecture}: A 22-layer Diffusion Transformer (\gls{dit}) comprising 335 million parameters, pre-trained on 1,417 hours of multi-speaker speech across eleven major Indian languages.
-        \item \textit{Generative Formulation}: Continuous Flow Matching (\gls{cfm}) solved via an 8-step Euler ODE solver with Classifier-Free Guidance and sway scheduling ($\rho = -1.0$).
+        \item \textit{Generative Formulation}: Continuous Flow Matching (\gls{cfm}) solved via an 8-step Euler ODE solver with Classifier-Free Guidance ($\gamma = 2.0$) and sway scheduling ($\rho = -1.0$).
         \item \textit{Neural Vocoder}: An INT8-quantized 24\,kHz Vocos vocoder (~22\,MB, 13.5M parameters) computing analytical \gls{istft} acoustic waveforms.
-        \item \textit{Execution Runtime}: Python environment (PyTorch safetensors baseline), static/dynamic INT8 ONNX graphs, and a custom native C++ engine with a migration path toward Google LiteRT.
+        \item \textit{Memory Optimization}: Static INT8 quantization compresses the DiT graph from 1.35\,GB down to 349\,MB, which, combined with pre-allocated static tensor arenas, confines total peak resident memory to 801\,MB (safely beneath the 1,500\,MB LMK ceiling).
+        \item \textit{Execution Runtime}: Python desktop validation, static/dynamic INT8 ONNX graphs, and a custom native C++ engine with Dart FFI bindings.
     \end{itemize}
+    
+    \item \textbf{Phase 3: Strategic Edge Acceleration via Google LiteRT}:
+    Because the PoC confirmed that budget ARM Cortex-A53 cores (such as those in the Lenovo Tab K10) face elevated CPU execution latencies ($\text{RTF} > 5.0$), achieving interactive real-time performance requires offloading matrix multiplications to dedicated silicon. This inference directly defines our future roadmap in \cref{Chapter5}, migrating IndicF5 to Google LiteRT to leverage Qualcomm QNN and MediaTek NeuroPilot NPU delegates alongside 2-step FlashSpeech consistency distillation.
 \end{enumerate}
 
 \section{Signal Preprocessing and Acoustic Feature Extraction}
@@ -285,7 +300,7 @@ The end-to-end mathematical procedures for Continuous Flow Matching Voice Clonin
 \end{algorithm}
 
 \section{Comparative Model Architectural Matrix}
-To validate the selection of IndicF5 as our primary Indic backbone and ZipVoice-Distill as our English baseline, Table~\ref{tab:model_comparison_detailed} summarizes the architectural specifications, parameter counts, memory footprints, and edge feasibility of candidate models surveyed in the literature.
+To validate the selection of IndicF5 as our primary Indic backbone following our initial investigation with the ZipVoice-Distill proof of concept, Table~\ref{tab:model_comparison_detailed} summarizes the architectural specifications, parameter counts, memory footprints, and edge feasibility of candidate models surveyed in the literature.
 
 \begin{table}[htbp]
 \centering
@@ -296,8 +311,8 @@ To validate the selection of IndicF5 as our primary Indic backbone and ZipVoice-
 \toprule
 \textbf{Model} & \textbf{Params} & \textbf{Paradigm} & \textbf{Quantized} & \textbf{Zero-Shot} & \textbf{Indic Support} & \textbf{Edge Verdict} \\
 \midrule
-\textbf{IndicF5} & \textbf{335M} & \textbf{OT-CFM (DiT)} & \textbf{349\,MB (INT8)} & \textbf{Yes} & \textbf{Native (11 Lang)} & \textbf{Primary Indic} \\
-\textbf{ZipVoice} & 123M & OT-CFM (Zipf.) & 104\,MB (INT8) & Yes & None (En/Zh only) & English Baseline \\
+\textbf{IndicF5} & \textbf{335M} & \textbf{OT-CFM (DiT)} & \textbf{349\,MB (INT8)} & \textbf{Yes} & \textbf{Native (11 Lang)} & \textbf{Primary Production} \\
+\textbf{ZipVoice} & 123M & OT-CFM (Zipf.) & 104\,MB (INT8) & Yes & None (En/Zh only) & Mobile Feasibility PoC \\
 \textbf{GPT-SoVITS} & 77M & Hybrid AR+VITS & ~85\,MB (FP16) & Yes (5s) & Unofficial/Weak & Tier-B Spike \\
 \textbf{Chatterbox} & 110M & AR + 1-Step & Not Quantized & Yes & None (English) & Excluded \\
 \textbf{XTTS-v2} & 467M & AR Transformer & >1.8\,GB & Yes & Adaptable (Heavy) & Excluded (OOM) \\

@@ -9,7 +9,7 @@ This mid-semester investigation developed, evaluated, and optimized an on-device
 
 The primary engineering milestones accomplished during this reporting period include:
 \begin{enumerate}
-    \item \textbf{Deployment of the English Edge Baseline}: Integrated and benchmarked the ZipVoice-Distill 123M flow-matching model and 24\,kHz Vocos vocoder within a Flutter application (\texorpdfstring{\texttt{voice\_clone\_proto}}{voice\_clone\_proto}), demonstrating physical memory stability and throughput scaling across Android devices.
+    \item \textbf{Empirical Mobile Proof of Concept (PoC)}: Developed and benchmarked the mobile feasibility proof of concept using the ZipVoice-Distill 123M flow-matching model and 24\,kHz Vocos vocoder within a Flutter application (\texorpdfstring{\texttt{voice\_clone\_proto}}{voice\_clone\_proto}), demonstrating physical memory viability and discovering the Fixed Overhead Anomaly and 1.5\,GB memory cliff that guided our Indic implementation.
     \item \textbf{Verification of Native Indic Voice Cloning}: Ported and adapted AI4Bharat's 335M Diffusion Transformer (IndicF5) across Tamil, Telugu, Kannada, and Hindi, verifying acoustic speaker adaptation without requiring external grapheme-to-phoneme rule dictionaries.
     \item \textbf{Formulation of the Syllabic Akshara Duration Model}: Identified and resolved the duration mismatch defect that caused trailing silence and repeated syllables, establishing a calibrated formulation of \textbf{6.5 mel frames per Unicode character} ($\approx 55$\,ms per character).
     \item \textbf{Identification of the Reference Duration Boundary}: Characterized the sequence alignment constraints governing ConvNeXt text representations, demonstrating that reference audio clips must be bounded strictly between \textbf{3.5 and 5.0 seconds} to avoid positional attention collapse.
@@ -45,5 +45,5 @@ The immediate priorities for the post-midsem phase are ordered as follows:
     \item \textbf{NPU Hardware Delegation}: Profile and verify 100\% DiT operator offloading to Qualcomm QNN HTP (Galaxy S23) and MediaTek NeuroPilot (Galaxy M53).
     \item \textbf{2-Step Consistency Distillation}: Apply FlashSpeech consistency distillation to reduce the ODE solver from 8 steps to 2 steps, targeting sub-2$\times$ RTF on budget CPU hardware.
     \item \textbf{Lenovo Tab K10 Benchmarking}: Conduct on-device memory profiling under sustained classroom lesson generation to guarantee RSS $<$ 850\,MB and zero LMK terminations.
-    \item \textbf{Classroom Accessibility and Dual-Engine UI Integration}: Wire the native IndicF5 Dart FFI service into the Flutter application, integrating large-target controls and TalkBack accessibility features for pilot evaluations with educators and visually impaired students.
+    \item \textbf{Classroom Accessibility and Flutter UI Integration}: Wire the native IndicF5 Dart FFI service into the Flutter application, building on the mobile PoC architecture while integrating large-target controls and TalkBack accessibility features for pilot evaluations with educators and visually impaired students.
 \end{enumerate}

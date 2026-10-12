@@ -111,9 +111,11 @@ midsem_report/
 ### Chapter 3: System Architecture and Algorithmic Formulation
 **Source File:** [Chapters/Chapter3.tex](file:///c:/voice_cloning/midsem_report/Chapters/Chapter3.tex) (Lines 1 to 311)
 
-* **Section 3.1: Heterogeneous Dual-Engine Pipeline Architecture**:
-  * *Engine 1 (English Baseline)*: ZipVoice-Distill 123M Zipformer + 4-step flow matching + INT8 Vocos (104 MB model) via Sherpa-ONNX.
-  * *Engine 2 (Indic Multilingual)*: IndicF5 335M 22-layer DiT + 8-step Euler ODE solver with Classifier-Free Guidance ($\gamma = 2.0$) and Sway Scheduling ($\rho = -1.0$) + INT8 Vocos (349 MB DiT + 22 MB vocoder).
+* **Section 3.1: Architectural Progression from Proof of Concept to Production Pipeline**:
+  * *Phase 1 (Mobile Feasibility PoC)*: ZipVoice-Distill 123M Zipformer + 4-step flow matching + INT8 Vocos (104 MB model) via Sherpa-ONNX in Flutter.
+  * *Empirical PoC Findings & Inferences*: Bounded CPU execution verified, but discovered the 1.5 GB memory cliff on 4 GB school hardware, the Fixed Overhead Anomaly, and the fundamental linguistic inadequacy of existing off-the-shelf mobile models for Indic curricula.
+  * *Phase 2 (Primary Indic Production Engine)*: IndicF5 335M 22-layer DiT + 8-step Euler ODE solver with Classifier-Free Guidance ($\gamma = 2.0$) and Sway Scheduling ($\rho = -1.0$) + INT8 Vocos (349 MB DiT + 22 MB vocoder, 801 MB peak RSS).
+  * *Phase 3 (Strategic Edge Acceleration)*: Migration to Google LiteRT for Qualcomm QNN HTP and MediaTek NeuroPilot NPU offloading alongside 2-step FlashSpeech distillation.
 * **Section 3.2: Signal Preprocessing and Acoustic Feature Extraction**:
   FFmpeg ingestion to 24 kHz mono 16-bit PCM WAV. Root-Mean-Square (RMS) amplitude normalization scaled to target $\text{RMS} = 0.10$ with clamping $[-1.0, 1.0]$. 100-channel log-mel filterbank extraction with $N_{\text{fft}} = 1024$, hop size $H = 256$, Hanning window.
 * **Section 3.3: Indic Akshara Dynamics and Syllabic Duration Modeling**:
@@ -125,18 +127,18 @@ midsem_report/
   * **Algorithm 1**: *On-Device Indic Zero-Shot Continuous Flow-Matching Synthesis* (complete pseudocode including audio concat, Euler loop, sway time steps, CFG velocity update, target mel slicing, and Vocos invocation).
   * **Algorithm 2**: *Vocos Neural Fourier Audio Synthesis* (ConvNeXt backbone, linear magnitude head, linear phase cosine/sine heads, complex spectrogram assembly $\mathbf{Z} \in \mathbb{C}^{513 \times T}$, and inverse STFT).
 * **Section 3.5: Comparative Model Architectural Matrix**:
-  Full comparison table evaluating IndicF5, ZipVoice, GPT-SoVITS, Chatterbox, XTTS-v2, Kokoro-82M, and VITS across parameter counts, paradigm, quantization, zero-shot capacity, Indic support, and edge feasibility.
+  Full comparison table evaluating IndicF5 (Primary Production), ZipVoice (Mobile Feasibility PoC), GPT-SoVITS, Chatterbox, XTTS-v2, Kokoro-82M, and VITS across parameter counts, paradigm, quantization, zero-shot capacity, Indic support, and edge feasibility.
 
 ---
 
 ### Chapter 4: Implementation Methodology and Engineering Iterations
-**Source File:** [Chapters/Chapter4.tex](file:///c:/voice_cloning/midsem_report/Chapters/Chapter4.tex) (Lines 1 to 260)
+**Source File:** [Chapters/Chapter4.tex](file:///c:/voice_cloning/midsem_report/Chapters/Chapter4.tex) (Lines 1 to 272)
 
 Chronicles the 10 engineering milestones executed during the project:
-1. **Iteration 1: English Baseline via Sherpa-ONNX**: Validated 4-step ZipVoice-Distill on desktop CPU ($\text{RTF} \approx 0.35$).
-2. **Iteration 2: Flutter Mobile Prototype (`voice_clone_proto`)**: Built 4-step wizard UI for teachers to record reference audio and generate classroom lesson aids. Decoupled inference into background Dart Isolate (`Isolate.run()`). Integrated TalkBack accessibility semantics for blind learners.
-3. **Iteration 3: Empirical Multi-Device Benchmarking & In-Kernel RSS Profiling**: Tested across 4 silicon tiers (Snapdragon 8 Gen 2, Exynos 1380, Dimensity 900, Lenovo Tab K10). Implemented live in-kernel `/proc/self/status` profiling hook. Discovered that long sentences push uncompressed RSS to 1,772 MB, proving unquantized FP32 models crash 4 GB devices.
-4. **Iteration 4: IndicF5 Adaptation and Desktop Verification**: Ported AI4Bharat PyTorch weights (1.35 GB `model.safetensors`). Built standalone `clone.py` verifying zero-shot synthesis across Tamil, Telugu, Kannada, and Devanagari Hindi.
+1. **Iteration 1: Mobile Feasibility Proof of Concept (ZipVoice-Distill via Sherpa-ONNX)**: Validated 4-step non-autoregressive flow matching on CPU ($\text{RTF} \approx 0.35$), confirming low-step viability without multi-minute diffusion delays.
+2. **Iteration 2: Flutter Mobile PoC Prototype (`voice_clone_proto`)**: Built 4-step wizard UI for teachers to record reference audio and generate classroom lesson aids. Decoupled inference into background Dart Isolate (`Isolate.run()`). Integrated TalkBack accessibility semantics for blind learners.
+3. **Iteration 3: Multi-Device Benchmarking of the PoC and Empirical Inferences**: Tested across 4 silicon tiers (Snapdragon 8 Gen 2, Exynos 1380, Dimensity 900, Lenovo Tab K10). Implemented live in-kernel `/proc/self/status` profiling hook. Formulated the 4 foundational inferences: (1) mandatory static INT8 quantization to avoid the 1.5 GB LMK ceiling on school hardware; (2) warm in-memory pipelines to overcome the Fixed Overhead Anomaly; (3) linguistic inadequacy of off-the-shelf mobile models for Indic curricula; and (4) NPU offloading necessity via Google LiteRT.
+4. **Iteration 4: Transition to IndicF5: Multilingual Adaptation and Desktop Verification**: Ported AI4Bharat PyTorch weights (1.35 GB `model.safetensors`). Built standalone `clone.py` verifying zero-shot synthesis across Tamil, Telugu, Kannada, and Devanagari Hindi.
 5. **Iteration 5: Syllabic Duration Calibration**: Fixed trailing silence and audio truncation by enforcing $k_{\text{mel}} = 6.5$ mel frames/char with 0.30s post-utterance acoustic buffer.
 6. **Iteration 6: Reference Audio Duration Boundary Law**: Discovered ConvNeXt spatial alignment collapse when reference audio exceeds 5.0s ($T_{\text{ref}} > 500$ frames). Established operational law: $3.5 \le \Delta t_{\text{ref}} \le 5.0$ seconds.
 7. **Iteration 7: In-Memory Warm Model Batch Synthesis & Dataset**: Built `batch.py` with warm RAM model caching. Curated `prompts.json` (120 phrases across Tamil, Telugu, Hindi stratified across Short, Medium, Midlong, Long tiers).
@@ -177,7 +179,7 @@ Chronicles the 10 engineering milestones executed during the project:
   * *Systems/Edge*: In-kernel memory profiling, Fixed Overhead Anomaly characterization, static INT8 quantization, and 801 MB memory confinement.
   * *Pedagogical/Accessibility*: Familiar-voice learning for government school children, accessible auditory study for visually impaired students, and zero-cost offline deployment protecting teacher biometric privacy.
 * **Section 6.3: Concluding Remarks and Immediate Priorities**:
-  Prioritizes the 5 post-midsem execution goals: (1) Google LiteRT migration, (2) NPU hardware delegation, (3) 2-step consistency distillation, (4) Lenovo Tab K10 sustained load profiling, and (5) Classroom accessibility and dual-engine UI integration for pilot trials.
+  Prioritizes the 5 post-midsem execution goals: (1) Google LiteRT migration, (2) NPU hardware delegation, (3) 2-step consistency distillation, (4) Lenovo Tab K10 sustained load profiling, and (5) Classroom accessibility and Flutter UI integration for pilot trials.
 
 ---
 

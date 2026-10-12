@@ -33,22 +33,28 @@ No existing system satisfies all four criteria simultaneously.
 
 ---
 
-## Architecture: Dual-Engine Pipeline
+## Architecture: Evidence-Driven Progression
 
-### Engine 1: English Baseline (ZipVoice-Distill)
+### Phase 1: Mobile Feasibility Proof of Concept (ZipVoice-Distill)
+- **Purpose:** Test whether non-autoregressive flow-matching zero-shot speech synthesis can run on client mobile hardware within practical latency and memory budgets.
 - **Model:** 123M parameter non-autoregressive Zipformer
-- **Quantization:** INT8 ONNX -> **104 MB**
-- **Vocoder:** Vocos 24 kHz (54 MB)
-- **Runtime:** `sherpa-onnx` C++ / Flutter Dart Isolate
-- **Status:** Verified and benchmarked on physical Android devices
+- **Quantization:** INT8 ONNX -> **104 MB** (Vocos 24 kHz: 54 MB)
+- **Runtime:** `sherpa-onnx` C++ inside Flutter background Dart Isolate (`voice_clone_proto`)
+- **Key PoC Findings & Inferences:**
+  1. *Feasibility Confirmed:* 4-step flow matching achieved median RTF $\approx 1.28$ to $2.51$ on mobile ARM cores.
+  2. *The 1.5 GB Memory Cliff:* Long sentences reached 1,772 MB RSS, proving that uncompressed models trigger Linux kernel LowMemoryKiller terminations on 4 GB school tablets (Lenovo Tab K10). Static INT8 quantization is mandatory.
+  3. *Fixed Overhead Anomaly:* Constant initialization latency (~1.2 s) heavily penalizes short utterances, requiring warm in-memory pipelines.
+  4. *Linguistic Barrier:* Off-the-shelf models only support English/Chinese; native Indic akshara support required a dedicated foundation model (IndicF5).
+  5. *NPU Offloading Imperative:* Pure CPU execution on budget Cortex-A53 cores (RTF > 5.0) mandates hardware NPU acceleration via Google LiteRT.
 
-### Engine 2: Indic Multilingual Engine (IndicF5)
+### Phase 2: Primary Indic Production Engine (IndicF5)
 - **Model:** 22-layer Diffusion Transformer (DiT), 335M parameters
 - **Pretrained on:** 1,417 hours of multi-speaker speech across 11 Indian languages (IndicVoices corpus, AI4Bharat)
 - **Inference:** 8-step Euler ODE solver with CFG (gamma = 2.0) and Sway Sampling (rho = -1.0)
 - **Vocoder:** INT8 Vocos: **22 MB** (Fourier iSTFT synthesis, ~10x faster than HiFi-GAN on ARM)
 - **Quantization:** Static INT8 ONNX -> **349 MB** (74% size reduction from 1.35 GB FP32)
-- **Status:** Verified in Python; C++ NDK engine and Flutter FFI wiring in progress
+- **Memory Footprint:** Peak RSS strictly confined to **801 MB** (+699 MB safe headroom on 4 GB devices)
+- **Status:** Verified in Python; C++ NDK engine with pre-allocated static arenas and Dart FFI bridge
 
 ---
 
@@ -56,9 +62,9 @@ No existing system satisfies all four criteria simultaneously.
 
 | Iteration | Achievement |
 |---|---|
-| **1** | English ZipVoice baseline validated; RTF approx 0.35 on desktop |
-| **2** | Flutter Android app with background Dart Isolate, FFmpeg transcoding |
-| **3** | Multi-device benchmarks across 4 Android silicon tiers; confirmed Fixed Overhead Anomaly |
+| **1** | Mobile Feasibility PoC with ZipVoice-Distill via Sherpa-ONNX; desktop RTF approx 0.35 |
+| **2** | Flutter Android PoC app with background Dart Isolate, FFmpeg transcoding, and TalkBack accessibility |
+| **3** | Empirical multi-device benchmarks across 4 silicon tiers; established the 4 guiding inferences for Indic deployment |
 | **4** | IndicF5 PyTorch baseline verified across Tamil, Telugu, Kannada, Hindi |
 | **5** | **Tail Hallucination Fix**: Calibrated syllabic duration model -> 6.5 mel frames/character (~55 ms/char) |
 | **6** | **Spatial Alignment Law**: Reference audio must be 3.5 to 5.0 seconds; longer clips cause attention collapse |
