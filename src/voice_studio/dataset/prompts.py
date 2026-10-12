@@ -8,8 +8,8 @@ from pathlib import Path
 from ..config import PROMPTS_JSON
 
 LANG_MAP = {
-    "1": "telugu", "telugu": "telugu", "te": "telugu",
-    "2": "tamil", "tamil": "tamil", "ta": "tamil",
+    "1": "tamil", "tamil": "tamil", "ta": "tamil",
+    "2": "telugu", "telugu": "telugu", "te": "telugu",
     "3": "hindi", "hindi": "hindi", "hi": "hindi",
 }
 
@@ -124,7 +124,7 @@ class PromptsDataset:
         Returns a dictionary mapping { 'Target phrase text': 'output_filename.ext' }
         according to language, tier, and count/index filters.
         """
-        default_langs = ["telugu", "tamil", "hindi"]
+        default_langs = ["tamil", "telugu", "hindi"]
         default_cats = ["short", "medium", "midlong", "long"]
 
         req_langs = parse_multi_selection(languages, LANG_MAP, default_langs)

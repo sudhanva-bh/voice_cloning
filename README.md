@@ -69,7 +69,7 @@ c:\voice_cloning\
 │   ├── voices.json                          # Registered reference voices catalog
 │   ├── added/                               # Ingested user recordings
 │   └── tamil_voices/                        # Tamil studio recordings
-├── prompts.json                             # 120 authentic conversational phrases (Telugu, Tamil, Hindi)
+├── prompts.json                             # 120 authentic conversational phrases (Tamil, Telugu, Hindi)
 ├── generated/                               # Output synthesized audio files & batches
 ├── voice_clone_proto/                       # Flutter Android Application
 ├── reports/                                 # Progress reports, timeline & milestone notes
@@ -127,7 +127,7 @@ python main.py add `
   --desc "Male Kannada - Conversational & Clear" `
   --move
 
-# 4. Browse available phrases dataset (Telugu, Tamil, Hindi):
+# 4. Browse available phrases dataset (Tamil, Telugu, Hindi):
 python main.py prompts
 
 # 5. Direct single voice cloning:
@@ -170,9 +170,9 @@ python clone.py `
 
 ### 3. Customizable Multilingual Batch Synthesis (`batch.py`)
 
-Synthesize conversational sentences from [prompts.json](file:///c:/voice_cloning/prompts.json) (120 sentences categorized by `short`, `medium`, `midlong`, and `long` in Telugu, Tamil, and Hindi). The model loads once into RAM, and files are saved into incrementing batch folders (`generated/batches/batch-1/`, `batch-2/`, etc.).
+Synthesize conversational sentences from [prompts.json](file:///c:/voice_cloning/prompts.json) (120 sentences categorized by `short`, `medium`, `midlong`, and `long` in Tamil, Telugu, and Hindi). The model loads once into RAM, and files are saved into incrementing batch folders (`generated/batches/batch-1/`, `batch-2/`, etc.).
 
-#### A. Telugu & Tamil, Medium + Mid-long + Long tiers, 1st to 3rd phrases as MP3:
+#### A. Tamil & Telugu, Medium + Mid-long + Long tiers, 1st to 3rd phrases as MP3:
 ```powershell
 python batch.py `
   --voice deep_classic `
@@ -183,7 +183,7 @@ python batch.py `
   --steps 8
 ```
 
-#### B. Tamil & Hindi, Short + Medium, specific phrase indices `1 2` as OGG:
+#### B. Telugu & Hindi, Short + Medium, specific phrase indices `1 2` as OGG:
 ```powershell
 python batch.py `
   --voice sahasra_reference_short `

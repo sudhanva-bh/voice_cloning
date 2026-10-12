@@ -351,7 +351,7 @@ Date:\\
 		\textsc{\Large \doctype}\\[0.5cm] % Thesis type
 		
 		\large \textit{Submitted in partial fulfillment of the
-        requirements of COURSE CODE\\\ccode{} \cname}\\[1cm] % University requirement text
+        requirements of \\\ccode{} \cname}\\[1cm] % University requirement text
         
         \begin{center}
             \emph{By}\\[0.3cm]

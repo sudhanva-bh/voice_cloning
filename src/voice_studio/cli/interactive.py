@@ -272,7 +272,7 @@ def ask_main_menu() -> str | None:
     choices = [
         Choice(title="[1] Quick Single Voice Clone (Default Voice)", value="quick"),
         Choice(title="[2] Test Single Voice Clone (Choose Any Voice)", value="clone"),
-        Choice(title="[3] Run Customizable Batch Synthesis (Telugu, Tamil, Hindi)", value="batch"),
+        Choice(title="[3] Run Customizable Batch Synthesis (Tamil, Telugu, Hindi)", value="batch"),
         Choice(title="[4] List All Registered Voices & Health", value="list"),
         Choice(title="[5] Add New Reference Voice (Auto-Validate & Move)", value="add"),
         Choice(title="[6] Inspect Voice Details & Transcript", value="info"),
