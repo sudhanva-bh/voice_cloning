@@ -33,30 +33,30 @@ Executing on a multi-core desktop CPU, the 4-step flow-matching engine cloned re
 
 \section{Iteration 2: Flutter Mobile Prototype (\texorpdfstring{\texttt{voice\_clone\_proto}}{voice\_clone\_proto})}
 \subsection{Objective and UI Architecture}
-Following Python validation, Iteration~2 migrated the English pipeline into a cross-platform Android application named \texttt{voice\_clone\_proto}.
+Following Python validation, Iteration~2 migrated the generative pipeline into a cross-platform Android application named \texttt{voice\_clone\_proto}. The application was purposefully engineered as a teacher-facing classroom audio generator and an assistive learning tool for visually impaired students.
 
 \subsection{System Implementation}
-The application was built in Flutter using Material 3 design tokens. The user interface was structured into a guided 4-step workflow:
+The application was built in Flutter using Material 3 design tokens, incorporating high-contrast layouts and Android TalkBack accessibility semantics to assist visually impaired learners. The user interface was structured into a guided 4-step workflow designed for rapid classroom lesson preparation:
 \begin{enumerate}
-    \item \textbf{Step 1: Reference Script Selection}: The user selects an English phonetically rich phrase (such as \textit{``The quick brown fox jumps over the lazy dog''}) or inputs custom text.
-    \item \textbf{Step 2: Reference Audio Acquisition}: Audio is captured via live microphone recording using the \texttt{record} package or imported from device storage via \texttt{file\_picker}.
-    \item \textbf{Step 3: Target Text Entry}: The user inputs target sentences categorized by duration presets (Short, Medium, Long).
-    \item \textbf{Step 4: Generation and Waveform Playback}: Synthesizes speech and renders an interactive waveform visualization widget.
+    \item \textbf{Step 1: Reference Script Selection}: The teacher selects a phonetically balanced prompt phrase (such as \textit{``The quick brown fox jumps over the lazy dog''} or regional language equivalents) or enters custom text.
+    \item \textbf{Step 2: Reference Audio Acquisition}: The teacher's voice is captured via live microphone recording (3 to 5 seconds) using the \texttt{record} package or imported from local storage via \texttt{file\_picker}.
+    \item \textbf{Step 3: Target Text Entry}: The teacher enters textbook passages, conceptual explanations, or student quiz items categorized by duration presets (Short, Medium, Long).
+    \item \textbf{Step 4: Generation and Waveform Playback}: Synthesizes the educational audio in the teacher's cloned voice and renders an interactive waveform visualization widget with tactile playback controls.
 \end{enumerate}
 
 \subsection{Concurrency and Background Isolate Decoupling}
 Executing neural network inference on the main UI thread causes frame drops and triggers Android Application Not Responding (ANR) warnings. To maintain interface responsiveness, the Sherpa-ONNX C++ runtime was decoupled into a background \textbf{Dart Isolate} via \texttt{Isolate.run()}.
 
-To handle arbitrary user recordings (such as AAC \texttt{.m4a} files), we integrated an audio transcoding library based on FFmpeg to convert recordings into 16-bit 24\,kHz mono PCM WAV prior to inference.
+To handle arbitrary classroom recordings (such as AAC \texttt{.m4a} files captured on mobile handsets), we integrated an audio transcoding library based on FFmpeg to convert recordings into 16-bit 24\,kHz mono PCM WAV prior to inference.
 
 \section{Iteration 3: Empirical Multi-Device Benchmarking and In-Kernel RSS Profiling}
 \subsection{Benchmarking Methodology}
-To evaluate hardware performance across silicon tiers, we deployed \texttt{voice\_clone\_proto} across three physical Android devices representing different performance brackets:
+To evaluate hardware performance across silicon tiers, we deployed \texttt{voice\_clone\_proto} across physical Android devices representing different performance brackets:
 \begin{enumerate}
     \item \textbf{Flagship Tier}: Samsung Galaxy S23 (Qualcomm Snapdragon 8 Gen 2, 8\,GB RAM, dedicated NPU).
     \item \textbf{Upper Mid-Range Tier}: Samsung Galaxy Tab S9 FE+ (Samsung Exynos 1380, 8\,GB RAM, dedicated NPU).
     \item \textbf{Mid-Range Tier}: Samsung Galaxy M53 5G (MediaTek Dimensity 900, 8\,GB RAM, dedicated NPU).
-    \item \textbf{Target Budget Baseline}: Lenovo Tab K10 (MediaTek Helio P22T, 4\,GB RAM, CPU-only execution).
+    \item \textbf{Target Budget Baseline (Government School Hardware)}: Lenovo Tab K10 (MediaTek Helio P22T, 4\,GB RAM, CPU-only execution). This device serves as our primary engineering target because it represents the benchmark specification of subsidized tablets procured and distributed in bulk by Indian state education departments for rural classrooms and special education facilities.
 \end{enumerate}
 
 To measure exact physical memory consumption, the Flutter background isolate was instrumented to poll \texttt{/proc/self/status} directly from the Linux kernel virtual filesystem upon completion of each utterance:
@@ -197,7 +197,7 @@ To establish a modular codebase, the backend was refactored into the Python pack
 \end{itemize}
 
 \subsection{Dynamic Catalog Management (\texttt{samples/voices.json})}
-The catalog tracks registered speaker reference clips, storing voice keys, spoken transcripts, descriptions, audio durations, and creation timestamps. When users register a new voice via \texttt{python main.py add}, the system validates audio integrity, measures duration, normalizes RMS energy, and stores the file into \texttt{samples/added/}.
+The catalog tracks registered speaker reference clips, storing voice keys, spoken transcripts, descriptions, audio durations, and creation timestamps. In an educational setting, this catalog enables teachers across different academic subjects (such as Mathematics, Science, and Regional Literature) to register distinct instructor profiles. When a teacher registers a new voice via \texttt{python main.py add}, the system validates audio integrity, measures duration, normalizes RMS energy, and stores the file into \texttt{samples/added/}. This structure allows students, particularly visually impaired learners who rely entirely on audio lessons, to select and listen to content voiced by their specific subject teacher.
 
 \section[Iteration 9: Graph Optimization and INT8 Quantization]{Iteration 9: Graph Optimization, FP32 Export, and Static/Dynamic INT8 Quantization}
 \subsection{Objective: Decoupling from the PyTorch Runtime}

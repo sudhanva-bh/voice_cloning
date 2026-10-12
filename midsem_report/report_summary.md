@@ -9,21 +9,27 @@
 
 ## Abstract Overview
 
-This project engineers the **first fully offline, zero-shot multilingual voice cloning system for Indian languages**, designed to run entirely on budget Android edge hardware (Lenovo Tab K10: MediaTek Helio P22T, 4 GB RAM, no NPU) without transmitting any user audio to remote servers.
+This project engineers an **offline, zero-shot multilingual voice cloning system for Indian languages**, designed to run entirely on budget Android edge hardware (such as the government-procured Lenovo Tab K10: MediaTek Helio P22T, 4 GB RAM, no NPU) without transmitting biometric audio to remote servers.
+
+The application is explicitly designed for an untapped educational and accessibility domain:
+1. **Government School Children**: Enabling foundational and conceptual learning in the familiar, trusted voice of their local classroom teacher to boost comprehension, retention, and student confidence.
+2. **Visually Impaired (Blind) Students**: Providing accessible auditory learning for textbooks, lessons, and practice material spoken in their own teacher's voice, ensuring continuity between classroom instruction and independent study.
+3. **Untapped Vernacular Education Domain**: While commercial speech platforms prioritize cloud entertainment and Western languages, this project targets rural vernacular classrooms where internet is absent, cloud API budgets do not exist, and biometric teacher voice privacy is paramount.
 
 ---
 
 ## Core Problem
 
-Three constraints form an unsolved intersection, known as the **Tri-Factor Challenge**:
+Four constraints form an unsolved intersection, known as the **Educational Edge Deployment Challenge**:
 
 | Pillar | Challenge |
 |---|---|
-| **Native Indic Language Support** | 1.4B speakers; existing edge models support only English/Chinese |
-| **True Zero-Shot Voice Cloning** | Speaker adaptation from a 3 to 5 second clip, no model fine-tuning |
-| **Strict Edge Execution** | < 1.5 GB RAM, no GPU, offline-only, no OOM crashes |
+| **Untapped Educational Mission** | Familiar-voice learning for government school children and accessible audio study for blind students |
+| **Native Indic Language Support** | 1.4B speakers; state curricula in Telugu, Tamil, Hindi, etc.; existing edge models support only English/Chinese |
+| **True Zero-Shot Teacher Cloning** | Voice adaptation from a single 3 to 5 second classroom recording, zero fine-tuning |
+| **Strict Edge Hardware & Privacy** | Subsidized tablets (< 1.5 GB RAM, no GPU/NPU), 100% offline, zero cloud API fees, strict biometric privacy |
 
-No existing system satisfies all three simultaneously.
+No existing system satisfies all four criteria simultaneously.
 
 ---
 

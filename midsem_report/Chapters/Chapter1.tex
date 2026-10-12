@@ -4,19 +4,29 @@
 \label{Chapter1}
 \lhead{Chapter 1. \emph{Introduction}}
 
-\section{Practical Motivation and the Edge Voice Problem}
-Personalized speech synthesis offers substantial utility across assistive and educational tools, but conventional architectures face practical limits in privacy-sensitive or offline settings. Consider several concrete scenarios: a rural schoolteacher in Odisha who requires an interactive reading assistant that speaks in her own voice in Odia, where student voice recordings cannot leave the local tablet; a visually impaired individual in Tamil Nadu using an offline navigation tool configured with a family member's voice; or an individual undergoing speech rehabilitation in a medical ward who needs a personalized communication aid without internet access. 
+\section{Teacher-Voice Learning in Government Schools and Accessibility for Blind Students}
+In primary and upper-primary government schools across India, millions of children undertake foundational education in regional languages such as Telugu, Tamil, and Hindi. Educational psychology indicates that young learners exhibit significantly higher cognitive engagement, listening comprehension, and emotional comfort when instructional materials are spoken in the familiar, trusted voice of their classroom teacher rather than an unfamiliar or synthetic persona. 
 
-In these settings, remote cloud processing is impractical due to privacy requirements, connectivity gaps, or latency. However, existing production systems do not support zero-shot multilingual voice cloning that runs fully offline on resource-constrained mobile hardware for Indian languages. This project investigates how to bridge that gap.
+For visually impaired (blind) students, the importance of voice is even more profound. Auditory learning serves as their primary sensory medium for textbooks, practice exercises, and conceptual explanations. Hearing lessons delivered in their own teacher's voice provides pedagogical continuity, comfort, and cognitive trust, helping bridge the gap between classroom instruction and independent study. 
 
-\subsection{Voice Identity as a Biometric Signal}
-A human speech signal jointly conveys linguistic content, speaker identity, prosody, and acoustic environment characteristics within a few seconds of audio. The problem of zero-shot voice cloning requires synthesizing arbitrary new text in the voice of an unseen speaker using only a brief reference recording (typically three to five seconds), without modifying model parameters or running gradient updates during inference.
+Despite the clear educational benefits, this domain remains almost completely untapped by contemporary voice cloning technologies:
+\begin{enumerate}
+    \item \textbf{Commercial Neglect of Public Education}: Commercial voice synthesis platforms primarily focus on Western languages, media dubbing, and commercial entertainment, leaving vernacular public school education and special-needs accessibility largely unaddressed.
+    \item \textbf{Offline Classroom Realities}: Many government schools operate in rural and semi-urban areas with intermittent or nonexistent internet access, making cloud-dependent speech synthesis completely unusable in everyday classrooms.
+    \item \textbf{Hardware Budgets}: State educational programs distribute budget Android tablets (such as the Lenovo Tab K10 with 4\,GB RAM) with zero recurring budget for cloud API subscription fees.
+    \item \textbf{Biometric Privacy}: Public schools have a duty of care to ensure that the voiceprints of teachers and children are never transmitted to external third-party servers.
+\end{enumerate}
 
-While recent generative speech models achieve high perceptual naturalness, existing deployments operate almost exclusively on cloud servers equipped with high-end GPUs. This paradigm introduces three clear issues:
+To serve this untapped domain, there is a clear need for an on-device, zero-shot multilingual voice cloning pipeline. A schoolteacher records a single three-to-five second reference clip once onto a classroom tablet; the system can then synthesize textbook chapters, interactive lessons, and audio aids for visually impaired learners in that teacher's authentic voice, completely offline, at zero recurring cost.
+
+\subsection{Voice Identity, Pedagogical Trust, and Biometric Privacy}
+A human speech signal jointly conveys linguistic content, speaker identity, prosody, and acoustic environment characteristics within a few seconds of audio. In zero-shot voice cloning, the goal is to synthesize arbitrary new text in the voice of an unseen speaker using only a brief reference recording (three to five seconds), without modifying model parameters or running gradient updates during inference.
+
+While frontier generative speech models achieve high perceptual naturalness, existing deployments operate almost exclusively on cloud servers equipped with high-end GPUs. This status quo presents three major obstacles for government school education:
 \begin{enumerate}[label=(\roman*)]
-    \item \textbf{Biometric Privacy Exposure}: Transmitting unencrypted or raw speech samples to external servers exposes biometric identifiers to data interception, unauthorized secondary use, and spoofing risks.
-    \item \textbf{Limited Language Coverage}: Over one billion individuals speak Dravidian and Indo-Aryan languages. Most open-source and commercial edge voice cloning models support only English or Mandarin.
-    \item \textbf{Network Dependency}: In rural schools, transit corridors, and disaster response areas across the Indian subcontinent, internet connectivity is often intermittent or unavailable, rendering cloud-dependent assistants unusable.
+    \item \textbf{Biometric Privacy Exposure}: Transmitting unencrypted speech samples to external servers exposes teachers' voiceprints to data retention, misuse, and spoofing risks.
+    \item \textbf{Lack of Regional Language Coverage}: Over one billion people speak Dravidian and Indo-Aryan languages, which are the primary instructional media in state schools. Most commercial edge voice models support only English or Mandarin.
+    \item \textbf{Network Dependency}: In rural government classrooms and special education facilities, internet connectivity is often absent, rendering cloud-dependent educational assistants unusable.
 \end{enumerate}
 
 \subsection{Evolution of Speech Synthesis Paradigms}
@@ -47,31 +57,31 @@ However, global embedding vectors introduce an information bottleneck: a single 
 
 To address this limitation, recent models such as Voicebox~\cite{le2023voicebox}, \gls{e2tts}~\cite{e2tts2024}, and F5-TTS~\cite{chen2024f5tts} frame zero-shot speech synthesis as an audio inpainting problem. Instead of compressing the reference signal into a single vector, continuous acoustic frames $\mathbf{x}_{\text{ref}}$ are concatenated directly with the target generation trajectory along the time axis. The model uses self-attention and cross-attention mechanisms to learn dependencies between the reference acoustics and the target phonetic sequence, harmonizing speaker timbre across the transition boundary.
 
-\section[Rationale for On-Device Edge Execution]{Rationale for On-Device Edge Execution: Privacy, Connectivity, and Operational Costs}
-Although cloud-based voice cloning systems achieve strong fidelity on server GPUs, relying on remote infrastructure introduces three practical concerns:
+\section[Rationale for On-Device Edge Execution]{Rationale for On-Device Edge Execution: Privacy, Connectivity, and Operational Costs in Public Education}
+Although cloud-based voice cloning systems achieve strong fidelity on server GPUs, relying on remote infrastructure introduces three critical obstacles for public education:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Biometric Data Privacy}: A voice recording is an immutable biometric identifier. Cloud services require uploading raw speech to external servers, creating risks of interception, data retention, and unauthorized voice cloning. Performing inference entirely on the edge device guarantees that user audio never leaves local memory.
+    \item \textbf{Biometric Data Privacy and Teacher Protection}: A human voice recording is an immutable biometric identifier. In public schools, uploading raw audio samples of teachers and students to external commercial servers creates severe privacy and liability risks, including corporate data retention, unauthorized voice harvesting, and unconsented cloning. Performing inference entirely on the classroom edge device guarantees that biometric voice samples never leave local device memory.
     
-    \item \textbf{Reliable Offline Operation}: In many regions of the Indian subcontinent, internet access remains variable or absent. In rural education centers, transit corridors, and disaster recovery areas, continuous network access cannot be assumed. Edge execution ensures deterministic, uninterrupted operation in airplane mode.
+    \item \textbf{Reliable Offline Operation in Vernacular Classrooms}: In many regions of the Indian subcontinent, internet access in government primary and secondary schools remains intermittent or completely absent. In rural classrooms and special education facilities for visually impaired students, continuous network access cannot be assumed. Edge execution ensures deterministic, uninterrupted learning and audio study aid generation in complete airplane mode.
     
-    \item \textbf{Elimination of Cloud Infrastructure Costs}: Cloud synthesis APIs incur recurring per-minute and per-character fees driven by GPU server maintenance. Running models directly on consumer devices eliminates cloud infrastructure costs entirely, making personalized speech accessible at scale.
+    \item \textbf{Elimination of Cloud Infrastructure and Per-Character Costs}: Commercial speech synthesis APIs incur recurring per-minute and per-character fees driven by GPU server maintenance. Public schools and state education departments operate under strict budgetary boundaries with zero recurring budget for cloud subscriptions. Running models directly on subsidized student tablets eliminates external infrastructure costs entirely, enabling unlimited personalized educational audio generation at zero marginal cost.
 \end{enumerate}
 
-\section{The Tri-Factor Challenge in On-Device Edge Deployment}
-Deploying continuous flow-matching models on consumer mobile devices exposes a multi-constraint optimization problem, which we designate as the Tri-Factor Challenge:
+\section{The Tri-Factor Challenge in Educational Edge Deployment}
+Deploying continuous flow-matching models on budget mobile hardware in government classrooms exposes a multi-constraint optimization problem, which we designate as the Tri-Factor Challenge:
 
 \begin{enumerate}
-    \item \textbf{Native Indic and Dravidian Phonological Support}: Over 1.4 billion people speak Dravidian and Indo-Aryan languages. These languages feature distinct phonetic inventories, agglutinative morphology, syllabic akshara scripts, consonant conjuncts (\textit{samyuktaksharas}), and dependent vowel signs (\textit{matras}). Western and Chinese zero-shot models (e.g., Kokoro-82M, standard F5-TTS, or ZipVoice-Distill) lack Indic character vocabularies and phonetic coverage, making them incapable of synthesizing Indian languages.
+    \item \textbf{Native Indic and Dravidian Phonological Support for State Curricula}: Over 1.4 billion people speak Dravidian and Indo-Aryan languages, which form the primary instructional medium in state board curricula (such as Telugu, Tamil, and Hindi). These languages feature distinct phonetic inventories, agglutinative morphology, syllabic akshara scripts, consonant conjuncts (\textit{samyuktaksharas}), and dependent vowel signs (\textit{matras}). Western and Chinese zero-shot models (e.g., Kokoro-82M, standard F5-TTS, or ZipVoice-Distill) lack Indic character vocabularies and phonetic coverage, making them incapable of synthesizing Indian school textbooks.
     
-    \item \textbf{Zero-Shot In-Context Generalization}: The system must adapt to an unseen speaker from a brief, consumer-grade smartphone recording without gradient updates. Autoregressive models (e.g., XTTS-v2 at 467M parameters~\cite{casanova2024xtts}) suffer from $O(T)$ sequential latency, quadratic attention memory, and hallucination loops. Non-autoregressive flow-matching models generate frames in parallel, but require low-step numerical solvers to remain feasible on mobile hardware.
+    \item \textbf{Zero-Shot In-Context Generalization from Brief Classroom Samples}: The system must adapt to an unseen teacher from a single, three-to-five second recording captured in an ordinary classroom environment, without gradient updates or fine-tuning. Autoregressive models (e.g., XTTS-v2 at 467M parameters~\cite{casanova2024xtts}) suffer from $O(T)$ sequential latency, quadratic attention memory, and hallucination loops. Non-autoregressive flow-matching models generate frames in parallel, but require low-step numerical solvers to remain feasible on mobile hardware.
     
-    \item \textbf{Strict Physical Edge Memory and Compute Budgets}: The pipeline must run entirely on-device without cloud connectivity. Commodity edge devices have limited RAM, bounded memory bandwidth, thermal constraints, and heterogeneous CPU clusters without dedicated NPUs.
+    \item \textbf{Strict Physical Edge Memory and Compute Budgets on Subsidized Tablets}: The pipeline must run entirely on-device without cloud connectivity. Commodity edge devices distributed in state education programs have limited RAM, bounded memory bandwidth, thermal constraints, and heterogeneous CPU clusters without dedicated NPUs.
 \end{enumerate}
 
-Existing open-source and commercial models typically address at most two of these requirements: models that run on-device are limited to English and Chinese; models that support Indian languages rely on remote server clusters; and lightweight on-device engines are restricted to single-speaker statistical synthesis. This investigation targets the intersection of all three criteria.
+Existing open-source and commercial models typically address at most two of these requirements: models that run on-device are limited to English and Chinese; models that support Indian languages rely on remote server clusters; and lightweight on-device engines are restricted to single-speaker statistical synthesis. This investigation targets the intersection of all three criteria to empower public education and accessibility.
 
 \section{Embedded Hardware Constraints and Operating System Resource Envelopes}
-To design an edge architecture capable of practical mass deployment, our engineering target is anchored against budget commodity hardware rather than flagship silicon. In this project, our primary reference hardware is the \textbf{Lenovo Tab K10}, with the following specifications:
+To design an edge architecture capable of practical mass deployment across public schools, our engineering target is anchored against budget commodity hardware rather than flagship silicon. In this project, our primary reference hardware is the \textbf{Lenovo Tab K10}, a tablet widely procured and distributed in government school digitization programs across India, with the following specifications:
 
 \begin{itemize}
     \item \textbf{System-on-Chip (\gls{soc})}: MediaTek Helio P22T (MT8768T), built on a 12\,nm FinFET process.
