@@ -120,7 +120,7 @@ Detailed implementation specifications, engineering logs, and verification repor
 | **0** | [`phase_0_toolchain_and_environment.md`](phase_wise_implementation/phase_0_toolchain_and_environment.md) | Python environment isolation, `torch.export`, and Google LiteRT compiler setup. | `COMPLETE` ([Report](phase_wise_implementation/phase_0_report.md)) |
 | **1** | [`phase_1_graph_tracing_and_export.md`](phase_wise_implementation/phase_1_graph_tracing_and_export.md) | DiT and Vocos graph capture, RoPE decomposition, and FP32 `.tflite` generation. | `COMPLETE` ([Report](phase_wise_implementation/phase_1_report.md)) |
 | **2** | [`phase_2_parity_and_numerical_verification.md`](phase_wise_implementation/phase_2_parity_and_numerical_verification.md) | Numerical verification, MCD (< 3.5 dB), cosine similarity, and desktop inference harness. | `COMPLETE` ([Report](phase_wise_implementation/phase_2_report.md)) |
-| **3** | [`phase_3_int8_quantization.md`](phase_wise_implementation/phase_3_int8_quantization.md) | Post-Training Quantization (PTQ) via `ai-edge-quantizer` to produce ~340 MB INT8 models. | `READY` |
+| **3** | [`phase_3_int8_quantization.md`](phase_wise_implementation/phase_3_int8_quantization.md) | Post-Training Quantization (PTQ) via `ai-edge-quantizer` to produce ~340 MB INT8 models. | `COMPLETE` ([Report](phase_wise_implementation/phase_3_report.md)) |
 | **4** | [`phase_4_android_litert_integration.md`](phase_wise_implementation/phase_4_android_litert_integration.md) | Native Android C++ NDK engine, XNNPACK delegate, and Euler ODE integrator. | `PLANNED` |
 | **5** | [`phase_5_end_to_end_android_app.md`](phase_wise_implementation/phase_5_end_to_end_android_app.md) | Native Kotlin/Compose UI, mic recording, sentence chunker, and real-time audio playback. | `PLANNED` |
 | **6** | [`phase_6_on_device_benchmarking.md`](phase_wise_implementation/phase_6_on_device_benchmarking.md) | Physical profiling on Lenovo Tab K10: RTF, VmRSS, battery drain, and thermal throttling. | `PLANNED` |
@@ -143,15 +143,16 @@ c:/voice_cloning/
 │       ├── phase_1_report.md                    # Phase 1 Verification Sign-off Report
 │       ├── phase_2_parity_and_numerical_verification.md # Phase 2 Specification (Parity & Baseline)
 │       ├── phase_2_report.md                    # Phase 2 Verification Sign-off Report
-│       └── phase_3_int8_quantization.md         # Phase 3 Specification (INT8 PTQ)
+│       ├── phase_3_int8_quantization.md         # Phase 3 Specification (INT8 PTQ)
+│       └── phase_3_report.md                    # Phase 3 Verification Sign-off Report
 ├── models/
 │   └── indicf5/                                 # Model Checkpoints & Export Artifacts
 │       ├── model.safetensors                    # 1.35 GB PyTorch IndicF5 Checkpoint
 │       ├── vocab.txt                            # Tokenizer Vocabulary
 │       ├── indicf5_dit_fp32.tflite              # DiT FP32 FlatBuffer (1,288 MB)
 │       ├── indicf5_vocos_fp32.tflite            # Vocos FP32 FlatBuffer (51.65 MB)
-│       ├── indicf5_dit_int8.tflite              # (Phase 3 Target) Quantized DiT FlatBuffer (~349 MB)
-│       └── indicf5_vocos_int8.tflite            # (Phase 3 Target) Quantized Vocos FlatBuffer (~22 MB)
+│       ├── indicf5_dit_int8.tflite              # Quantized DiT FlatBuffer (327.92 MB)
+│       └── indicf5_vocos_int8.tflite            # Quantized Vocos FlatBuffer (13.29 MB)
 ├── scripts/                                     # Automation, Export & Test Scripts
 │   ├── verify_phase0.py                         # Phase 0 Automated Gate Verification Suite
 │   ├── export_dit_litert.py                     # DiT Graph Export Script
