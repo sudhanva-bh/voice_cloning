@@ -265,13 +265,15 @@ flowchart TD
 
 ## 5. Deliverables & Artifact Checklist
 
-| Phase | Output Artifacts | Primary Verification Check |
-|---|---|---|
-| **Phase 0** | Isolated Python 3.10/3.11 LiteRT virtualenv | `import ai_edge_torch; import ai_edge_litert` succeeds |
-| **Phase 1** | `indicf5_dit_fp32.tflite`, `indicf5_vocos_fp32.tflite` | Successful compilation via `torch.export` and FlatBuffer save |
-| **Phase 2** | `tests/test_litert_parity.py` parity benchmark | Spectral Cosine Similarity $> 0.99$; MCD $< 3.5$ dB |
-| **Phase 3** | `indicf5_dit_int8.tflite` (~349 MB), `indicf5_vocos_int8.tflite` (~22 MB) | Weight size reduction; zero NaN/overflows in integer math |
-| **Phase 4** | 4-step & 2-step Euler inference scripts | $50\% - 75\%$ reduction in forward pass wall-clock time |
-| **Phase 5** | `liblitert_indic_engine.so` C++ shared library | CompiledModel bindings verified on Snapdragon HTP / XNNPACK |
-| **Phase 6** | Dual-engine Flutter UI in `voice_clone_proto/lib/` | Seamless switching between English and Indic languages in app |
-| **Phase 7** | Comprehensive physical device benchmark report | RTF $< 0.5\times$ on S23; Peak RSS $< 1500$ MB on Lenovo Tab K10; 0 LMK kills |
+| Phase | Output Artifacts | Primary Verification Check | Status |
+|---|---|---|:---:|
+| **[Phase 0](phase_wise_implementation/phase_0_toolchain_and_environment.md)** | WSL2 environment (`litert-wsl-env`), LiteRT compiler toolchain (`litert-torch 0.9.4`, `ai-edge-litert 2.2.0`, `ai-edge-quantizer 0.9.0`), [`phase_0_report.md`](phase_wise_implementation/phase_0_report.md) | All 6 automated gate checks in [`scripts/verify_phase0.py`](file:///c:/voice_cloning/scripts/verify_phase0.py) pass | `COMPLETE` |
+| **[Phase 1](phase_wise_implementation/phase_1_graph_tracing_and_export.md)** | [`models/indicf5/indicf5_dit_fp32.tflite`](file:///c:/voice_cloning/models/indicf5/indicf5_dit_fp32.tflite) (1,287.89 MB), [`models/indicf5/indicf5_vocos_fp32.tflite`](file:///c:/voice_cloning/models/indicf5/indicf5_vocos_fp32.tflite) (51.65 MB), [`phase_1_report.md`](phase_wise_implementation/phase_1_report.md) | Graph export via `torch.export` & `ai_edge_torch`; finite output (zero NaNs) | `COMPLETE` |
+| **[Phase 2](phase_wise_implementation/phase_2_parity_and_numerical_verification.md)** | Parity harness [`scripts/evaluate_parity.py`](file:///c:/voice_cloning/scripts/evaluate_parity.py), inference harness [`scripts/infer_litert.py`](file:///c:/voice_cloning/scripts/infer_litert.py), [`phase_2_report.md`](phase_wise_implementation/phase_2_report.md) | Cosine Sim = `1.000000`, Spectrogram L1 = `0.000003`, MCD = `0.0037 dB` (Gate: $\le 3.5\text{ dB}$) | `COMPLETE` |
+| **[Phase 3](phase_wise_implementation/phase_3_int8_quantization.md)** | [`models/indicf5/indicf5_dit_int8.tflite`](file:///c:/voice_cloning/models/indicf5/indicf5_dit_int8.tflite) (**327.92 MB**), [`models/indicf5/indicf5_vocos_int8.tflite`](file:///c:/voice_cloning/models/indicf5/indicf5_vocos_int8.tflite) (**13.29 MB**), [`src/voice_studio/engines/litert_indic.py`](file:///c:/voice_cloning/src/voice_studio/engines/litert_indic.py), [`cli/synthesize.py`](file:///c:/voice_cloning/cli/synthesize.py), [`phase_3_report.md`](phase_wise_implementation/phase_3_report.md) | 74.5% compression (341.21 MB total), velocity cosine sim = `0.99923`, audible speech | `COMPLETE` |
+| **[Phase 4](phase_wise_implementation/phase_4_android_native_integration.md)** | Native C++ engine [`liblitert_indic.so`](file:///c:/voice_cloning/android/app/src/main/cpp/) (Euler ODE loop, KissFFTR iSTFT, Indic tokenizer), Kotlin UI ([`MainActivity.kt`](file:///c:/voice_cloning/android/app/src/main/java/com/indic/voice/MainActivity.kt)), packaged APK [`app-debug.apk`](file:///c:/voice_cloning/android/app/build/outputs/apk/debug/app-debug.apk) (**350.35 MB**), [`phase_4_report.md`](phase_wise_implementation/phase_4_report.md) | Standalone C++ unit tests passed (`test_native_engine.cpp`), Gradle + CMake build successful for `arm64-v8a` & `armeabi-v7a` | `COMPLETE` |
+| **Phase 5** | Physical device deployment, ADB telemetry suite (`dumpsys meminfo`), multi-step latency logs (8, 16, 24 steps on Helio P22T), [`phase_5_report.md`](phase_wise_implementation/phase_5_report.md) | Resident RAM $\le 550\text{ MB}$ (0 LMK kills on 4 GB RAM); RTF $\le 1.8\times$ (8 steps); audible audio across Hindi, Tamil, Telugu, English | `READY_FOR_EXECUTION` |
+
+> [!NOTE]
+> **Scope Confirmation**: In accordance with project requirements, distilled ZipVoice and Sherpa-ONNX are completely excluded. The entire engine architecture is 100% focused on Indic multilingual voice cloning (IndicF5 + Vocos 24 kHz) deployed via a direct Native Android (Kotlin + C++ NDK) pipeline.
+
