@@ -29,6 +29,8 @@ sherpa-onnx-*/
 # Python Virtual Environments & Cache
 # ==========================================
 sherpa-env/
+litert-env/
+litert-*-env/
 venv/
 .venv/
 env/
