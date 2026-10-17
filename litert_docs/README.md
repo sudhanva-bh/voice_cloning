@@ -118,8 +118,8 @@ Detailed implementation specifications, engineering logs, and verification repor
 | Phase | Specification Document | Description | Status |
 | :---: | :--- | :--- | :---: |
 | **0** | [`phase_0_toolchain_and_environment.md`](phase_wise_implementation/phase_0_toolchain_and_environment.md) | Python environment isolation, `torch.export`, and Google LiteRT compiler setup. | `COMPLETE` ([Report](phase_wise_implementation/phase_0_report.md)) |
-| **1** | [`phase_1_graph_tracing_and_export.md`](phase_wise_implementation/phase_1_graph_tracing_and_export.md) | DiT and Vocos graph capture, RoPE decomposition, and FP32 `.tflite` generation. | `READY` |
-| **2** | [`phase_2_parity_and_numerical_verification.md`](phase_wise_implementation/phase_2_parity_and_numerical_verification.md) | Numerical verification, MCD (< 3.5 dB), cosine similarity, and desktop inference harness. | `PLANNED` |
+| **1** | [`phase_1_graph_tracing_and_export.md`](phase_wise_implementation/phase_1_graph_tracing_and_export.md) | DiT and Vocos graph capture, RoPE decomposition, and FP32 `.tflite` generation. | `COMPLETE` ([Report](phase_wise_implementation/phase_1_report.md)) |
+| **2** | [`phase_2_parity_and_numerical_verification.md`](phase_wise_implementation/phase_2_parity_and_numerical_verification.md) | Numerical verification, MCD (< 3.5 dB), cosine similarity, and desktop inference harness. | `READY` |
 | **3** | [`phase_3_int8_quantization.md`](phase_wise_implementation/phase_3_int8_quantization.md) | Post-Training Quantization (PTQ) via `ai-edge-quantizer` to produce ~340 MB INT8 models. | `PLANNED` |
 | **4** | [`phase_4_android_litert_integration.md`](phase_wise_implementation/phase_4_android_litert_integration.md) | Native Android C++ NDK engine, XNNPACK delegate, and Euler ODE integrator. | `PLANNED` |
 | **5** | [`phase_5_end_to_end_android_app.md`](phase_wise_implementation/phase_5_end_to_end_android_app.md) | Native Kotlin/Compose UI, mic recording, sentence chunker, and real-time audio playback. | `PLANNED` |
