@@ -121,9 +121,12 @@ Detailed implementation specifications, engineering logs, and verification repor
 | **1** | [`phase_1_graph_tracing_and_export.md`](phase_wise_implementation/phase_1_graph_tracing_and_export.md) | DiT and Vocos graph capture, RoPE decomposition, and FP32 `.tflite` generation. | `COMPLETE` ([Report](phase_wise_implementation/phase_1_report.md)) |
 | **2** | [`phase_2_parity_and_numerical_verification.md`](phase_wise_implementation/phase_2_parity_and_numerical_verification.md) | Numerical verification, MCD (< 3.5 dB), cosine similarity, and desktop inference harness. | `COMPLETE` ([Report](phase_wise_implementation/phase_2_report.md)) |
 | **3** | [`phase_3_int8_quantization.md`](phase_wise_implementation/phase_3_int8_quantization.md) | Post-Training Quantization (PTQ) via `ai-edge-quantizer` to produce ~340 MB INT8 models. | `COMPLETE` ([Report](phase_wise_implementation/phase_3_report.md)) |
-| **4** | [`phase_4_android_litert_integration.md`](phase_wise_implementation/phase_4_android_litert_integration.md) | Native Android C++ NDK engine, XNNPACK delegate, and Euler ODE integrator. | `PLANNED` |
+| **4** | [`phase_4_android_native_integration.md`](phase_wise_implementation/phase_4_android_native_integration.md) | Native Android C++ NDK engine, XNNPACK NEON delegate, Euler ODE integrator, and JNI/App integration. | `READY_FOR_EXECUTION` |
 | **5** | [`phase_5_end_to_end_android_app.md`](phase_wise_implementation/phase_5_end_to_end_android_app.md) | Native Kotlin/Compose UI, mic recording, sentence chunker, and real-time audio playback. | `PLANNED` |
 | **6** | [`phase_6_on_device_benchmarking.md`](phase_wise_implementation/phase_6_on_device_benchmarking.md) | Physical profiling on Lenovo Tab K10: RTF, VmRSS, battery drain, and thermal throttling. | `PLANNED` |
+
+*Note: Distilled ZipVoice and Sherpa-ONNX are completely excluded from this project; the engine is 100% Indic multilingual voice cloning.*
+
 
 *For the complete high-level roadmap, consult the [Master LiteRT Implementation Plan](litert_implementation_plan.md).*
 
