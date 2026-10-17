@@ -284,37 +284,11 @@
                     </LinearLayout>
 
                     <!-- Preview Audio Player Row -->
-                    <LinearLayout
+                    <com.indic.voice.SeekableAudioPlayerView
+                        android:id="@+id/playerRefAudio"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnPlayRefAudio"
-                            style="@style/Widget.Material3.Button.TonalButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="36dp"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            android:text="Preview"
-                            android:textColor="@color/accent_green"
-                            android:textSize="12sp"
-                            app:icon="@android:drawable/ic_media_play"
-                            app:iconSize="16dp"
-                            app:iconTint="@color/accent_green" />
-
-                        <TextView
-                            android:id="@+id/tvRefAudioStatus"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="10dp"
-                            android:layout_weight="1"
-                            android:text="Tap to listen to reference audio"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
+                        android:layout_marginTop="6dp" />
 
                     <!-- Re-record voice clip button -->
                     <com.google.android.material.button.MaterialButton
@@ -885,22 +859,12 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Playback Action -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPlayLatest"
-                        style="@style/Widget.Material3.Button"
+                    <!-- Seekable Audio Player for Generated Voice -->
+                    <com.indic.voice.SeekableAudioPlayerView
+                        android:id="@+id/playerLatestAudio"
                         android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:layout_marginTop="10dp"
-                        android:backgroundTint="@color/accent_green"
-                        android:text="Play Audio Track"
-                        android:textColor="@color/background_dark"
-                        android:textSize="13.5sp"
-                        android:textStyle="bold"
-                        app:cornerRadius="8dp"
-                        app:icon="@android:drawable/ic_media_play"
-                        app:iconSize="18dp"
-                        app:iconTint="@color/background_dark" />
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" />
                 </LinearLayout>
 
             </LinearLayout>

@@ -2,7 +2,6 @@ package com.indic.voice
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -13,6 +12,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
 import com.indic.voice.databinding.ActivityMainBinding
+import com.indic.voice.presets.ExampleScriptsBottomSheet
+import com.indic.voice.presets.QuickIdeasBottomSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -23,16 +24,12 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val engine by lazy { LiteRTIndicEngine(this) }
-    private val audioPlayer by lazy { AudioPlayer() }
     private val recorderHelper by lazy { AudioRecorderHelper() }
 
     private var refPcm: FloatArray? = null
     private var refAudioPath: String? = null
     private var refAudioName: String = "ref_en.wav"
     private var lastGeneratedPcm: FloatArray? = null
-
-    private var previewMediaPlayer: MediaPlayer? = null
-    private var isPreviewPlaying = false
 
     // Permission launcher for Microphone recording
     private val requestAudioPermissionLauncher = registerForActivityResult(
@@ -75,7 +72,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnExampleScripts.setOnClickListener {
-            Toast.makeText(this, "Example Scripts modal will be integrated in Phase 3", Toast.LENGTH_SHORT).show()
+            ExampleScriptsBottomSheet { script ->
+                binding.etRefText.setText(script)
+                updateValidationState()
+                Toast.makeText(this, "Reference script updated!", Toast.LENGTH_SHORT).show()
+            }.show(supportFragmentManager, "ExampleScriptsBottomSheet")
         }
     }
 
@@ -87,6 +88,7 @@ class MainActivity : AppCompatActivity() {
 
         // Re-record button inside ready state
         binding.btnReRecordAudio.setOnClickListener {
+            binding.playerRefAudio.pause()
             binding.llRefAudioReady.visibility = View.GONE
             binding.llRefAudioNotReady.visibility = View.VISIBLE
             toggleRecording()
@@ -106,16 +108,15 @@ class MainActivity : AppCompatActivity() {
         binding.ibResetRefAudio.setOnClickListener {
             loadDefaultAssetReference()
         }
-
-        // Reference Audio Preview
-        binding.btnPlayRefAudio.setOnClickListener {
-            toggleReferenceAudioPreview()
-        }
     }
 
     private fun setupStep3TargetAndLanguage() {
         binding.btnQuickIdeas.setOnClickListener {
-            Toast.makeText(this, "Quick Ideas modal will be integrated in Phase 3", Toast.LENGTH_SHORT).show()
+            QuickIdeasBottomSheet { idea ->
+                binding.etTargetText.setText(idea)
+                updateValidationState()
+                Toast.makeText(this, "Target text updated!", Toast.LENGTH_SHORT).show()
+            }.show(supportFragmentManager, "QuickIdeasBottomSheet")
         }
 
         binding.btnClearTargetText.setOnClickListener {
@@ -146,14 +147,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupStep4Output() {
-        binding.btnPlayLatest.setOnClickListener {
-            lastGeneratedPcm?.let { samples ->
-                lifecycleScope.launch {
-                    audioPlayer.play(samples, 24000)
-                }
-            }
-        }
-
         binding.btnExportLatest.setOnClickListener {
             Toast.makeText(this, "Audio saved to app files: generated_voice.wav", Toast.LENGTH_SHORT).show()
         }
@@ -197,7 +190,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startLiveRecording() {
-        stopPreviewPlayer()
+        binding.playerRefAudio.pause()
+        binding.playerLatestAudio.pause()
         val recordFile = File(cacheDir, "live_recorded_ref_${System.currentTimeMillis()}.wav")
         val success = recorderHelper.startRecording(recordFile)
         if (success) {
@@ -230,6 +224,7 @@ class MainActivity : AppCompatActivity() {
 
                 val durationSec = pcm.size.toFloat() / 24000f
                 binding.tvRefFileName.text = "Clip Ready ($refAudioName • ${String.format("%.2f", durationSec)}s)"
+                binding.playerRefAudio.setAudioPath(refAudioPath)
                 binding.llRefAudioReady.visibility = View.VISIBLE
                 binding.llRefAudioNotReady.visibility = View.GONE
                 updateValidationState()
@@ -242,7 +237,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handlePickedAudioUri(uri: Uri) {
-        stopPreviewPlayer()
+        binding.playerRefAudio.pause()
         try {
             val inputStream = contentResolver.openInputStream(uri) ?: return
             val tempFile = File(cacheDir, "uploaded_ref_${System.currentTimeMillis()}.wav")
@@ -276,6 +271,7 @@ class MainActivity : AppCompatActivity() {
 
             val durationSec = pcm.size.toFloat() / 24000f
             binding.tvRefFileName.text = "Clip Ready ($refAudioName • ${String.format("%.2f", durationSec)}s)"
+            binding.playerRefAudio.setAudioPath(refAudioPath)
             binding.llRefAudioReady.visibility = View.VISIBLE
             binding.llRefAudioNotReady.visibility = View.GONE
             updateValidationState()
@@ -297,68 +293,8 @@ class MainActivity : AppCompatActivity() {
         return name
     }
 
-    private fun toggleReferenceAudioPreview() {
-        if (isPreviewPlaying) {
-            stopPreviewPlayer()
-            binding.btnPlayRefAudio.text = "Preview"
-            binding.btnPlayRefAudio.setIconResource(android.R.drawable.ic_media_play)
-            binding.tvRefAudioStatus.text = "Tap to listen to reference audio"
-        } else {
-            val path = refAudioPath
-            if (path == null) {
-                // Play from raw PCM if loaded from asset
-                refPcm?.let { pcm ->
-                    lifecycleScope.launch {
-                        binding.btnPlayRefAudio.text = "Stop"
-                        binding.btnPlayRefAudio.setIconResource(android.R.drawable.ic_media_pause)
-                        binding.tvRefAudioStatus.text = "Playing reference voice..."
-                        isPreviewPlaying = true
-                        audioPlayer.play(pcm, 24000)
-                        binding.btnPlayRefAudio.text = "Preview"
-                        binding.btnPlayRefAudio.setIconResource(android.R.drawable.ic_media_play)
-                        binding.tvRefAudioStatus.text = "Preview finished"
-                        isPreviewPlaying = false
-                    }
-                }
-                return
-            }
-
-            try {
-                previewMediaPlayer?.release()
-                previewMediaPlayer = MediaPlayer().apply {
-                    setDataSource(path)
-                    prepare()
-                    setOnCompletionListener {
-                        binding.btnPlayRefAudio.text = "Preview"
-                        binding.btnPlayRefAudio.setIconResource(android.R.drawable.ic_media_play)
-                        binding.tvRefAudioStatus.text = "Preview finished"
-                        isPreviewPlaying = false
-                    }
-                    start()
-                }
-                isPreviewPlaying = true
-                binding.btnPlayRefAudio.text = "Stop"
-                binding.btnPlayRefAudio.setIconResource(android.R.drawable.ic_media_pause)
-                binding.tvRefAudioStatus.text = "Playing reference audio..."
-            } catch (e: Exception) {
-                Toast.makeText(this, "Preview failed: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun stopPreviewPlayer() {
-        try {
-            if (previewMediaPlayer?.isPlaying == true) {
-                previewMediaPlayer?.stop()
-            }
-            previewMediaPlayer?.release()
-            previewMediaPlayer = null
-        } catch (ignored: Exception) {}
-        isPreviewPlaying = false
-    }
-
     private fun loadDefaultAssetReference() {
-        stopPreviewPlayer()
+        binding.playerRefAudio.pause()
         lifecycleScope.launch {
             try {
                 val wavBytes = withContext(Dispatchers.IO) {
@@ -374,6 +310,7 @@ class MainActivity : AppCompatActivity() {
 
                 val durationSec = (refPcm?.size ?: 0).toFloat() / 24000f
                 binding.tvRefFileName.text = "Clip Ready ($refAudioName • ${String.format("%.2f", durationSec)}s)"
+                binding.playerRefAudio.setAudioPath(refAudioPath)
                 binding.llRefAudioReady.visibility = View.VISIBLE
                 binding.llRefAudioNotReady.visibility = View.GONE
                 updateValidationState()
@@ -427,6 +364,8 @@ class MainActivity : AppCompatActivity() {
             else -> 16
         }
 
+        binding.playerRefAudio.pause()
+        binding.playerLatestAudio.pause()
         binding.btnSynthesize.isEnabled = false
         binding.progressBar.visibility = View.VISIBLE
         binding.tvLatencyInfo.text = "Solving Flow Matching ODE ($steps steps)..."
@@ -449,21 +388,20 @@ class MainActivity : AppCompatActivity() {
                 binding.tvLatencyInfo.text = "Mel: ${result.melTimeMs.toInt()}ms | DiT: ${result.diffusionTimeMs.toInt()}ms | Vocos: ${result.vocosTimeMs.toInt()}ms | Total: ${result.totalTimeMs.toInt()}ms"
                 binding.tvRtfInfo.text = "Real-Time Factor: ${String.format("%.2f", result.realTimeFactor)}x (${String.format("%.2f", result.audioDurationSec)}s audio)"
 
-                // Update Step 4 LATEST Card
+                // Save WAV to filesDir
+                val wavFile = File(filesDir, "generated_voice.wav")
+                savePcmToWav(wavFile, result.audioSamples, 24000)
+
+                // Update Step 4 LATEST Card & Auto-play with Seekable Player
                 binding.llEmptyOutput.visibility = View.GONE
                 binding.llLatestOutput.visibility = View.VISIBLE
                 binding.tvLatestRtf.text = "RTF: ${String.format("%.2f", result.realTimeFactor)}x"
                 binding.tvLatestRss.text = "Memory: $vmrss MB"
                 binding.tvLatestTitle.text = "generated_voice_${System.currentTimeMillis()}.wav"
 
-                // Save WAV
-                try {
-                    val wavFile = File(filesDir, "generated_voice.wav")
-                    savePcmToWav(wavFile, result.audioSamples, 24000)
-                } catch (ignored: Exception) {}
+                binding.playerLatestAudio.setAudioPath(wavFile.absolutePath)
+                binding.playerLatestAudio.play()
 
-                // Auto-play generated audio
-                audioPlayer.play(result.audioSamples, 24000)
             } catch (e: Exception) {
                 binding.tvLatencyInfo.text = "Synthesis Error: ${e.localizedMessage}"
                 Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
@@ -522,8 +460,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        stopPreviewPlayer()
-        audioPlayer.stop()
+        binding.playerRefAudio.release()
+        binding.playerLatestAudio.release()
         if (recorderHelper.isRecording) {
             recorderHelper.stopRecording()
         }
