@@ -1,0 +1,7 @@
+.gradle/
+build/
+app/build/
+.cxx/
+local.properties
+*.apk
+app/src/main/assets/*.tflite

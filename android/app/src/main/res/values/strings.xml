@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Indic LiteRT Voice</string>
+    <string name="title_engine">Google LiteRT Indic Voice Cloning</string>
+    <string name="device_target">Target: Lenovo Tab K10 (MediaTek Helio P22T)</string>
+    <string name="prompt_label">Reference Speaker Prompt</string>
+    <string name="target_label">Text to Synthesize (Indic / English)</string>
+    <string name="synthesize_btn">Synthesize Voice (LiteRT INT8)</string>
+    <string name="play_btn">Play Synthesized Audio</string>
+</resources>
