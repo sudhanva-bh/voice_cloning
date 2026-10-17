@@ -13,39 +13,46 @@ To realize robust zero-shot voice cloning on resource-constrained Android hardwa
         \item \textit{Motivation}: To determine whether non-autoregressive continuous flow-matching speech synthesis could execute within mobile latency and memory budgets before undertaking complex Indic adaptation.
         \item \textit{Backbone Architecture}: A non-autoregressive Zipformer acoustic backbone comprising approximately 123 million parameters, pre-trained on the Emilia dataset.
         \item \textit{Numerical Solver}: A 4-step distilled continuous flow-matching decoder.
-        \item \textit{Neural Vocoder}: A 24\,kHz Vocos vocoder (INT8 quantized to 54\,MB).
+        \item \textit{Neural Vocoder}: A 24\,kHz Vocos vocoder (54\,MB FP32 graph, or 22\,MB in INT8).
         \item \textit{Execution Runtime}: Executed natively via \texttt{sherpa-onnx} C++ binaries wrapped in a background Flutter Dart Isolate (\texttt{voice\_clone\_proto}).
-        \item \textit{Memory Footprint}: Approximately 104\,MB for the quantized INT8 acoustic graph.
+        \item \textit{Model Assets}: An INT8 encoder (\texttt{encoder.int8.onnx}, $\approx 5.5$\,MB) and INT8 Zipformer decoder (\texttt{decoder.int8.onnx}, $\approx 124.7$\,MB), totaling $\approx 130.2$\,MB of acoustic ONNX graphs.
     \end{itemize}
     
     \item \textbf{Empirical PoC Findings and Inferences}:
-    Hardware profiling of this PoC across physical Android silicon tiers (detailed in \cref{Chapter4}) demonstrated that 4-step flow matching is viable on mobile ARM CPUs, achieving median Real-Time Factors ($\text{RTF} \approx 1.28$ to $2.51$) on mid-to-high tiers. Crucially, the PoC yielded four vital engineering inferences:
+    Physical hardware benchmarking of this PoC across Android silicon tiers (detailed in \cref{Chapter4}) demonstrated that flow-matching synthesis successfully runs on client mobile processors, completing all experimental trials on the budget Lenovo Tab K10 without LowMemoryKiller termination. The PoC yielded four vital engineering inferences:
     \begin{itemize}
         \item \textit{Linguistic Limitation}: ZipVoice is strictly restricted to English and Chinese orthography. It cannot process Dravidian and Indo-Aryan syllabic scripts (such as Telugu, Tamil, and Hindi) required for state school curricula.
-        \item \textit{Physical Memory Cliff}: On long utterances, unquantized activations pushed process memory to 1,772\,MB, which exceeds the Android Linux kernel \textit{LowMemoryKiller} (LMK) limit ($\approx 1,500$\,MB) on 4\,GB school tablets like the Lenovo Tab K10. This proved that static INT8 quantization and pre-allocated memory arenas are mandatory prerequisites.
-        \item \textit{Fixed Initialization Overhead}: An invariant cold-start penalty ($\approx 1.2$\,seconds) dominated short utterances, demonstrating that on-device synthesis must use warm, resident memory pipelines.
-        \item \textit{Runtime Inflexibility}: Sherpa-ONNX provided C++ loaders for Zipformer, but lacked support for modern Diffusion Transformers, requiring a dedicated native execution engine.
+        \item \textit{Memory Variability and Allocation Pressure}: While all trials completed without process termination, post-utterance resident memory reached up to 2,491\,MB on the Lenovo Tab K10, showing substantial allocation variance between examples. This demonstrated the necessity of strict memory budgeting and pre-allocated static arenas for long-term multi-turn stability.
+        \item \textit{Short-Utterance Latency Overhead}: Elevated Real-Time Factors on short phrases highlighted that unamortized setup and buffer allocations affect short-form generation, underscoring the need for warm in-memory pipelines.
+        \item \textit{Runtime Inflexibility}: Sherpa-ONNX provided C++ loaders for Zipformer, but lacked built-in support for Diffusion Transformers, requiring a custom native C++ engine for Indic models.
     \end{itemize}
     
     \item \textbf{Phase 2: Primary Indic Production Engine (IndicF5)}:
     Directly addressing the limitations exposed by the PoC, our primary system centers on IndicF5, an in-context flow-matching engine capable of authentic zero-shot voice cloning across Indian languages:
     \begin{itemize}
-        \item \textit{Backbone Architecture}: A 22-layer Diffusion Transformer (\gls{dit}) comprising 335 million parameters, pre-trained on 1,417 hours of multi-speaker speech across eleven major Indian languages.
-        \item \textit{Generative Formulation}: Continuous Flow Matching (\gls{cfm}) solved via an 8-step Euler ODE solver with Classifier-Free Guidance ($\gamma = 2.0$) and sway scheduling ($\rho = -1.0$).
-        \item \textit{Neural Vocoder}: An INT8-quantized 24\,kHz Vocos vocoder (~22\,MB, 13.5M parameters) computing analytical \gls{istft} acoustic waveforms.
-        \item \textit{Memory Optimization}: Static INT8 quantization compresses the DiT graph from 1.35\,GB down to 349\,MB, which, combined with pre-allocated static tensor arenas, confines total peak resident memory to 801\,MB (safely beneath the 1,500\,MB LMK ceiling).
-        \item \textit{Execution Runtime}: Python desktop validation, static/dynamic INT8 ONNX graphs, and a custom native C++ engine with Dart FFI bindings.
+        \item \textit{Backbone Architecture}: A 22-layer Diffusion Transformer (\acrshort{dit}) comprising 335 million parameters, pre-trained on 1,417 hours of multi-speaker speech across eleven major Indian languages.
+        \item \textit{Generative Formulation}: Continuous Flow Matching (\acrshort{cfm}) solved via an 8-step Euler ODE solver with Classifier-Free Guidance ($\gamma = 2.0$) and trigonometric sway scheduling ($c = -1.0$).
+        \item \textit{Neural Vocoder}: An INT8-quantized 24\,kHz Vocos vocoder (~22\,MB, 13.5M parameters) computing analytical \acrshort{istft} acoustic waveforms.
+        \item \textit{Analytical Memory Budget}: Static INT8 quantization compresses the DiT graph from 1.35\,GB down to 349\,MB, which, combined with pre-allocated static tensor arenas (280\,MB) and runtime allocations (150\,MB), establishes an analytical component-level memory budget of 801\,MB.
+        \item \textit{Execution Runtime}: Python desktop validation, a fixed-shape INT8 ONNX optimization prototype, a dynamic-axis FP32 ONNX graph for variable-length inference, and a custom native C++ engine with Dart FFI bindings.
     \end{itemize}
     
     \item \textbf{Phase 3: Strategic Edge Acceleration via Google LiteRT}:
-    Because the PoC confirmed that budget ARM Cortex-A53 cores (such as those in the Lenovo Tab K10) face elevated CPU execution latencies ($\text{RTF} > 5.0$), achieving interactive real-time performance requires offloading matrix multiplications to dedicated silicon. This inference directly defines our future roadmap in \cref{Chapter5}, migrating IndicF5 to Google LiteRT to leverage Qualcomm QNN and MediaTek NeuroPilot NPU delegates alongside 2-step FlashSpeech consistency distillation.
+    Because CPU-only execution on budget in-order Cortex-A53 cores (such as those in the Lenovo Tab K10) incurs high latency ($\text{RTF} > 10\times$), achieving interactive near-real-time performance requires architectural step distillation and runtime optimization. As detailed in \cref{Chapter5}, our roadmap targets 2-step consistency distillation alongside Google LiteRT operator fusion for CPU efficiency on the K10, and hardware delegate offloading (Qualcomm QNN HTP and MediaTek NeuroPilot) for compatible accelerator-equipped platforms.
 \end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{Figures/system_architecture.pdf}
+\caption[End-to-End System Architecture Across Project Phases]{End-to-End System Architecture: Progression from the Implemented Mobile Proof of Concept (ZipVoice-Distill via Sherpa-ONNX) to the Primary IndicF5 Engineering Pipeline and Edge Deployment Architecture.}
+\label{fig:system_architecture}
+\end{figure}
 
 \section{Signal Preprocessing and Acoustic Feature Extraction}
 Audio ingested from smartphone microphones or uploaded media containers exhibits variances in sampling rates, bit depths, channel configurations, and recording levels. To ensure numerical stability across the generative pipeline, every audio signal undergoes a standardized three-stage preprocessing pipeline:
 
 \subsection{Standardized Audio Ingestion and Format Transcoding}
-User-provided audio files (in \texttt{.mp3}, \texttt{.ogg}, \texttt{.m4a}, \texttt{.flac}, or \texttt{.wav} formats) are decoded and transcoded using FFmpeg into standardized 16-bit signed uncompressed Pulse Code Modulation (\gls{pcm}) mono WAV files at a sampling frequency of:
+User-provided audio files (in \texttt{.mp3}, \texttt{.ogg}, \texttt{.m4a}, \texttt{.flac}, or \texttt{.wav} formats) are decoded and transcoded using FFmpeg into standardized 16-bit signed uncompressed Pulse Code Modulation (\acrshort{pcm}) mono WAV files at a sampling frequency of:
 \begin{equation}
     f_s = 24,000\,\text{Hz}
     \label{eq:sampling_frequency}
@@ -54,7 +61,7 @@ User-provided audio files (in \texttt{.mp3}, \texttt{.ogg}, \texttt{.m4a}, \text
 \subsection{Root-Mean-Square (RMS) Energy Normalization}
 Reference recordings exhibit noticeable dynamic range disparities, ranging from low-gain speech to saturated signals. In continuous flow matching, acoustic amplitude directly modulates the magnitude of the conditioning mel frames $\mathbf{x}_{\text{ref}}$. If the reference audio energy is too low, the model predicts weak, muffled speech; conversely, excessive input gain introduces harmonic distortion and phase clipping.
 
-To standardize acoustic energy, all reference audio signals $\mathbf{y} \in \mathbb{R}^{N}$ undergo Root-Mean-Square (\gls{rms}) normalization. The root-mean-square amplitude of the signal is defined as:
+To standardize acoustic energy, all reference audio signals $\mathbf{y} \in \mathbb{R}^{N}$ undergo Root-Mean-Square (\acrshort{rms}) normalization. The root-mean-square amplitude of the signal is defined as:
 \begin{equation}
     \text{RMS}(\mathbf{y}) = \sqrt{\frac{1}{N} \sum_{n=1}^N y(n)^2}
     \label{eq:rms_definition}
@@ -71,7 +78,7 @@ where $\epsilon = 10^{-7}$ prevents division by zero during silence. Following s
 \end{equation}
 
 \subsection{Log-Mel Filterbank Transformation}
-Continuous acoustic features are extracted by computing 100-channel log-mel spectrograms. Let $N_{\text{fft}} = 1024$ represent the Fast Fourier Transform analysis window size, and let $H = 256$ represent the hop size. The Short-Time Fourier Transform (\gls{stft}) is computed using a periodic Hanning window:
+Continuous acoustic features are extracted by computing 100-channel log-mel spectrograms. Let $N_{\text{fft}} = 1024$ represent the Fast Fourier Transform analysis window size, and let $H = 256$ represent the hop size. The Short-Time Fourier Transform (\acrshort{stft}) is computed using a periodic Hanning window:
 \begin{equation}
     X(k, m) = \sum_{n=0}^{N_{\text{fft}}-1} \tilde{y}(n + mH) w(n) e^{-j \frac{2\pi}{N_{\text{fft}}} kn}
     \label{eq:stft_analysis}
@@ -110,18 +117,20 @@ However, a native speaker articulates that same sentence in approximately 5.2 se
 \subsection{Mathematical Derivation of the Calibrated Syllabic Model}
 To resolve this issue, we derived a calibrated syllabic duration model grounded in the phonetic distributions of the IndicVoices corpus~\cite{indicvoices2024}. 
 
-Let $N_{\text{chars}} = \text{len}(\mathbf{w}_{\text{tgt}})$ denote the Unicode string length of the target Indic text. In Dravidian and Indo-Aryan scripts, a complete syllabic akshara decomposes into an average of 1.6 to 2.2 Unicode code points (such as base consonant plus matra). Accounting for pauses, phrase-final lengthening, and punctuation cadence, the empirical acoustic duration per character glyph evaluates to:
+Let $N_{\text{chars}} = \text{len}(\mathbf{w}_{\text{tgt}})$ denote the Unicode string length of the target Indic text. In Dravidian and Indo-Aryan scripts, a complete syllabic akshara decomposes into an average of 1.6 to 2.2 Unicode code points (such as base consonant plus matra). Converting the hop interval ($H = 256$, $f_s = 24,000$\,Hz) gives a mel frame step of $\Delta t_{\text{frame}} = \frac{256}{24000} \approx 10.667$\,ms. 
+
+Allocating an empirical constant of $k_{\text{mel}} = 6.5$ mel frames per Unicode character code point yields an acoustic duration per code point of:
 \begin{equation}
-    \tau_{\text{char}} \approx 54.0\,\text{ms} \quad \text{to} \quad 60.0\,\text{ms per Unicode character}
+    \tau_{\text{char}} = k_{\text{mel}} \cdot \Delta t_{\text{frame}} = 6.5 \times \frac{256}{24000}\,\text{s} \approx 69.33\,\text{ms per character code point}
     \label{eq:char_temporal_density}
 \end{equation}
-Converting this temporal density into discrete mel frames at a 256-sample hop size yields:
+Across an entire orthographic akshara (1.6 to 2.2 code points), this corresponds to an effective syllable duration of $\approx 111$ to $153$\,ms, matching natural speaking cadence. For a conversational sentence with 80 Unicode code points, the calibrated allocation is:
 \begin{equation}
-    k_{\text{mel}} = \frac{\tau_{\text{char}}}{\Delta t_{\text{frame}}} = \frac{0.055\,\text{s}}{\frac{256}{24000}\,\text{s}} \approx 6.445\,\text{mel frames / character}
-    \label{eq:mel_density_derivation}
+    T_{\text{gen}} = 80 \times 6.5 = 520\,\text{frames} \implies \frac{520 \times 256}{24000} \approx 5.55\,\text{seconds}
 \end{equation}
+Adding an explicit post-utterance acoustic buffer $\tau_{\text{pad}} = 0.30$\,seconds ($T_{\text{pad}} = 28$ frames) yields an output duration of $\approx 5.85$\,seconds, closely matching natural human articulation. It should be noted that this formulation operates as a practical character-level heuristic rather than a full linguistically segmented akshara duration model; comprehensive evaluation across varied dialects, complex conjunct clusters, and speaking rates remains an open area for future validation.
 
-Incorporating an adjustable user speaking rate modifier $\alpha_{\text{speed}} \in [0.5, 2.0]$ and an explicit post-utterance acoustic padding buffer $\tau_{\text{pad}} = 0.30$\,seconds, the exact target frame duration is formulated as:
+Incorporating an adjustable user speaking rate modifier $\alpha_{\text{speed}} \in [0.5, 2.0]$, the target frame duration is calculated as:
 \begin{equation}
     T_{\text{gen}} = \left\lfloor \text{len}(\mathbf{w}_{\text{tgt}}) \times \frac{6.5}{\max(\alpha_{\text{speed}}, 0.1)} \right\rfloor
     \label{eq:calibrated_gen_frames}
@@ -135,6 +144,13 @@ Incorporating an adjustable user speaking rate modifier $\alpha_{\text{speed}} \
     \label{eq:total_frames}
 \end{equation}
 where $T_{\text{ref}} = \lfloor \frac{N_{\text{ref\_samples}}}{H} \rfloor$ represents the exact mel frame length of the reference audio clip. This calibrated formulation (\eref{eq:total_frames}) eliminates both tail hallucinations and phoneme truncation across test utterances.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{Figures/indicf5_pipeline.pdf}
+\caption[IndicF5 Zero-Shot Speech Synthesis Architecture]{IndicF5 Zero-Shot Speech Synthesis Architecture: In-context reference conditioning, fused text and acoustic embedding, 8-step Euler ODE numerical integration with trigonometric sway time warping, and Vocos neural vocoding.}
+\label{fig:indicf5_pipeline}
+\end{figure}
 
 \section{Conditioning Representation and Sequence Concatenation}
 In the F5-TTS and IndicF5 paradigm, zero-shot voice cloning operates without an explicit phoneme duration aligner or CTC loss. The architecture achieves monotonic alignment implicitly by concatenating text representations and acoustic frames along the sequence dimensions:
@@ -163,7 +179,7 @@ The model constructs an acoustic conditioning canvas $\mathbf{C} \in \mathbb{R}^
     \label{eq:acoustic_canvas}
 \end{equation}
 
-\begin{remark}[The Reference Duration Boundary Law]
+\begin{remark}[Reference Audio Duration Calibration]
 In the F5-TTS ConvNeXt architecture, the text encoder places text tokens contiguously at indices $0 \dots N_{\text{tokens}}$ at the start of the sequence. If the reference audio duration $T_{\text{ref}}$ is excessively long (for example, $T_{\text{ref}} > 7.0$\,seconds), the text representations corresponding to the target utterance are positioned far behind the reference audio boundary. The self-attention layers suffer from positional degradation, attempting to synthesize speech across a temporal span where text conditioning is completely zero-padded, resulting in garbled output.
 
 Conversely, if $T_{\text{ref}} < 3.0$\,seconds, the reference signal provides insufficient acoustic context to extract stable speaker pitch contours and room reverberation profiles. Hence, we establish the operational guideline:
@@ -181,14 +197,14 @@ The generation trajectory is initialized at $t=0$ by drawing Gaussian noise:
     \label{eq:gaussian_init}
 \end{equation}
 
-Numerical integration proceeds from $s=0$ to $s=1$ across $N$ discrete steps using the sway-warped schedule:
+Numerical integration proceeds from $s=0$ to $s=1$ across $N$ discrete steps using the trigonometric sway-warped schedule:
 \begin{equation}
-    s_i = \frac{i}{N}, \quad t_i = s_i + \rho \cdot s_i(1 - s_i)(1 - 2s_i), \quad i \in \{0, 1, \dots, N\}
+    s_i = \frac{i}{N}, \quad t_i = 1 - \cos\left(\frac{\pi}{2} s_i\right), \quad i \in \{0, 1, \dots, N\}
     \label{eq:sway_steps}
 \end{equation}
-with step size $\Delta t_i = t_{i+1} - t_i$ and sway parameter $\rho = -1.0$.
+with step size $\Delta t_i = t_{i+1} - t_i$. This transformation (derived from $t(s) = s + c \cdot (\cos(\frac{\pi}{2} s) - 1 + s)$ with $c = -1.0$) clusters sampling evaluations into the early stages of trajectory formation.
 
-At each step $i$, the velocity vector field is evaluated twice to apply Classifier-Free Guidance (\gls{cfg}):
+At each step $i$, the velocity vector field is evaluated twice to apply Classifier-Free Guidance (\acrshort{cfg}):
 \begin{align}
     \mathbf{v}_{\text{cond}} &= \mathbf{v}_\theta(\mathbf{x}_{t_i}, t_i, \mathbf{C}, \mathbf{E}_{\text{text}}) \label{eq:v_cond} \\
     \mathbf{v}_{\text{uncond}} &= \mathbf{v}_\theta(\mathbf{x}_{t_i}, t_i, \mathbf{0}, \mathbf{0}) \label{eq:v_uncond} \\
@@ -260,8 +276,8 @@ The end-to-end mathematical procedures for Continuous Flow Matching Voice Clonin
 
 \For{$i = 0$ \textbf{to} $N-1$}
     \State $s_i \gets i / N$; \quad $s_{i+1} \gets (i+1) / N$
-    \State $t_i \gets s_i - s_i(1 - s_i)(1 - 2s_i)$ \Comment{Sway schedule with $\rho = -1.0$}
-    \State $t_{i+1} \gets s_{i+1} - s_{i+1}(1 - s_{i+1})(1 - 2s_{i+1})$
+    \State $t_i \gets 1 - \cos(\frac{\pi}{2} s_i)$ \Comment{Trigonometric sway schedule with $c = -1.0$}
+    \State $t_{i+1} \gets 1 - \cos(\frac{\pi}{2} s_{i+1})$
     \State $\Delta t_i \gets t_{i+1} - t_i$
     
     \State $\mathbf{v}_{\text{cond}} \gets \mathbf{v}_\theta(\mathbf{x}_{t_i}, t_i, \mathbf{C}, \mathbf{E}_{\text{text}})$
@@ -304,7 +320,7 @@ To validate the selection of IndicF5 as our primary Indic backbone following our
 
 \begin{table}[htbp]
 \centering
-\caption{Comprehensive Architectural Comparison of Speech Synthesis Models}
+\caption[Architectural Comparison of Speech Synthesis Models]{Comprehensive Architectural Comparison of Speech Synthesis Models}
 \label{tab:model_comparison_detailed}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lcccccc}

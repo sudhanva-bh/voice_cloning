@@ -1,0 +1,21 @@
+graph TD
+    A["Reference Audio (3.5–5.0s, 24 kHz)"] --> D["100-Channel Mel Extraction"]
+    B["Reference Transcript"] --> E["Multilingual Tokenization (vocab.txt)"]
+    C["Target Indic Text"] --> E
+    E --> F["ConvNeXt-V2 Text Representation"]
+    D --> G["Fused Sequence Conditioning<br/>(Channel Concatenation, No Cross-Attention)"]
+    F --> G
+    
+    H["Gaussian Noise y0 ~ N(0, I)"] --> I
+    G --> I
+
+    subgraph ODE["8-Step Numerical ODE Integration Loop"]
+        I["DiT Backbone (22 Layers, Bidirectional Self-Attention + RoPE)"]
+        I --> J["Classifier-Free Guidance (gamma = 2.0)"]
+        J --> K["Euler Step Update (Sway Schedule c = -1.0)"]
+        K -.->|Repeat 8 Steps| I
+    end
+
+    K --> L["Target Mel Slicing"]
+    L --> M["Vocos Neural Vocoder (INT8 22 MB, Analytical iSTFT)"]
+    M --> N["Synthesized Waveform (Teacher Voice Cloned Speech)"]

@@ -79,49 +79,111 @@ if (file.existsSync()) {
 \end{lstlisting}
 
 \subsection{Empirical Hardware Measurements}
-The measured Real-Time Factors (\gls{rtf}), Peak Resident Set Sizes (\gls{rss}), and cold-initialization latencies across standardized utterance lengths are tabulated in Table~\ref{tab:empirical_benchmarks_detailed}.
+Physical hardware benchmarking was conducted to measure computational throughput and memory behavior across physical Android silicon tiers. For the flagship, upper mid-range, and mid-range devices, previously collected benchmarks are reported using observed Real-Time Factors (\acrshort{rtf}) and reported resident memory readings (without continuous high-water-mark tracking).
+
+For our primary hardware target, the \textbf{Lenovo Tab K10} (MediaTek Helio P22T, 4\,GB RAM, CPU-only execution), newly obtained experimental measurements evaluate nine independent synthesis trials across three standardized utterance-length tiers (Short, Medium, Long; three trials per tier). In each trial, Real-Time Factor is calculated from total execution latency, and post-utterance resident memory (\texttt{VmRSS}) is sampled directly from the Linux kernel virtual filesystem (\texttt{/proc/self/status}) upon completion of audio generation. Crucially, these measurements represent post-utterance resident memory rather than continuous peak RSS, and no \textit{LowMemoryKiller} terminations occurred across any of the nine trials.
+
+Table~\ref{tab:empirical_benchmarks_detailed} summarizes throughput and memory behavior across device tiers, presenting arithmetic category means for the Lenovo Tab K10 alongside observed benchmark readings for other tiers. Table~\ref{tab:lenovo_raw_trials} records all nine individual experimental observations on the Lenovo Tab K10.
 
 \begin{table}[htbp]
 \centering
-\caption{Empirical On-Device Baseline Benchmarks across Physical Android Devices}
+\caption[Empirical On-Device Benchmarks Across Physical Android Devices]{Empirical On-Device Benchmarks Across Physical Android Devices}
 \label{tab:empirical_benchmarks_detailed}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{llccccc}
 \toprule
-\textbf{Device Model} & \textbf{Processor (SoC)} & \textbf{RAM} & \textbf{Tier} & \textbf{RTF (Median)} & \textbf{Peak RSS} & \textbf{Status} \\
+\textbf{Device Model} & \textbf{Processor (SoC)} & \textbf{RAM} & \textbf{Utterance Tier} & \textbf{Throughput (RTF)} & \textbf{Resident Memory} & \textbf{Status / Trials} \\
 \midrule
-Samsung Galaxy S23 & Snapdragon 8 Gen 2 & 8\,GB & Short (~5w) & 3.826 & 1,033\,MB & PASS \\
-Samsung Galaxy S23 & Snapdragon 8 Gen 2 & 8\,GB & Med (~25w) & 1.520 & 1,287\,MB & PASS \\
-Samsung Galaxy S23 & Snapdragon 8 Gen 2 & 8\,GB & Long (~65w) & \textbf{1.288} & \textbf{1,562\,MB} & PASS \\
+Samsung Galaxy S23 & Snapdragon 8 Gen 2 & 8\,GB & Short (~5w) & 3.826 (Observed\textsuperscript{*}) & 1,033\,MB (Reported RSS\textsuperscript{*}) & PASS (Observed) \\
+Samsung Galaxy S23 & Snapdragon 8 Gen 2 & 8\,GB & Med (~25w) & 1.520 (Observed\textsuperscript{*}) & 1,287\,MB (Reported RSS\textsuperscript{*}) & PASS (Observed) \\
+Samsung Galaxy S23 & Snapdragon 8 Gen 2 & 8\,GB & Long (~65w) & \textbf{1.288} (Observed\textsuperscript{*}) & \textbf{1,562\,MB} (Reported RSS\textsuperscript{*}) & PASS (Observed) \\
 \midrule
-Galaxy Tab S9 FE+ & Exynos 1380 & 8\,GB & Short (~5w) & 9.279 & 1,021\,MB & PASS \\
-Galaxy Tab S9 FE+ & Exynos 1380 & 8\,GB & Med (~25w) & 2.918 & 1,491\,MB & PASS \\
-Galaxy Tab S9 FE+ & Exynos 1380 & 8\,GB & Long (~65w) & \textbf{2.508} & \textbf{1,772\,MB} & MARGINAL \\
+Galaxy Tab S9 FE+ & Exynos 1380 & 8\,GB & Short (~5w) & 9.279 (Observed\textsuperscript{*}) & 1,021\,MB (Reported RSS\textsuperscript{*}) & PASS (Observed) \\
+Galaxy Tab S9 FE+ & Exynos 1380 & 8\,GB & Med (~25w) & 2.918 (Observed\textsuperscript{*}) & 1,491\,MB (Reported RSS\textsuperscript{*}) & PASS (Observed) \\
+Galaxy Tab S9 FE+ & Exynos 1380 & 8\,GB & Long (~65w) & \textbf{2.508} (Observed\textsuperscript{*}) & \textbf{1,772\,MB} (Reported RSS\textsuperscript{*}) & PASS (Observed) \\
 \midrule
-Samsung Galaxy M53 & Dimensity 900 & 8\,GB & Short (~5w) & 8.415 & 1,021\,MB & PASS \\
-Samsung Galaxy M53 & Dimensity 900 & 8\,GB & Med (~25w) & 2.782 & 1,219\,MB & PASS \\
-Samsung Galaxy M53 & Dimensity 900 & 8\,GB & Long (~65w) & \textbf{2.531} & \textbf{1,539\,MB} & PASS \\
+Samsung Galaxy M53 & Dimensity 900 & 8\,GB & Short (~5w) & 8.415 (Observed\textsuperscript{*}) & 1,021\,MB (Reported RSS\textsuperscript{*}) & PASS (Observed) \\
+Samsung Galaxy M53 & Dimensity 900 & 8\,GB & Med (~25w) & 2.782 (Observed\textsuperscript{*}) & 1,219\,MB (Reported RSS\textsuperscript{*}) & PASS (Observed) \\
+Samsung Galaxy M53 & Dimensity 900 & 8\,GB & Long (~65w) & \textbf{2.531} (Observed\textsuperscript{*}) & \textbf{1,539\,MB} (Reported RSS\textsuperscript{*}) & PASS (Observed) \\
 \midrule
-Lenovo Tab K10 & Helio P22T (No NPU) & 4\,GB & All Tiers & \textit{> 5.0 (Est.)} & \textit{> Budget} & CRITICAL \\
+Lenovo Tab K10 & Helio P22T (CPU-Only) & 4\,GB & Short (~5w) & \textbf{18.222} (Mean, N=3) & \textbf{1,291.7\,MB} (Mean Post-VmRSS) & PASS (0/3 Terminations) \\
+Lenovo Tab K10 & Helio P22T (CPU-Only) & 4\,GB & Med (~25w) & \textbf{10.783} (Mean, N=3) & \textbf{1,923.3\,MB} (Mean Post-VmRSS) & PASS (0/3 Terminations) \\
+Lenovo Tab K10 & Helio P22T (CPU-Only) & 4\,GB & Long (~65w) & \textbf{11.197} (Mean, N=3) & \textbf{2,394.7\,MB} (Mean Post-VmRSS) & PASS (0/3 Terminations) \\
+\bottomrule
+\end{tabular}%
+}
+\vspace{0.6ex}
+\begin{minipage}{\textwidth}
+\footnotesize
+\textsuperscript{*}For Samsung devices, throughput values represent single observed RTF readings rather than multi-trial medians, and memory values represent reported process RSS where continuous profiling or high-water-mark tracking (\texttt{VmHWM}) was not instrumented. For the Lenovo Tab K10, throughput values are arithmetic means across $N=3$ repeated trials per tier, and resident memory reflects \texttt{VmRSS} sampled from \texttt{/proc/self/status} immediately after utterance completion. PASS status denotes successful completion without LowMemoryKiller termination.
+\end{minipage}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption[Raw Experimental Observations for ZipVoice PoC on Lenovo Tab K10]{Raw Experimental Observations for ZipVoice PoC on Lenovo Tab K10 (MediaTek Helio P22T, 4\,GB RAM)}
+\label{tab:lenovo_raw_trials}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Utterance Category} & \textbf{Trial ID} & \textbf{Measured RTF} & \textbf{Post-Utterance VmRSS (MB)} & \textbf{LMK Termination} \\
+\midrule
+Short (~5 words) & Trial 1 & 17.860$\times$ & 1,301 & None \\
+                 & Trial 2 & 16.820$\times$ & 1,298 & None \\
+                 & Trial 3 & 19.986$\times$ & 1,276 & None \\
+\midrule
+\multicolumn{2}{l}{\textbf{Short Tier Arithmetic Mean}} & \textbf{18.222$\times$} & \textbf{1,291.7\,MB (Range: 1,276--1,301\,MB)} & \textbf{0 / 3 Terminations} \\
+\midrule
+Medium (~25 words) & Trial 1 & 10.467$\times$ & 2,337 & None \\
+                   & Trial 2 & 11.688$\times$ & 1,532 & None \\
+                   & Trial 3 & 10.194$\times$ & 1,901 & None \\
+\midrule
+\multicolumn{2}{l}{\textbf{Medium Tier Arithmetic Mean}} & \textbf{10.783$\times$} & \textbf{1,923.3\,MB (Range: 1,532--2,337\,MB)} & \textbf{0 / 3 Terminations} \\
+\midrule
+Long (~65 words) & Trial 1 & 15.049$\times$ & 2,326 & None \\
+                 & Trial 2 & 9.573$\times$ & 2,491 & None \\
+                 & Trial 3 & 8.968$\times$ & 2,367 & None \\
+\midrule
+\multicolumn{2}{l}{\textbf{Long Tier Arithmetic Mean}} & \textbf{11.197$\times$} & \textbf{2,394.7\,MB (Range: 2,326--2,491\,MB)} & \textbf{0 / 3 Terminations} \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
+\clearpage
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/lenovo_rtf.pdf}
+    \caption[Mean RTF Across Utterance Tiers on Lenovo Tab K10]{Mean Real-Time Factor (\acrshort{rtf}) across utterance tiers on the Lenovo Tab K10 (error bars indicate observed minimum and maximum trial ranges across the three runs, not confidence intervals).}
+    \label{fig:lenovo_rtf}
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/lenovo_vmrss.pdf}
+    \caption[Post-Utterance Resident Memory on Lenovo Tab K10]{Post-utterance resident memory (\texttt{VmRSS}) across all nine individual trials on the Lenovo Tab K10, showing observed allocation variability across executions.}
+    \label{fig:lenovo_vmrss}
+\end{minipage}
+\end{figure}
+
 \subsection{Analysis of PoC Benchmarks and Inferences for IndicF5 and Google LiteRT}
 The empirical benchmarks collected from the ZipVoice PoC across physical hardware tiers yielded four foundational inferences that governed our production system architecture:
 \begin{enumerate}
-    \item \textbf{Inference 1: The 1.5\,GB Physical Memory Cliff and Mandatory Static INT8 Quantization}:
-    On long sentences ($\sim 65$ words), physical resident memory escalated to 1,772\,MB on the Exynos 1380 and 1,562\,MB on the Snapdragon 8 Gen 2. While 8\,GB flagship devices absorb this overhead, subsidized school tablets like the Lenovo Tab K10 enforce an absolute foreground ceiling of $\approx 1,500$\,MB before the Linux kernel \textit{LowMemoryKiller} (LMK) issues an uncatchable \texttt{SIGKILL}. This empirical proof revealed that deploying uncompressed FP32 models (where IndicF5 weights alone require 1.35\,GB and dynamic activations require 1.2\,GB) would inevitably cause application crashes on classroom hardware. Consequently, static INT8 quantization and pre-allocated memory arenas were established as non-negotiable architectural requirements for the Indic engine.
+    \item \textbf{Inference 1: Observed Memory Variability and the Rationale for Static Arenas}:
+    On the Lenovo Tab K10, all nine experimental trials completed successfully without process termination by the Android low-memory killer. Measured post-utterance resident memory ranged from 1,276\,MB up to 2,491\,MB. These physical readings directly refute the prior hypothesis that exceeding 1,500\,MB resident memory results in an inevitable application termination. 
     
-    \item \textbf{Inference 2: Characterizing the Fixed Overhead Anomaly and Runtimes}:
-    Across all devices, short utterances exhibited disproportionately high RTFs ($3.8\times$ to $9.3\times$). In-kernel timing revealed that an invariant cold-initialization penalty ($T_{\text{init}} \approx 1.2$\,seconds), spanning tokenizer lookup, memory arena allocation, and vocoder graph setup, dominates short phrases. This proved that client-side voice generation must rely on warm in-memory pipelines, zero-copy buffer handoffs, and fused graph operators, motivating our transition from raw ONNX Runtime to Google LiteRT.
+    However, the observations reveal substantial memory variability across trials, including differences within the same length category (for instance, 1,532\,MB versus 2,337\,MB in the medium tier). While the exact sources of this variance require finer-grained profiling (hypothesized causes include sequence-dependent intermediate tensor buffers, retained runtime cache allocations, or native heap allocator behavior), sustained resident memory exceeding 2\,GB increases process vulnerability under multi-tasking conditions. Consequently, static INT8 quantization and pre-allocated memory arenas remain vital engineering priorities for the Indic engine to enforce deterministic memory confinement.
+    
+    \item \textbf{Inference 2: Characterizing Short-Utterance Latency and Throughput Scaling}:
+    Across all evaluated platforms, short utterances exhibited elevated Real-Time Factors (ranging from $3.8\times$ on flagship silicon to a mean of $18.22\times$ on the Tab K10). As sequence duration increased to medium and long tiers, mean RTF stabilized to $10.78\times$ and $11.20\times$ on the K10. While unamortized per-utterance setup costs contribute to elevated short-phrase RTF, establishing an exact latency breakdown across tokenization, session configuration, numerical sampling, and vocoding requires dedicated stage-level instrumentation rather than assuming an invariant cold-start penalty.
     
     \item \textbf{Inference 3: Inadequacy of Off-the-Shelf Mobile Models for Indian Education}:
     Although ZipVoice validated that flow matching can execute on mobile CPUs, its tokenizer and acoustic architecture are fundamentally incapable of processing Dravidian and Indo-Aryan akshara syllabaries, consonant conjuncts, or regional state board textbooks. This confirmed that existing off-the-shelf mobile models cannot simply be repurposed for Indian public schools; rather, a dedicated Indic foundation model (IndicF5) with native character representations across official Indian languages was essential.
     
-    \item \textbf{Inference 4: CPU Latency Limits and the Imperative for Hardware NPU Delegation}:
-    On budget ARM Cortex-A53 clusters (such as the Helio P22T on the Lenovo Tab K10), pure CPU execution incurs an estimated $\text{RTF} > 5.0\times$ due to in-order instruction pipelines and bounded memory bandwidth. This demonstrated that pure CPU inference cannot achieve real-time speech generation for long classroom lessons. This critical insight established the future roadmap in \cref{Chapter5}, migrating the pipeline to Google LiteRT to leverage hardware Neural Processing Units (Qualcomm Hexagon HTP and MediaTek NeuroPilot) alongside 2-step FlashSpeech consistency distillation to bring generation latency well below real-time.
+    \item \textbf{Inference 4: CPU Latency Bounds and the Strategy for Runtime Optimization}:
+    On the budget ARM Cortex-A53 cores of the Helio P22T, pure CPU execution demonstrated operational stability but ran substantially slower than real time (RTFs between $8.97\times$ and $19.99\times$). Because the Helio P22T lacks an on-chip Neural Processing Unit, accelerating this budget platform requires CPU-side algorithmic optimizations, specifically sampling step distillation (such as 2-step FlashSpeech consistency models) and runtime buffer reuse. Concurrently, for compatible devices equipped with dedicated silicon, offloading via Google LiteRT delegates (Qualcomm QNN HTP and MediaTek NeuroPilot) forms our hardware acceleration roadmap in \cref{Chapter5}.
 \end{enumerate}
 
 \section{Iteration 4: Transition to IndicF5: Multilingual Adaptation and Desktop Verification}
@@ -158,22 +220,26 @@ As derived in \cref{sec:duration_modeling}, we re-calibrated the temporal densit
 \begin{equation}
     k_{\text{mel}} = 6.5 \quad \text{mel frames per character code point}
 \end{equation}
-Setting $k_{\text{mel}} = 6.5$ (at $H = 256, f_s = 24000$) matches the natural speaking cadence of $\approx 55$\,ms per character glyph. Post-utterance padding was constrained to an explicit 0.30-second acoustic buffer ($\tau_{\text{pad}} = 28$ frames). This adjustment eliminated trailing artifacts and yielded clean sentence endings across Tamil, Telugu, and Hindi.
+With an STFT hop length of $H = 256$ samples at sampling frequency $f_s = 24{,}000$\,Hz, each individual mel frame spans exactly $\Delta t_{\text{frame}} = 256 / 24{,}000 \approx 10.667$\,ms. An allocation of $k_{\text{mel}} = 6.5$ mel frames per Unicode code point corresponds to:
+\begin{equation}
+    \Delta t_{\text{char}} = 6.5 \times 10.667\,\text{ms} \approx 69.33\,\text{ms per character code point}
+\end{equation}
+In Indic scripts (such as Tamil, Telugu, and Devanagari), orthographic syllables (\textit{aksharas}) typically comprise approximately 1.6 to 2.2 Unicode code points due to base consonants, vowel signs (\textit{matras}), and viramas. Consequently, an allocation of 6.5 frames per code point yields an effective spoken syllable duration of $\approx 111\text{--}153$\,ms, closely matching natural Indian speech cadences. Post-utterance padding was constrained to an explicit 0.30-second acoustic buffer ($\tau_{\text{pad}} = 28$ frames). This adjustment eliminated trailing artifacts and yielded clean sentence endings across Tamil, Telugu, and Hindi while maintaining linguistic intelligibility.
 
 \section{Iteration 6: Sequence Alignment and Reference Audio Duration Constraints}
 \subsection{The Long-Reference Degradation Issue}
 In subsequent testing, we observed that when users supplied long reference audio clips (such as a 10.8-second recording, \texttt{sudhanva\_voic\_clone.wav}), the synthesized output degraded into unintelligible static, even when the prompt text was brief.
 
 \subsection{Root Cause Investigation}
-We traced this issue to the spatial alignment design of the F5-TTS ConvNeXt text encoder:
+We traced this issue to the spatial alignment design of the F5-TTS architecture:
 \begin{enumerate}
-    \item In F5-TTS, text tokens for the concatenated string $[\mathbf{w}_{\text{ref}} \oplus \mathbf{w}_{\text{tgt}}]$ are embedded contiguously at the start of the sequence ($0 \dots N_{\text{tokens}}$).
-    \item When a 10.8-second reference audio clip is ingested, $T_{\text{ref}} = 1016$ mel frames. The reference audio finishes at frame 1016, but text representations for both reference and target text terminate at sequence index 228 (corresponding to $t \approx 1.6$\,s in normalized sequence coordinates).
-    \item Consequently, target audio synthesis occurred in a temporal region ($t \in [1016, 1500]$ frames) where the text conditioning channel was completely zero-padded. The Diffusion Transformer lacked local cross-attention alignment to target text tokens, generating unconditioned noise.
+    \item In F5-TTS, text tokens for the concatenated sequence $[\mathbf{w}_{\text{ref}} \oplus \mathbf{w}_{\text{tgt}}]$ are mapped by ConvNeXt-V2 text blocks into representation vectors that are concatenated along the channel dimension with the noisy acoustic canvas and acoustic prompt.
+    \item When a 10.8-second reference audio clip is ingested, $T_{\text{ref}} = 1016$ mel frames. The reference audio occupies the initial 1016 frames, but the text tokens in the fused channel terminate at a much shorter sequence index (corresponding to the character count of the short prompt).
+    \item Consequently, target audio synthesis in the temporal region ($t \in [1016, 1500]$ frames) occurred where text representation features were completely zero-padded. Under bidirectional self-attention with Rotary Position Embeddings (RoPE) stretched across such large temporal offsets, the model suffered from attention dispersion and diluted contextual grounding, synthesizing unconditioned noise.
 \end{enumerate}
 
-\subsection{Resolution: Operational Reference Boundary Law}
-We established the operational rule that reference audio clips must be bounded strictly between 3.5 seconds and 5.0 seconds in duration ($T_{\text{ref}} \in [328, 468]$ frames). We recorded and verified clean, phonetically balanced 3.8-second reference clips (\texttt{samples/sudhanva\_short\_ref.wav} and \texttt{samples/tamil\_voices/tamil\_classic\_pangram.mp3}). When paired with verbatim reference transcripts, spatial text-mel alignment was maintained, restoring clear phonetic articulation.
+\subsection{Resolution: Reference Duration Recommendation}
+Based on preliminary synthesis experiments, we recommend reference audio clips between 3.5 and 5.0 seconds for the evaluated IndicF5 configuration ($T_{\text{ref}} \in [328, 468]$ frames). We recorded and verified clean, phonetically balanced 3.8-second reference clips (\texttt{sudhanva\_short\_ref.wav} and \texttt{tamil\_classic\_pangram.mp3} in \texttt{samples/}). When paired with verbatim reference transcripts, spatial text-mel alignment was maintained, restoring clear phonetic articulation.
 
 \section{Iteration 7: In-Memory Warm Model Batch Synthesis and Dataset Curation}
 \subsection{Motivation and Batch Engine}
@@ -215,16 +281,20 @@ The catalog tracks registered speaker reference clips, storing voice keys, spoke
 \subsection{Objective: Decoupling from the PyTorch Runtime}
 Deploying IndicF5 onto Android devices requires decoupling the model from the heavy Python runtime, Librosa, and PyTorch (which exceed 2.5\,GB on disk). Iteration~9 developed the complete graph optimization and integer quantization export pipeline under \texttt{models/indicf5/}.
 
-\subsection{Exported Model Artifacts}
-We successfully exported and verified five model graphs:
+\subsection{Exported Model Artifacts and Sequence Dimension Formulation}
+We exported and verified the core model artifacts comprising four ONNX graphs, the baseline PyTorch checkpoint, and the standalone tokenizer vocabulary:
 \begin{enumerate}
     \item \textbf{\texttt{model.safetensors}}: Baseline PyTorch weights (1.35\,GB, 335M parameters).
-    \item \textbf{\texttt{indicf5\_dit\_fp32\_static.onnx}}: Static-shape unquantized FP32 graph (1.36\,GB, fixed at 128 mel frames).
-    \item \textbf{\texttt{indicf5\_dit\_dynamic\_fp32.onnx}}: Dynamic sequence dimension FP32 graph (1.36\,GB, supporting variable audio lengths).
-    \item \textbf{\texttt{indicf5\_dit\_int8\_static.onnx}}: Static INT8 quantized DiT graph (~349\,MB, 74\% size reduction).
-    \item \textbf{\texttt{indicf5\_vocos\_int8.onnx}}: INT8 quantized Vocos neural vocoder (~22\,MB, down from 54\,MB).
+    \item \textbf{\texttt{indicf5\_dit\_fp32\_static.onnx}}: Static-shape unquantized FP32 graph (1.36\,GB, fixed at 128 mel frames for baseline numerical equivalence testing).
+    \item \textbf{\texttt{indicf5\_dit\_dynamic\_fp32.onnx}}: Dynamic sequence dimension FP32 graph (1.36\,GB, supporting variable audio lengths for desktop evaluation).
+    \item \textbf{\texttt{indicf5\_dit\_int8\_static.onnx}}: Static INT8 post-training quantized DiT graph (~349\,MB, 74\% size reduction). Here, ``static'' denotes both static calibration of activation quantization parameters and a fixed 128-frame tensor dimension ($T=128$) engineered specifically as an optimization and export prototype for deterministic memory arena benchmarking.
+    \item \textbf{\texttt{indicf5\_vocos\_int8.onnx}}: INT8 quantized Vocos neural vocoder (~22\,MB, down from 54\,MB in FP32).
     \item \textbf{\texttt{vocab.txt}}: Standalone multilingual character tokenization mapping (11.3\,KB, 187 tokens).
 \end{enumerate}
+
+To ensure academic and technical precision, we must explicitly clarify the functional distinction between fixed-shape and variable-length artifacts. In speech synthesis at 24\,kHz ($H=256$), a typical 3.5-second reference audio clip alone corresponds to approximately 328 mel frames ($T_{\text{ref}} \approx 328$). Consequently, the fixed 128-frame static INT8 model cannot ingest complete reference voice prompts or arbitrary educational passages. Instead, this graph represents a successfully exported \textbf{optimization prototype} designed to confirm that 8-bit integer quantization preserves numerical stability without divergence, and to benchmark physical memory confinement in fixed memory arenas. 
+
+Verified end-to-end variable-length synthesis is currently achieved on desktop environments utilizing the unquantized dynamic-axis FP32 graph (\texttt{indicf5\_dit\_dynamic\_fp32.onnx}). Naive temporal chunking of mel frames cannot be applied to F5-TTS because its non-autoregressive DiT relies on bidirectional self-attention and Rotary Position Embeddings spanning the concatenated prompt-and-target sequence; chunking into isolated 128-frame blocks would sever acoustic conditioning and degrade prosodic continuity. Therefore, exporting a dynamic-axis INT8 graph and integrating dynamic tensor management within the native C++ runtime is designated as our primary post-mid-semester deployment milestone.
 
 \section{Iteration 10: Custom Native C++ Engine and Dart FFI Shared Library}
 \subsection{Motivation}
@@ -233,8 +303,8 @@ Because \texttt{sherpa-onnx} lacks built-in C++ loaders for Diffusion Transforme
 \subsection{C++ Engine Architecture (\texttt{indicf5\_engine.cpp})}
 The native engine implements:
 \begin{itemize}
-    \item Direct session management via \texttt{Ort::Session} for \texttt{indicf5\_dit\_int8\_static.onnx} and \texttt{indicf5\_vocos\_int8.onnx}.
-    \item Pre-allocated static tensor arenas, eliminating dynamic heap allocations across the 8 Euler ODE integration steps.
+    \item Direct session initialization using the ONNX Runtime C++ API for the fixed-shape INT8 DiT prototype and the quantized Vocos vocoder, validating native model loading and tensor lifecycle management.
+    \item Pre-allocated static tensor arenas (280\,MB), eliminating dynamic heap allocations across the 8 Euler ODE integration steps for fixed-dimension tensors.
     \item Native implementation of the Classifier-Free Guidance Euler update step:
     \begin{equation}
         x_{t+\Delta t}[k] = x_t[k] + \Delta t \cdot \left( (1 + \gamma) v_{\text{cond}}[k] - \gamma v_{\text{uncond}}[k] \right)
@@ -243,30 +313,60 @@ The native engine implements:
     \item A C ABI interface (\texttt{indicf5\_c\_api.h}) exposing core lifecycle and synthesis routines (\texttt{indicf5\_create}, \texttt{indicf5\_synthesize}, \texttt{indicf5\_destroy}).
     \item A Dart FFI bridge service (\texttt{indicf5\_service.dart}) enabling the Flutter application to invoke native C++ inference in background Dart Isolates without bridging overhead.
 \end{itemize}
+Thus, while native loading and memory arena pre-allocation are functionally validated with the static INT8 prototype, full end-to-end on-device execution of arbitrary-length classroom utterances remains scheduled for post-mid-semester validation following dynamic-axis INT8 model compilation.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{Figures/runtime_architecture.pdf}
+\caption[Native IndicF5 Runtime and Edge Deployment Architecture]{Native runtime and deployment architecture for on-device Indic voice synthesis, illustrating the interaction between the Flutter UI, Dart FFI bridge, native C++ engine, and the ONNX Runtime session with static memory arenas.}
+\label{fig:runtime_architecture}
+\end{figure}
 
 \section{Hardware Memory Budget Analysis on \texorpdfstring{4\,GB}{4 GB} RAM Platforms}
-To verify that the quantized system avoids Android LowMemoryKiller crashes on budget devices like the Lenovo Tab K10, Table~\ref{tab:ram_budget_comparison} details the comparative physical memory budget.
+To evaluate the memory feasibility of deploying the proposed quantized IndicF5 pipeline within a 4\,GB physical RAM envelope, Table~\ref{tab:ram_budget_comparison} details an analytical component-level memory budget. 
+
+It is essential to emphasize that the proposed quantized architecture has an analytical component budget of approximately 801\,MB; its actual process memory footprint remains subject to validation on target Android hardware. This 801\,MB figure represents a calculated theoretical sum of model weights, static working buffers, and runtime estimates, rather than a physically measured process Resident Set Size (\acrshort{rss}) or an experimentally proven upper bound. In physical edge execution, actual Android process RSS can differ substantially due to runtime dynamic heap allocations, memory-mapped model weights, intermediate tensor activations, shared libraries, Flutter engine graphic surfaces, and underlying OS memory allocator behavior.
+
+Importantly, the empirical memory readings observed during the ZipVoice PoC on the Lenovo Tab K10 (where post-utterance resident memory reached up to 2,491\,MB without LowMemoryKiller termination) illustrate that Android processes can survive high physical memory occupancy depending on system-wide memory pressure; however, because ZipVoice and IndicF5 represent fundamentally distinct model architectures and execution runtimes, their physical memory footprints cannot be directly equated.
 
 \begin{table}[htbp]
 \centering
-\caption{Physical RAM Budget Comparison on 4\,GB Android Edge Hardware}
+\caption[Analytical Memory Budget for Proposed Quantized IndicF5 Deployment]{Analytical Memory Budget for the Proposed Quantized IndicF5 Deployment on 4\,GB Android Hardware}
 \label{tab:ram_budget_comparison}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lcc}
 \toprule
-\textbf{Memory Subsystem Component} & \textbf{Unquantized Baseline (FP32)} & \textbf{Quantized System (Ours)} \\
+\textbf{Memory Subsystem Component} & \textbf{Unquantized Baseline (FP32)} & \textbf{Quantized System (Analytical Estimate)} \\
 \midrule
 Diffusion Transformer (DiT) Weights & 1,350\,MB & 349\,MB (Static INT8) \\
 Vocos Neural Vocoder Weights & 54\,MB & 22\,MB (INT8) \\
-Inference Working Arenas & 850\,MB (Dynamic Heap) & 280\,MB (Pre-allocated Static) \\
+Inference Working Arenas & 850\,MB (Heap, up to 1,200\,MB) & 280\,MB (Pre-allocated Static) \\
 Flutter Runtime, Dart VM \& UI Buffers & 150\,MB & 150\,MB \\
 \midrule
-\textbf{Total Peak Resident Set Size (RSS)} & \textbf{2,404\,MB} & \textbf{801\,MB} \\
-Android LowMemoryKiller Ceiling & $\approx 1,500\text{--}1,800$\,MB & $\approx 1,500\text{--}1,800$\,MB \\
-\textbf{Safety Margin / Operational Verdict} & \textbf{EXCEEDED (Crash / SIGKILL)} & \textbf{+699\,MB SAFE HEADROOM} \\
+\textbf{Analytical Component Total} & \textbf{2,404\,MB} & \textbf{801\,MB} \\
+\midrule
+\multicolumn{3}{l}{\textit{Engineering Planning Context:}} \\
+Engineering Planning Reference Target & $\approx 1,500$\,MB & $\approx 1,500$\,MB (Nominal Edge Budget) \\
+Analytical Design Alignment & Exceeds Reference & Within Planning Target ($-699$\,MB Target Margin) \\
 \bottomrule
 \end{tabular}%
 }
+\vspace{0.6ex}
+\begin{minipage}{\textwidth}
+\footnotesize
+\textit{Note}: The 801\,MB total is an analytical component-level estimate, not a measured Android process RSS or an operating-system-enforced threshold. Actual process memory footprint on physical edge hardware remains subject to empirical validation.
+\end{minipage}
 \end{table}
 
-By compressing the operational footprint to 801\,MB, the quantized architecture operates safely within the memory constraints of budget mobile edge devices, providing a 699\,MB safety margin on 4\,GB hardware.
+By establishing an analytical component budget of approximately 801\,MB, the quantized architecture provides a concrete design target for edge deployment on 4\,GB platforms, aligning within our nominal 1,500\,MB engineering planning envelope while physical memory validation is undertaken in subsequent on-device trials.
+
+\section{Evaluation Limitations and Future Validation Plan}
+\label{sec:eval_limitations}
+While the experimental results and engineering iterations demonstrate the architectural feasibility of on-device Indic voice synthesis, several rigorous empirical evaluations remain planned for post-mid-semester investigation:
+\begin{enumerate}
+    \item \textbf{Objective Voice Quality and Naturalness}: Perceptual evaluation of synthesized speech quality (via Mean Opinion Score listening tests, Word Error Rate, and Character Error Rate using pretrained Whisper/Wav2Vec2 models) across varying sampling step counts ($N \in \{2, 4, 8, 16\}$).
+    \item \textbf{Speaker Similarity and Verification}: Quantitative evaluation of zero-shot speaker cloning fidelity using cosine similarity of deep speaker embeddings (ECAPA-TDNN and WavLM) between reference teacher recordings and synthesized audio.
+    \item \textbf{Acoustic Quality Retention under INT8 Quantization}: Comprehensive comparative measurement of audio degradation, spectral distortion, and objective speech intelligibility between FP32 PyTorch baseline checkpoints and INT8 quantized ONNX graphs.
+    \item \textbf{Quantized IndicF5 On-Device Profiling}: While the ZipVoice proof of concept was thoroughly benchmarked on physical hardware (including the Lenovo Tab K10), on-device latency and resident memory profiling for the custom C++ IndicF5 runtime on target Android hardware will be completed following deployment stabilization.
+    \item \textbf{Acoustic Robustness to Classroom Recording Conditions}: Controlled evaluation of reference voice adaptation under realistic classroom ambient noise (reverberation, background murmur, and microphone clipping) common in public school settings.
+\end{enumerate}

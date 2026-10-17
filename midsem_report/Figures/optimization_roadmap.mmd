@@ -1,0 +1,5 @@
+graph LR
+    A["Baseline CPU Inference<br/>(Lenovo Tab K10, 8 Euler Steps)<br/>[Measured: RTF ~10x-18x]"]
+    -->|Flow Distillation| B["Sampling Step Distillation<br/>(2-Step FlashSpeech Consistency)<br/>[Target: ~75% Compute Drop]"]
+    -->|Runtime Engine| C["Google LiteRT & Operator Fusion<br/>(Zero-Copy Arenas, Memory Capping)<br/>[Target: Strict RAM Confinement]"]
+    -->|Compatible Hardware| D["NPU Hardware Acceleration<br/>(Qualcomm QNN HTP / MediaTek APU)<br/>[Target: Sub-1.0x Real-Time Factor]"]

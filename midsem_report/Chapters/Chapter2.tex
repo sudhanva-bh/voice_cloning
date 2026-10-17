@@ -8,7 +8,7 @@
 Neural generative speech synthesis models the probability distribution of acoustic representations conditioned on linguistic text and speaker descriptors. Modern deep generative paradigms partition into four foundational mathematical families:
 
 \subsection{Autoregressive Acoustic Models}
-Autoregressive (\gls{ar}) architectures formulate speech generation as a sequential next-token prediction task. Representing the acoustic feature sequence as $\mathbf{X} = (\mathbf{x}_1, \mathbf{x}_2, \dots, \mathbf{x}_T)$, the joint probability is factored via the chain rule of probability:
+Autoregressive (\acrshort{ar}) architectures formulate speech generation as a sequential next-token prediction task. Representing the acoustic feature sequence as $\mathbf{X} = (\mathbf{x}_1, \mathbf{x}_2, \dots, \mathbf{x}_T)$, the joint probability is factored via the chain rule of probability:
 \begin{equation}
     p(\mathbf{X} \mid \mathbf{W}) = \prod_{t=1}^T p(\mathbf{x}_t \mid \mathbf{x}_{<t}, \mathbf{W}; \theta)
     \label{eq:ar_factorization}
@@ -23,10 +23,10 @@ While autoregressive models capture expressive prosody effectively, they present
 \end{enumerate}
 
 \subsection{Variational Autoencoders and Normalizing Flows}
-Conditional Variational Autoencoders (\glspl{vae}) and finite normalizing flows (such as VITS~\cite{kim2021vits}) model speech by maximizing the variational evidence lower bound (\gls{elbo}). By employing continuous normalizing flows parameterized by affine coupling layers, VITS establishes invertible bijective mappings between a standard Gaussian prior and the target mel distribution. While VITS achieves non-autoregressive parallel synthesis ($O(1)$ forward passes) with fast execution speeds, its mathematical structure relies on Monotonic Alignment Search (MAS) and dynamic programming alignment paths. These aligners degrade in zero-shot cross-lingual transfer, as the internal phonetic duration predictors cannot accommodate unseen multilingual scripts without dedicated acoustic phoneme dictionaries.
+Conditional variational autoencoders (VAEs) and finite normalizing flows (such as VITS~\cite{kim2021vits}) model speech by maximizing the variational evidence lower bound (\acrshort{elbo}). By employing finite normalizing flows parameterized by stacks of invertible affine coupling layers, VITS establishes bijective mappings between an isotropic Gaussian latent prior and the target acoustic distribution. While VITS achieves non-autoregressive parallel synthesis ($O(1)$ forward passes) with fast execution speeds, its mathematical structure relies on Monotonic Alignment Search (MAS) and dynamic programming alignment paths. These aligners degrade in zero-shot cross-lingual transfer, as the internal phonetic duration predictors cannot accommodate unseen multilingual scripts without dedicated acoustic phoneme dictionaries.
 
 \subsection{Score-Based Diffusion Generative Models}
-Denoising Diffusion Probabilistic Models (\gls{ddpm})~\cite{ho2020ddpm} and continuous score-based generative models~\cite{song2020score} synthesize data by reversing a progressive forward noising process. Formally, a forward \gls{sde} corrupts the data distribution $p_{\text{data}}(\mathbf{x})$ into an isotropic Gaussian distribution $\mathcal{N}(\mathbf{0}, \mathbf{I})$ via an It\^o stochastic differential equation:
+Denoising Diffusion Probabilistic Models (\acrshort{ddpm})~\cite{ho2020ddpm} and continuous score-based generative models~\cite{song2020score} synthesize data by reversing a progressive forward noising process. Formally, a forward \gls{sde} corrupts the data distribution $p_{\text{data}}(\mathbf{x})$ into an isotropic Gaussian distribution $\mathcal{N}(\mathbf{0}, \mathbf{I})$ via an It\^o stochastic differential equation:
 \begin{equation}
     d\mathbf{x} = \mathbf{f}(\mathbf{x}, t)dt + g(t)d\mathbf{w}
     \label{eq:forward_sde}
@@ -41,11 +41,11 @@ where $\nabla_{\mathbf{x}} \log p_t(\mathbf{x})$ is the score function, approxim
 Although diffusion models generate high-quality audio, their stochastic trajectories are inherently curved. Simulating stochastic differential equations requires numerical solvers across 50 to 1,000 sampling steps. Even accelerated diffusion solvers (such as DPM-Solver) require at least 15 to 30 forward evaluations, incurring unviable latency on mobile ARM processors.
 
 \subsection{Continuous Flow Matching Principles}
-To avoid the curved trajectories and stochastic overhead of diffusion SDEs, Lipman et al.~\cite{lipman2022flow} formulated \textit{Continuous Flow Matching} (\gls{cfm}). CFM synthesizes data along deterministic probability trajectories governed by ordinary differential equations. By constructing optimal transport displacement interpolants, CFM ensures that trajectories between noise and clean speech follow straight paths, establishing the mathematical foundation for low-step execution on resource-constrained edge architectures.
+To avoid the curved trajectories and stochastic overhead of diffusion SDEs, Lipman et al.~\cite{lipman2022flow} formulated \textit{Continuous Flow Matching} (\acrshort{cfm}). CFM synthesizes data along deterministic probability trajectories governed by ordinary differential equations. By constructing linear conditional displacement interpolants, CFM ensures that individual paths between prior noise and clean speech follow straight lines, providing a sound theoretical framework for low-step numerical solving on resource-constrained edge architectures.
 
 \section{Continuous Normalizing Flows and Optimal Transport Flow Matching}
 \label{sec:cfm_theory}
-Let $\mathbb{R}^d$ denote the data space representing flattened mel-spectrogram tensors. A \gls{cnf} defines a time-dependent push-forward transformation $\psi_t: \mathbb{R}^d \to \mathbb{R}^d$ for $t \in [0, 1]$, driven by a time-dependent vector field $\mathbf{v}_t: \mathbb{R}^d \to \mathbb{R}^d$ via the initial value problem (\gls{ode}):
+Let $\mathbb{R}^d$ denote the data space representing flattened mel-spectrogram tensors. A \gls{cnf} defines a time-dependent push-forward transformation $\psi_t: \mathbb{R}^d \to \mathbb{R}^d$ for $t \in [0, 1]$, driven by a time-dependent vector field $\mathbf{v}_t: \mathbb{R}^d \to \mathbb{R}^d$ via the initial value problem (\acrshort{ode}):
 \begin{equation}
     \frac{d}{dt} \psi_t(\mathbf{x}) = \mathbf{v}_t(\psi_t(\mathbf{x})), \quad \psi_0(\mathbf{x}) = \mathbf{x}
     \label{eq:flow_ivp}
@@ -69,7 +69,7 @@ satisfies $\nabla_\theta \mathcal{L}_{\text{CFM}}(\theta) = \nabla_\theta \mathc
 \end{theorem}
 
 \subsection{Optimal Transport (OT) Displacement Interpolant}
-Among the family of conditional probability paths connecting $p_0$ to $p_1$, the \textit{Optimal Transport} path minimizes kinetic energy $\int_0^1 \|\mathbf{v}_t\|^2 dt$. By pairing prior noise samples $\mathbf{x}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ directly with target mel-spectrograms $\mathbf{x}_1 \sim q(\mathbf{x}_1)$, the optimal transport displacement interpolant is defined as:
+Among the family of conditional probability paths connecting $p_0$ to $p_1$, pairing prior noise samples $\mathbf{x}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ with target mel-spectrograms $\mathbf{x}_1 \sim q(\mathbf{x}_1)$ via independent couplings yields the linear displacement interpolant:
 \begin{equation}
     \psi_t(\mathbf{x}_0) = (1 - (1 - \sigma_{\text{min}})t) \mathbf{x}_0 + t \mathbf{x}_1
     \label{eq:ot_displacement}
@@ -84,15 +84,15 @@ Differentiating \eref{eq:linear_trajectory} with respect to time $t$ gives the t
     \mathbf{u}_t(\mathbf{x}_t \mid \mathbf{x}_0, \mathbf{x}_1) = \frac{d\mathbf{x}_t}{dt} = \mathbf{x}_1 - \mathbf{x}_0
     \label{eq:ot_velocity}
 \end{equation}
-Notably, the target velocity vector is constant with respect to time $t$. The neural network $v_\theta(\mathbf{x}_t, t, \mathbf{c})$ is trained to predict the displacement vector $(\mathbf{x}_1 - \mathbf{x}_0)$ given the intermediate noisy state $\mathbf{x}_t$, time step $t$, and conditioning context $\mathbf{c}$:
+The target velocity vector for any individual sample pair is constant across $t$. The neural network $v_\theta(\mathbf{x}_t, t, \mathbf{c})$ is trained to predict the displacement vector $(\mathbf{x}_1 - \mathbf{x}_0)$ given the intermediate state $\mathbf{x}_t$, time step $t$, and conditioning context $\mathbf{c}$:
 \begin{equation}
     \mathcal{L}_{\text{OT-CFM}}(\theta) = \mathbb{E}_{t, \mathbf{x}_0, \mathbf{x}_1} \left\| \mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c}) - (\mathbf{x}_1 - \mathbf{x}_0) \right\|_2^2
     \label{eq:ot_cfm_loss}
 \end{equation}
-Because the ground-truth trajectory is a straight line, numerical integration during generation does not suffer from stochastic drift, enabling first-order Euler solvers to converge in few steps.
+It is important to note that while conditional trajectories for specific pairs $(\mathbf{x}_0, \mathbf{x}_1)$ are straight lines, the marginal velocity field $\mathbf{v}_t(\mathbf{x})$ learned by the neural network integrates over all possible couplings and can retain residual curvature. Consequently, straight conditional paths do not automatically guarantee that generation will succeed in arbitrarily few integration steps without empirical step tuning or trajectory straightening techniques.
 
 \section{Diffusion Transformers (DiT) and Non-Autoregressive Sequence Modeling}
-To parameterize the velocity network $\mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c})$, recent architectures have adopted \textit{Diffusion Transformers} (\gls{dit})~\cite{peebles2023dit,chen2024f5tts} in place of traditional U-Net convolutional backbones.
+To parameterize the velocity network $\mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c})$, recent architectures have adopted \textit{Diffusion Transformers} (\acrshort{dit})~\cite{peebles2023dit,chen2024f5tts} in place of traditional U-Net convolutional backbones.
 
 \subsection{Backbone Microarchitecture}
 In IndicF5, the velocity field estimator is structured as a 22-layer Diffusion Transformer with the following specifications:
@@ -105,7 +105,7 @@ In IndicF5, the velocity field estimator is structured as a 22-layer Diffusion T
 \end{itemize}
 
 \subsection{Rotary Position Embeddings (RoPE)}
-Unlike sinusoidal positional encodings that inject absolute coordinates into the input layer, IndicF5 employs \textit{Rotary Position Embeddings} (\gls{rope}) at every self-attention layer. Given a query vector $\mathbf{q}_m$ and key vector $\mathbf{k}_n$ at sequence positions $m$ and $n$, RoPE applies an orthogonal rotation matrix $\mathbf{R}_{\Theta, m}^d$:
+Unlike sinusoidal positional encodings that inject absolute coordinates into the input layer, IndicF5 employs \textit{Rotary Position Embeddings} (\acrshort{rope}) at every self-attention layer. Given a query vector $\mathbf{q}_m$ and key vector $\mathbf{k}_n$ at sequence positions $m$ and $n$, RoPE applies an orthogonal rotation matrix $\mathbf{R}_{\Theta, m}^d$:
 \begin{equation}
     \tilde{\mathbf{q}}_m = \mathbf{R}_{\Theta, m}^d \mathbf{q}_m, \quad \tilde{\mathbf{k}}_n = \mathbf{R}_{\Theta, n}^d \mathbf{k}_n
     \label{eq:rope_rotation}
@@ -117,8 +117,10 @@ such that their inner product encodes relative positional displacement:
 \end{equation}
 This property enables the DiT to generalize to variable-length audio sequences during inference without positional coordinate degradation.
 
-\subsection{ConvNeXt-V2 Text Representation}
-Text tokens are mapped to a 512-dimensional embedding space. Rather than passing raw embeddings directly to cross-attention layers, IndicF5 processes the character token sequence through four ConvNeXt-V2 convolutional blocks incorporating depthwise convolutions, layer normalization, inverted bottlenecks, and Global Response Normalization (GRN). This extracts hierarchical local phonological representations prior to concatenation with the acoustic mel frames.
+\subsection{ConvNeXt-V2 Text Representation and Fused Input Conditioning}
+Text tokens are mapped to a 512-dimensional embedding space. Rather than passing text embeddings to separate cross-attention layers, IndicF5 processes the character token sequence through four ConvNeXt-V2 convolutional blocks incorporating depthwise convolutions, layer normalization, inverted bottlenecks, and Global Response Normalization (GRN). This extracts hierarchical local phonological representations. 
+
+The resulting text representation, the noisy mel tensor $\mathbf{x}_t$, and the reference acoustic prefix $\mathbf{x}_{\text{cond}}$ are concatenated along the channel dimension ($[\mathbf{x}_t \,\|\, \mathbf{x}_{\text{cond}} \,\|\, \mathbf{e}_{\text{text}}]$) and linearly projected into the transformer embedding dimension. The entire composite sequence is then processed through bidirectional self-attention blocks, enabling fused, single-stream representation modeling across linguistic and acoustic modalities.
 
 \section{In-Context Speech Inpainting and Acoustic Timbre Transfer}
 Modern zero-shot voice cloning architectures frame speaker identity transfer as an in-context audio inpainting problem~\cite{le2023voicebox,e2tts2024}.
@@ -149,26 +151,26 @@ While HiFi-GAN produces high-quality audio, its design presents substantial comp
 \subsection{Vocos: Fourier Magnitude and Phase Synthesis}
 To avoid the physical bottlenecks of transposed convolutions, Siuzdak~\cite{siuzdak2023vocos} developed Vocos. Rather than predicting raw time-domain samples through iterative upsampling, Vocos frames audio generation as complex spectral coefficient prediction.
 
-The Vocos backbone consists of ConvNeXt blocks that operate directly at the mel frame rate without temporal upsampling. The network outputs two spectral heads:
+Because the Short-Time Fourier Transform of a real-valued time-domain signal possesses Hermitian symmetry ($X(-f) = X^*(f)$), the full frequency spectrum is completely determined by $N_{\text{fft}}/2 + 1$ non-redundant frequency bins (513 bins for $N_{\text{fft}} = 1024$). The Vocos backbone consists of ConvNeXt blocks operating directly at the mel frame rate without temporal upsampling, predicting two spectral outputs:
 \begin{enumerate}
-    \item \textbf{Magnitude Head}: Predicts real-valued magnitude spectra $|\mathbf{X}(f, t)| \in \mathbb{R}^{(N_{\text{fft}}/2 + 1) \times T}$.
+    \item \textbf{Magnitude Head}: Predicts non-negative magnitude spectra $|\mathbf{X}(f, t)| \in \mathbb{R}^{(N_{\text{fft}}/2 + 1) \times T}$.
     \item \textbf{Phase Spectrogram Head}: Predicts unit complex numbers representing spectral phase angles $\phi(f, t) \in [-\pi, \pi]$ via two output channels $(\cos \phi, \sin \phi)$, normalized such that $\cos^2 \phi + \sin^2 \phi = 1$.
 \end{enumerate}
 
-The complex Short-Time Fourier Transform (\gls{stft}) representation is assembled via:
+The complex Short-Time Fourier Transform (\acrshort{stft}) representation is assembled via:
 \begin{equation}
     \mathbf{X}(f, t) = |\mathbf{X}(f, t)| \odot \left( \cos \phi(f, t) + j \sin \phi(f, t) \right)
     \label{eq:complex_stft}
 \end{equation}
 
-The time-domain audio waveform $y(t)$ is reconstructed analytically via the Inverse Short-Time Fourier Transform (\gls{istft}):
+The time-domain audio waveform $y(t)$ is reconstructed analytically via the Inverse Short-Time Fourier Transform (\acrshort{istft}):
 \begin{equation}
     y(n) = \text{iSTFT}(\mathbf{X}(f, t)) = \frac{\sum_m \mathbf{x}_m(n - mH) w(n - mH)}{\sum_m w^2(n - mH)}
     \label{eq:istft_synthesis}
 \end{equation}
 where $H = 256$ is the hop size and $w(n)$ is a Hanning synthesis window.
 
-Because the Fourier inversion (\eref{eq:istft_synthesis}) is computed using optimized Fast Fourier Transform (\gls{simd}) routines (such as ARM NEON FFT or vDSP), Vocos eliminates transposed convolutions entirely. On mobile ARM CPUs, Vocos runs approximately $10\times$ faster than HiFi-GAN while occupying an INT8 model footprint of 22\,MB (13.5M parameters).
+Because the Fourier inversion (\eref{eq:istft_synthesis}) is computed using optimized Fast Fourier Transform (\acrshort{simd}) routines (such as ARM NEON FFT or vDSP), Vocos eliminates transposed convolutions entirely. On mobile ARM CPUs, Vocos runs substantially faster than HiFi-GAN while occupying an INT8 model footprint of $\approx 22$\,MB (13.5M parameters, compressed from 54\,MB in FP32).
 
 \section{Numerical Solvers and Trajectory Dynamics}
 During inference, sampling from the velocity field $\mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c})$ requires solving the initial value problem:
@@ -178,27 +180,30 @@ During inference, sampling from the velocity field $\mathbf{v}_\theta(\mathbf{x}
 \end{equation}
 
 \subsection{Euler Numerical Integration}
-Discretizing the time domain into $N$ uniform intervals with step size $\Delta t = \frac{1}{N}$, the first-order Euler update step is:
+Discretizing the time domain into $N$ intervals, the first-order Euler update step is:
 \begin{equation}
     \mathbf{x}_{t + \Delta t} = \mathbf{x}_t + \Delta t \cdot \tilde{\mathbf{v}}_\theta(\mathbf{x}_t, t, \mathbf{c})
     \label{eq:euler_update}
 \end{equation}
-where $\tilde{\mathbf{v}}_\theta$ incorporates Classifier-Free Guidance (\gls{cfg})~\cite{ho2022cfg} with guidance weight $\gamma = 2.0$:
+where $\tilde{\mathbf{v}}_\theta$ incorporates Classifier-Free Guidance (\acrshort{cfg})~\cite{ho2022cfg} with guidance weight $\gamma = 2.0$:
 \begin{equation}
-    \tilde{\mathbf{v}}_\theta(\mathbf{x}_t, t, \mathbf{c}) = (1 + \gamma) \mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c}) - \gamma \mathbf{v}_\theta(\mathbf{x}_t, t, \emptyset)
+    \tilde{\mathbf{v}}_\theta(\mathbf{x}_t, t, \mathbf{c}) = \mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c}) + \gamma \left( \mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c}) - \mathbf{v}_\theta(\mathbf{x}_t, t, \emptyset) \right) = (1 + \gamma) \mathbf{v}_\theta(\mathbf{x}_t, t, \mathbf{c}) - \gamma \mathbf{v}_\theta(\mathbf{x}_t, t, \emptyset)
     \label{eq:cfg_formula}
 \end{equation}
-Evaluating \eref{eq:cfg_formula} requires two forward passes per ODE step (or batching the conditioned and unconditioned inputs together into a single $[2, C, T]$ forward pass).
+Evaluating \eref{eq:cfg_formula} requires evaluating conditioned and unconditioned inputs (which can be batched together into a single $[2, C, T]$ forward pass).
 
 \subsection{Sway Sampling Parameterization}
-While uniform time steps $t_k = \frac{k}{N}$ are standard, the curvature of the learned vector field is non-uniform across the interval $[0, 1]$. Empirical studies indicate that vector field trajectories exhibit the greatest non-linearity near $t=0$ (where noise is initially structured into coarse acoustic formants) and near $t=1$ (where high-frequency harmonic overtones are synthesized).
-
-To optimize solver step distribution, IndicF5 implements Sway Sampling~\cite{chen2024f5tts} parameterized by coefficient $\rho \in [-1, 1]$:
+While uniform time steps $s_k = \frac{k}{N}$ represent a common discretization, the curvature of the learned vector field is non-uniform across the interval $[0, 1]$. To concentrate sampling steps where vector field trajectories require finer resolution, F5-TTS implements Sway Sampling~\cite{chen2024f5tts} parameterized by coefficient $c \in [-1, 1]$:
 \begin{equation}
-    t(s) = s + \rho \cdot s(1 - s)(1 - 2s), \quad s \in [0, 1]
+    t(s) = s + c \cdot \left( \cos\left(\frac{\pi}{2} s\right) - 1 + s \right), \quad s \in [0, 1]
     \label{eq:sway_formula}
 \end{equation}
-Setting $\rho = -1.0$ clusters integration steps closer to the boundaries $t=0$ and $t=1$. This adjustment allows an 8-step Euler solver to match the acoustic quality of a 16-step or 32-step uniform solver, reducing computational latency by half.
+When setting the sway coefficient to $c = -1.0$, this transformation simplifies to:
+\begin{equation}
+    t(s) = 1 - \cos\left(\frac{\pi}{2} s\right)
+    \label{eq:sway_simplified}
+\end{equation}
+Under this schedule, the derivative $\frac{dt}{ds} = \frac{\pi}{2} \sin\left(\frac{\pi}{2} s\right)$ is smallest near $s = 0$, clustering sampling evaluations more densely in the early generation stages where gross acoustic formant structure is established. In practice, sway sampling aids acoustic stability with fewer solver steps, though rigorous perceptual evaluations remain necessary to establish speech quality across diverse step counts.
 
 \section{Trajectory Straightening and Step Distillation for Edge Efficiency}
 To minimize iterative numerical evaluations, prevent battery depletion, and mitigate processor thermal throttling during edge execution on mobile SoCs, two acceleration methodologies have been proposed in the literature:
@@ -215,13 +220,13 @@ Given a 1-rectified flow model $v_{\theta_1}$ trained on empirical pairs $(\math
 \end{definition}
 By training on coupled pairs generated by the flow itself, trajectory intersections are untangled. The resulting vector field trajectories become straight lines, permitting numerical integration in as few as 4 Euler steps without perceptual degradation.
 
-\subsection{FlashSpeech and Consistency Distillation (Zhang et al., 2024)}
-FlashSpeech~\cite{flashspeech2024} applies adversarial consistency distillation to speech flow matching. Rather than stepping through an ODE, a student network is trained to learn a direct mapping $f_\theta(\mathbf{x}_t, t) = \mathbf{x}_1$ enforcing self-consistency:
+\subsection{FlashSpeech and Consistency Distillation (Ye et al., 2024)}
+FlashSpeech~\cite{flashspeech2024} applies latent consistency models to non-autoregressive speech synthesis. Built upon an adversarial consistency training formulation, FlashSpeech trains a student network to predict the final acoustic representation directly while enforcing consistency between predictions evaluated at adjacent time steps along probability trajectories:
 \begin{equation}
     f_\theta(\mathbf{x}_{t_1}, t_1) = f_\theta(\mathbf{x}_{t_2}, t_2) \quad \forall \; t_1, t_2 \in [0, 1]
     \label{eq:consistency_property}
 \end{equation}
-This property collapses the multi-step numerical solving loop into one or two forward passes, enabling sub-100\,ms voice cloning on embedded hardware.
+This self-consistency property collapses the multi-step numerical solving loop into one or two forward evaluations. While FlashSpeech was originally formulated for a distinct latent-consistency speech backbone rather than continuous flow matching, applying consistency distillation principles to IndicF5's DiT architecture constitutes an attractive proposed future direction to enable few-step inference on resource-constrained mobile hardware.
 
 \section{Indic Linguistic Phonetics and Acoustic Corpora}
 Indian languages belong predominantly to two distinct linguistic families: the Dravidian family (Tamil, Telugu, Kannada, Malayalam) and the Indo-Aryan family (Hindi, Marathi, Gujarati, Bengali, Punjabi, Odia, Assamese). Unlike English, which employs a Latin alphabet requiring non-deterministic grapheme-to-phoneme conversion (e.g., the pronunciation difference of ``ough'' in \textit{through}, \textit{rough}, and \textit{thought}), Indic scripts are strictly phonetic and syllabic.
@@ -245,7 +250,7 @@ In digital mel-spectrogram representations utilizing a 24\,kHz sampling rate and
     \Delta t_{\text{frame}} = \frac{256}{24000} \approx 10.667\,\text{ms}
     \label{eq:frame_duration}
 \end{equation}
-Dividing the akshara duration (\eref{eq:akshara_duration}) by the frame duration (\eref{eq:frame_duration}) reveals that an Indic character glyph corresponds to an average density of 5.5 to 7.0 mel frames per Unicode character code point. This relationship provides the theoretical basis for our duration model calibrated in \cref{Chapter3}.
+Because an orthographic akshara typically decomposes into an average of 1.6 to 2.2 Unicode code points (base consonant plus vowel diacritics), dividing the composite syllabic duration (\eref{eq:akshara_duration}) by code point count yields an average temporal density of approximately 65 to 75\,ms per character token. At a frame interval of 10.667\,ms, this corresponds to approximately 6.0 to 7.0 mel frames per Unicode character code point (with $k_{\text{mel}} = 6.5$ frames representing $\approx 69.33$\,ms). This relationship provides the empirical basis for the character-level duration heuristic calibrated in \cref{Chapter3}.
 
 \subsection{IndicF5 and Multilingual Adaptation (AI4Bharat, 2025)}
 \label{subsec:indicf5_phir_hera}

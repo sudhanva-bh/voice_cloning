@@ -45,17 +45,17 @@
 % \Certificate 
 
 \begin{abstract}
-{\sloppy
-On-device zero-shot neural voice cloning enables the localized replication of an unseen human speaker's acoustic timbre and prosody from a brief reference recording (three to five seconds) without model fine-tuning or server communication. This report investigates this capability specifically to empower government school children and visually impaired (blind) students with accessible audio learning in their own classroom teacher's voice. In rural and semi-urban government schools, foundational learners demonstrate significantly higher cognitive engagement, retention, and comfort when educational content is articulated in the familiar, trusted voice of their local teacher rather than an unfamiliar or accent-mismatched synthetic voice. For visually impaired students, who rely entirely on auditory channels for textbook study and concept explanations, hearing lessons in their teacher's voice provides vital pedagogical continuity and confidence. 
+{\sloppy\setstretch{1.06}\setlength{\parskip}{0.8ex plus 0.2ex minus 0.1ex}
+On-device zero-shot neural voice cloning enables localized replication of an unseen human speaker's acoustic timbre and prosody from a brief reference recording (three to five seconds) without fine-tuning or server communication. This report investigates this capability to assist government school classrooms and visually impaired students with accessible audio learning in their local teacher's voice. In foundational education, familiarity with an instructor's voice offers compelling pedagogical benefits for learner comfort and engagement, while visually impaired students depend heavily on spoken instruction for curriculum access. Performing inference entirely on-device avoids the need to transmit biometric voice recordings to external inference services, reducing network-related privacy exposure.
 
-Despite its societal importance, this educational domain remains largely untapped by commercial speech synthesis, which prioritizes cloud entertainment and Western languages. Deploying voice cloning in government school settings introduces severe operational constraints: classrooms frequently operate in low-connectivity rural zones with zero internet access, rely on low-cost government-procured tablets such as the Lenovo Tab K10 (MediaTek Helio P22T with 4\,GB RAM), and have zero budget for cloud API fees. Furthermore, the system must enforce absolute biometric privacy for teachers and children while operating within strict physical memory limits before the Linux kernel's \textit{LowMemoryKiller} terminates user processes.
+Deploying deep generative speech models on classroom edge hardware introduces severe operational constraints: rural schools frequently lack reliable connectivity, have zero budget for cloud API fees, and utilize subsidized tablets such as the Lenovo Tab K10 (MediaTek Helio P22T with 4\,GB RAM). To evaluate edge feasibility, we first implement a mobile proof of concept (PoC) using ZipVoice-Distill (123M parameters, INT8 ONNX graphs) with a 24\,kHz Vocos vocoder executed via Sherpa-ONNX inside a Flutter Android prototype. Physical hardware benchmarking on the Lenovo Tab K10 confirms operational viability with zero \textit{LowMemoryKiller} terminations across nine trials, yielding mean Real-Time Factors of 18.22$\times$ (short), 10.78$\times$ (medium), and 11.20$\times$ (long utterances), and post-utterance resident memory readings reaching up to 2,491\,MB.
 
-To address these challenges, we first develop an empirical proof of concept (PoC) using an efficient, readily available mobile model (ZipVoice-Distill, 123M parameters, INT8 quantized to 104\,MB) with a 24\,kHz Vocos vocoder executed via Sherpa-ONNX inside a Flutter Android prototype. Hardware profiling of this PoC across multiple physical Android tiers validates the edge viability of non-autoregressive flow matching, while uncovering critical memory boundary risks under the Linux kernel \textit{LowMemoryKiller} on 4\,GB devices and highlighting the linguistic limitations of existing off-the-shelf edge models. Guided by these empirical insights, we engineer our primary Indic speech synthesis pipeline around a 22-layer Diffusion Transformer (IndicF5, 335M parameters) adapted from AI4Bharat's 1,417-hour multilingual foundation model. To satisfy the memory limits exposed during PoC benchmarking, we apply static INT8 quantization and pre-allocated memory arenas, reducing the IndicF5 DiT from 1.35\,GB down to 349\,MB and the Vocos vocoder to 22\,MB, bounding peak resident memory to 801\,MB. We formulate a calibrated on-device syllabic duration model (6.5 mel frames per character) that eliminates grapheme-to-phoneme rule dictionaries, and engineer a native C++ runtime engine for mobile execution. Physical hardware profiling validates process stability without out-of-memory terminations on budget hardware. Finally, drawing directly from the empirical inferences of our mobile PoC, we formulate a concrete production roadmap targeting Google LiteRT and hardware neural processing units (Qualcomm QNN HTP and MediaTek NeuroPilot), establishing that high-fidelity multilingual voice cloning can be achieved entirely at the edge to support accessible education.
+These empirical observations highlight the need for careful memory budgeting and latency reduction on resource-constrained devices, as well as the linguistic limitations of existing English-centric edge models. Guided by these insights, we engineer our primary Indic speech synthesis pipeline around a 22-layer Diffusion Transformer (IndicF5, 335M parameters). We establish a calibrated syllabic duration heuristic (6.5 mel frames per Unicode character, $\approx 69.3$\,ms per character), export INT8-quantized ONNX graphs (reducing DiT weights from 1.35\,GB to 349\,MB and Vocos to 22\,MB) yielding an analytical memory budget of 801\,MB, and develop a native C++ runtime interface. Finally, we formulate a concrete future roadmap targeting sampling step distillation and Google LiteRT, outlining the path toward efficient multilingual edge voice cloning.
 \par}
 \end{abstract}
 
 \begin{acknowledgements}
-{I am grateful to Prof Dr. Jabez Christopher for providing me the opportunity to work under him as a part of the Design Project. I appreciate his invaluable guidance and support throughout the course of the project. His expertise in AI domain and insightful feedback has led to the success of this work. I am filled with gratitude to receive his mentorship which has been essential for my personal and professional development. I would also like to extent my gratitude to Reshma A.S. for her valuable guidance and planning throughout the project.}
+{I am grateful to Prof Dr. Jabez Christopher for providing me the opportunity to work under him as part of the Design Project. I appreciate his invaluable guidance and support throughout the course of the project. His expertise in the AI domain and insightful feedback has led to the success of this work. I am filled with gratitude to receive his mentorship which has been essential for my personal and professional development. I would also like to extend my gratitude to Reshma A.S. for her valuable guidance and planning throughout the project.}
 \end{acknowledgements}
 
 %-------------------------------------------------------------------------------
@@ -65,14 +65,18 @@ To address these challenges, we first develop an empirical proof of concept (PoC
 \pagestyle{fancy}
 \lhead{\emph{Contents}}
 \tableofcontents
+\clearpage
 
 \lhead{\emph{List of Tables}}
 \listoftables
+\clearpage
 
 \lhead{\emph{List of Figures}}
 \listoffigures
+\clearpage
 
-\listofnomenclature
+% \listofnomenclature
+% \clearpage
 
 %-------------------------------------------------------------------------------
 %	THESIS CONTENT - CHAPTERS

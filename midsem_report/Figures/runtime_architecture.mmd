@@ -1,0 +1,29 @@
+graph LR
+    subgraph UI["Flutter Mobile Application Layer"]
+        A["Teacher UI & Accessibility Controls"]
+        B["Audio Capture & Playback Subsystem"]
+        C["Background Dart Isolate (Isolate.run)"]
+        D["Dart FFI Service Bridge"]
+        A --> C
+        B --> C
+        C --> D
+    end
+
+    subgraph Native["Native IndicF5 C++ Engine (libindicf5_engine.so)"]
+        E["C ABI Entry Points"]
+        F["Pre-allocated Static Memory Arenas (280 MB)"]
+        G["8-Step Euler ODE Solver with NEON SIMD"]
+        H["Vocos Analytical iSTFT Vocoder"]
+        D -->|Pointers| E
+        E --> F
+        F --> G
+        G --> H
+    end
+
+    subgraph Hardware["Hardware Tiers & Empirical Reference"]
+        I["Lenovo Tab K10 Target<br/>(MediaTek Helio P22T, CPU-Only, No NPU)<br/>[IndicF5 Native Target]"]
+        J["Measured ZipVoice PoC Baseline<br/>(Sherpa-ONNX, Mean RTF 10.8x-18.2x, 0 LMK Kills)<br/>[Empirical Reference]"]
+        K["Future Compatible Silicon<br/>(Google LiteRT, Qualcomm QNN / MediaTek APU)<br/>[Proposed Roadmap]"]
+        G -->|C++ Deployment Target| I
+        G -.->|Future LiteRT Delegation| K
+    end

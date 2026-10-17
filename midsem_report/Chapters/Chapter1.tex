@@ -5,39 +5,39 @@
 \lhead{Chapter 1. \emph{Introduction}}
 
 \section{Teacher-Voice Learning in Government Schools and Accessibility for Blind Students}
-In primary and upper-primary government schools across India, millions of children undertake foundational education in regional languages such as Telugu, Tamil, and Hindi. Educational psychology indicates that young learners exhibit significantly higher cognitive engagement, listening comprehension, and emotional comfort when instructional materials are spoken in the familiar, trusted voice of their classroom teacher rather than an unfamiliar or synthetic persona. 
+In primary and upper-primary government schools across India, millions of children undertake foundational education in regional languages such as Telugu, Tamil, and Hindi. Educational research suggests that young learners can benefit from higher cognitive engagement, listening comprehension, and emotional comfort when instructional materials are spoken in the familiar, trusted voice of their classroom teacher rather than an unfamiliar or synthetic persona. While rigorous empirical validation through classroom user studies remains an ongoing objective, the potential pedagogical value of teacher-voiced instruction offers a strong motivation for accessible speech synthesis.
 
 For visually impaired (blind) students, the importance of voice is even more profound. Auditory learning serves as their primary sensory medium for textbooks, practice exercises, and conceptual explanations. Hearing lessons delivered in their own teacher's voice provides pedagogical continuity, comfort, and cognitive trust, helping bridge the gap between classroom instruction and independent study. 
 
-Despite the clear educational benefits, this domain remains almost completely untapped by contemporary voice cloning technologies:
+Despite these compelling educational opportunities, this domain remains largely untapped by contemporary speech synthesis:
 \begin{enumerate}
-    \item \textbf{Commercial Neglect of Public Education}: Commercial voice synthesis platforms primarily focus on Western languages, media dubbing, and commercial entertainment, leaving vernacular public school education and special-needs accessibility largely unaddressed.
-    \item \textbf{Offline Classroom Realities}: Many government schools operate in rural and semi-urban areas with intermittent or nonexistent internet access, making cloud-dependent speech synthesis completely unusable in everyday classrooms.
+    \item \textbf{Commercial Focus on Other Domains}: Commercial voice synthesis platforms primarily focus on Western languages, media dubbing, and commercial entertainment, leaving vernacular public school education and special-needs accessibility largely unaddressed.
+    \item \textbf{Offline Classroom Realities}: Many government schools operate in rural and semi-urban areas with intermittent or nonexistent internet access, making cloud-dependent speech synthesis unusable in everyday classrooms.
     \item \textbf{Hardware Budgets}: State educational programs distribute budget Android tablets (such as the Lenovo Tab K10 with 4\,GB RAM) with zero recurring budget for cloud API subscription fees.
-    \item \textbf{Biometric Privacy}: Public schools have a duty of care to ensure that the voiceprints of teachers and children are never transmitted to external third-party servers.
+    \item \textbf{Biometric Privacy and Consent}: Public schools have a duty of care to ensure that the voice recordings of teachers and children remain under local control and are not transmitted to third-party cloud servers.
 \end{enumerate}
 
-To serve this untapped domain, there is a clear need for an on-device, zero-shot multilingual voice cloning pipeline. A schoolteacher records a single three-to-five second reference clip once onto a classroom tablet; the system can then synthesize textbook chapters, interactive lessons, and audio aids for visually impaired learners in that teacher's authentic voice, completely offline, at zero recurring cost.
+To address these needs, we explore an on-device, zero-shot multilingual voice cloning pipeline. Under this approach, an instructor records a single brief reference recording (three to five seconds) locally on the classroom tablet; the system can then synthesize textbook passages, interactive exercises, and audio aids for visually impaired learners in that teacher's voice, operating completely offline at zero recurring subscription cost.
 
 \subsection{Voice Identity, Pedagogical Trust, and Biometric Privacy}
 A human speech signal jointly conveys linguistic content, speaker identity, prosody, and acoustic environment characteristics within a few seconds of audio. In zero-shot voice cloning, the goal is to synthesize arbitrary new text in the voice of an unseen speaker using only a brief reference recording (three to five seconds), without modifying model parameters or running gradient updates during inference.
 
-While frontier generative speech models achieve high perceptual naturalness, existing deployments operate almost exclusively on cloud servers equipped with high-end GPUs. This status quo presents three major obstacles for government school education:
+While frontier generative speech models achieve high perceptual naturalness, existing deployments operate almost exclusively on cloud servers equipped with high-end GPUs. This status quo presents three major obstacles for public education:
 \begin{enumerate}[label=(\roman*)]
-    \item \textbf{Biometric Privacy Exposure}: Transmitting unencrypted speech samples to external servers exposes teachers' voiceprints to data retention, misuse, and spoofing risks.
+    \item \textbf{Biometric Privacy and Consent Considerations}: Transmitting unencrypted speech samples to external servers exposes teachers' voiceprints to data retention, misuse, and unauthorized synthesis risks. Performing inference locally ensures that acoustic biometric samples remain contained on the device, where local storage policies, explicit instructor consent, and immediate deletion controls can be enforced.
     \item \textbf{Lack of Regional Language Coverage}: Over one billion people speak Dravidian and Indo-Aryan languages, which are the primary instructional media in state schools. Most commercial edge voice models support only English or Mandarin.
     \item \textbf{Network Dependency}: In rural government classrooms and special education facilities, internet connectivity is often absent, rendering cloud-dependent educational assistants unusable.
 \end{enumerate}
 
 \subsection{Evolution of Speech Synthesis Paradigms}
-Automated text-to-speech (\gls{tts}) architectures have developed across three major generations:
+Automated \gls{tts} architectures have developed across three major generations:
 \begin{enumerate}
     \item \textit{Formant synthesis} modeled the human vocal tract through systems of acoustic resonators. Although computationally lightweight, the generated audio sounded unnatural and metallic.
     \item \textit{Concatenative synthesis} assembled waveforms from multi-hour databases of pre-recorded speech fragments. This approach yielded high segmental naturalness, but required hundreds of megabytes of storage per voice, could not modify prosody dynamically, and required recording an entire dataset to support a new speaker.
     \item \textit{Statistical parametric speech synthesis} (SPSS) modeled acoustic features using Hidden Markov Models. While SPSS reduced storage requirements and permitted parametric voice transformations, over-smoothing often produced muffled output.
 \end{enumerate}
 
-The introduction of deep neural networks led to end-to-end architectures such as Tacotron~2, FastSpeech, and \gls{vits}~\cite{kim2021vits}, alongside neural vocoders such as WaveNet and \gls{hifigan}~\cite{kong2020hifigan}, which achieved human-like Mean Opinion Scores (\gls{mos}). Nevertheless, traditional neural pipelines remain ill-suited for mobile deployment: they require minutes of clean audio for speaker adaptation, and their multi-stage architectures generally demand high-power GPUs.
+The introduction of deep neural networks led to end-to-end architectures such as Tacotron~2, FastSpeech, and \gls{vits}~\cite{kim2021vits}, alongside neural vocoders such as WaveNet and \gls{hifigan}~\cite{kong2020hifigan}, which achieved human-like Mean Opinion Scores (\acrshort{mos}). Nevertheless, traditional neural pipelines remain ill-suited for mobile deployment: they require minutes of clean audio for speaker adaptation, and their multi-stage architectures generally demand high-power GPUs.
 
 Modern zero-shot in-context voice cloning models address this limitation by conditioning generation directly on short reference clips without gradient updates. This investigation adapts and optimizes that paradigm for on-device deployment across Indian languages.
 
@@ -55,16 +55,16 @@ Early zero-shot systems relied on speaker encoder networks trained with contrast
 
 However, global embedding vectors introduce an information bottleneck: a single static vector struggles to preserve fine-grained temporal cues, including prosodic variations, co-articulation patterns, and room reverberation characteristics.
 
-To address this limitation, recent models such as Voicebox~\cite{le2023voicebox}, \gls{e2tts}~\cite{e2tts2024}, and F5-TTS~\cite{chen2024f5tts} frame zero-shot speech synthesis as an audio inpainting problem. Instead of compressing the reference signal into a single vector, continuous acoustic frames $\mathbf{x}_{\text{ref}}$ are concatenated directly with the target generation trajectory along the time axis. The model uses self-attention and cross-attention mechanisms to learn dependencies between the reference acoustics and the target phonetic sequence, harmonizing speaker timbre across the transition boundary.
+To address this limitation, recent models such as Voicebox~\cite{le2023voicebox}, \gls{e2tts}~\cite{e2tts2024}, and F5-TTS~\cite{chen2024f5tts} frame zero-shot speech synthesis as an audio inpainting problem. Instead of compressing the reference signal into a single vector, continuous acoustic frames $\mathbf{x}_{\text{ref}}$ are concatenated directly with the target generation trajectory along the time axis. The model uses bidirectional self-attention mechanisms over the fused sequence representations to learn dependencies between the reference acoustics and the target phonetic sequence, harmonizing speaker timbre across the transition boundary without relying on separate cross-attention layers.
 
 \section[Rationale for On-Device Edge Execution]{Rationale for On-Device Edge Execution: Privacy, Connectivity, and Operational Costs in Public Education}
 Although cloud-based voice cloning systems achieve strong fidelity on server GPUs, relying on remote infrastructure introduces three critical obstacles for public education:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Biometric Data Privacy and Teacher Protection}: A human voice recording is an immutable biometric identifier. In public schools, uploading raw audio samples of teachers and students to external commercial servers creates severe privacy and liability risks, including corporate data retention, unauthorized voice harvesting, and unconsented cloning. Performing inference entirely on the classroom edge device guarantees that biometric voice samples never leave local device memory.
+    \item \textbf{Biometric Data Protection and Local Control}: A human voice recording constitutes a sensitive biometric identifier. In public schools, uploading raw audio samples of teachers and students to external commercial servers creates privacy and governance concerns regarding data retention, unauthorized voice harvesting, and unconsented cloning. Performing inference offline ensures that acoustic data remains strictly within device memory, where transparent local access controls and informed teacher consent can be enforced.
     
     \item \textbf{Reliable Offline Operation in Vernacular Classrooms}: In many regions of the Indian subcontinent, internet access in government primary and secondary schools remains intermittent or completely absent. In rural classrooms and special education facilities for visually impaired students, continuous network access cannot be assumed. Edge execution ensures deterministic, uninterrupted learning and audio study aid generation in complete airplane mode.
     
-    \item \textbf{Elimination of Cloud Infrastructure and Per-Character Costs}: Commercial speech synthesis APIs incur recurring per-minute and per-character fees driven by GPU server maintenance. Public schools and state education departments operate under strict budgetary boundaries with zero recurring budget for cloud subscriptions. Running models directly on subsidized student tablets eliminates external infrastructure costs entirely, enabling unlimited personalized educational audio generation at zero marginal cost.
+    \item \textbf{Elimination of Cloud Infrastructure and Per-Character Costs}: Commercial speech synthesis APIs incur recurring per-minute and per-character fees driven by GPU server maintenance. Public schools and state education departments operate under strict budgetary boundaries with zero recurring budget for cloud subscriptions. Running models directly on subsidized student tablets eliminates external infrastructure costs entirely, enabling personalized educational audio generation without ongoing service fees.
 \end{enumerate}
 
 \section{The Tri-Factor Challenge in Educational Edge Deployment}
@@ -84,29 +84,25 @@ Existing open-source and commercial models typically address at most two of thes
 To design an edge architecture capable of practical mass deployment across public schools, our engineering target is anchored against budget commodity hardware rather than flagship silicon. In this project, our primary reference hardware is the \textbf{Lenovo Tab K10}, a tablet widely procured and distributed in government school digitization programs across India, with the following specifications:
 
 \begin{itemize}
-    \item \textbf{System-on-Chip (\gls{soc})}: MediaTek Helio P22T (MT8768T), built on a 12\,nm FinFET process.
+    \item \textbf{System-on-Chip (\acrshort{soc})}: MediaTek Helio P22T (MT8768T), built on a 12\,nm FinFET process.
     \item \textbf{Processor Microarchitecture}: An octa-core ARM Cortex-A53 cluster in a big.LITTLE configuration (4 cores up to 2.3\,GHz and 4 efficiency cores up to 1.8\,GHz). The Cortex-A53 implements an in-order execution pipeline with dual-issue capabilities, lacking modern out-of-order execution optimizations.
-    \item \textbf{Vector Acceleration}: Standard ARMv8-A \gls{neon} 128-bit Single Instruction Multiple Data (\gls{simd}) execution units.
+    \item \textbf{Vector Acceleration}: Standard ARMv8-A \acrshort{neon} 128-bit Single Instruction Multiple Data (\acrshort{simd}) execution units.
     \item \textbf{Neural Processing Hardware}: Zero dedicated NPU or AI accelerator. All deep learning inference operations (matrix multiplications, convolutional projections, and Fourier transformations) execute on the CPU cluster.
-    \item \textbf{Physical System Memory}: 3\,GB or 4\,GB LPDDR4X \gls{ram} over a 32-bit dual-channel memory bus with a theoretical peak bandwidth capped at approximately 14.9\,GB/s.
+    \item \textbf{Physical System Memory}: 3\,GB or 4\,GB LPDDR4X \acrshort{ram} over a 32-bit dual-channel memory bus with a theoretical peak bandwidth capped at approximately 14.9\,GB/s.
 \end{itemize}
 
-\subsection{The Linux Kernel LowMemoryKiller (LMK) Paradigm}
-Memory management in Android is governed by the Linux kernel out-of-memory (\gls{lmk}) driver. Unlike desktop operating systems (Linux, Windows, macOS) that use disk paging space to absorb memory spikes, Android disables swap-to-flash storage to protect mobile eMMC and UFS storage chips from write-endurance degradation.
+\subsection{Android Memory Management and the LowMemoryKiller (LMK)}
+Memory management on modern Android devices is mediated by kernel memory pressure notifications and the userspace low-memory killer daemon (\texttt{lmkd}). Unlike desktop operating systems that rely on swap-to-disk partitions to absorb arbitrary memory allocations, Android systems utilize in-memory compressed swap (ZRAM) to protect mobile flash storage (eMMC and UFS) from write-endurance degradation while compressing inactive memory pages.
 
-Android instead assigns \texttt{oom\_adj\_score} values to processes. Foreground applications receive low scores but must remain within an absolute physical memory ceiling. On a device with 4\,GB of physical RAM, the operating system kernel, system services (SurfaceFlinger, SystemUI), background daemons, and radio baseband stacks consume between 2.2\,GB and 2.5\,GB of resident RAM. Consequently, the user-space foreground process has an available physical \gls{rss} budget strictly capped at:
-\begin{equation}
-    \text{RSS}_{\text{max}} \approx 1,500\,\text{MB} \quad \text{to} \quad 1,800\,\text{MB}
-\end{equation}
-If an executing model allocates tensor activation buffers, dynamic memory arenas, or uncompressed weights that exceed this ceiling, the Linux kernel issues an immediate, uncatchable \texttt{SIGKILL} signal.
+When physical RAM pressure rises, \texttt{lmkd} terminates cached and background processes based on their Out-Of-Memory adjustment score (\texttt{oom\_adj\_score}). Foreground applications actively presenting a user interface enjoy high scheduling priority, but their memory consumption is constrained by system-wide memory pressure, device RAM capacity, and concurrent operating system services (such as SurfaceFlinger and system servers). On a 4\,GB device, system services and framework processes typically occupy 2.0 to 2.5\,GB of RAM. While foreground processes can temporarily reach higher memory usage (as observed in our empirical benchmarking where post-utterance resident memory reached up to 2,491\,MB without termination), operating under sustained high resident memory increases vulnerability to termination under background multitasking pressure. 
 
-Standard FP32 models illustrate this risk: the unquantized IndicF5 PyTorch model requires 1.35\,GB for model weights alone, and its dynamic activation buffers require an additional 1.2\,GB during generation. This pushes process memory beyond 2.5\,GB, triggering an immediate SIGKILL termination on a 4\,GB Android device. Consequently, integer quantization, graph optimization, and pre-allocated memory arenas are structural requirements for on-device deployment.
+Consequently, to maintain robust process stability across diverse device conditions, an analytical memory optimization target of $\le 1,000$\,MB (with an engineering component budget of approximately 801\,MB) represents a prudent design guideline for edge generative models.
 
 \section{Evaluation Framework for Edge Speech Generative Systems}
 To evaluate on-device speech synthesis, we define an evaluation framework balancing physical hardware constraints, vocal cloning fidelity, and inference throughput:
 
-\subsection[Physical Memory Confinement and Peak RSS]{Physical Memory Confinement and Peak Resident Set Size (\gls{rss})}
-The core operational criterion for on-device viability is physical memory confinement. Memory consumption is quantified not by virtual address reservations (\texttt{VmSize}), which reflect mapped address space, but by Peak Resident Set Size (\texttt{VmRSS}), which measures physical RAM allocated to the process by the kernel memory subsystem. Peak \gls{rss} is monitored by polling \texttt{/proc/self/status} at the peak of the diffusion integration loop. For edge stability on 4\,GB platforms, peak resident memory must remain strictly below 1,000\,MB, leaving sufficient headroom for the host application and Android framework services.
+\subsection[Physical Memory Confinement and Resident Memory]{Physical Memory Confinement and Resident Set Size (\acrshort{rss})}
+The core operational criterion for on-device viability is physical memory confinement. Memory consumption is quantified not by virtual address reservations (\texttt{VmSize}), which reflect mapped address space, but by Resident Set Size (\texttt{VmRSS}), which measures physical RAM allocated to the process by the kernel memory subsystem. Memory readings can be obtained by polling \texttt{/proc/self/status} upon completion of utterance generation. For sustained stability on 4\,GB platforms, our analytical design target aims to keep resident memory well within available limits to avoid triggering system-wide memory reclaim pressure.
 
 \subsection{Storage Footprint and Package Compressibility}
 On consumer mobile hardware, application package size directly affects user adoption. Large desktop checkpoints requiring gigabytes of disk space are impractical for distribution. We evaluate models based on their quantized on-disk footprint, targeting $\le 400$\,MB for the combined acoustic model and neural vocoder.
@@ -114,40 +110,38 @@ On consumer mobile hardware, application package size directly affects user adop
 \subsection{Acoustic and Speaker Identity Transfer Fidelity}
 Voice cloning fidelity is evaluated along two complementary dimensions:
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Speaker Similarity and Naturalness}: Measured through Mean Opinion Scores (\gls{mos}) on a 5-point Likert scale, assessing how faithfully the synthesized audio replicates the timbre, pitch contour, and perceived identity of the reference speaker.
-    \item \textbf{Acoustic Spectral Distortion}: Measured via Mel-Cepstral Distortion (\gls{mcd}) between ground-truth and synthesized acoustic trajectories:
+    \item \textbf{Speaker Similarity and Naturalness}: Evaluated through subjective assessment such as Mean Opinion Scores (\acrshort{mos}) on a 5-point Likert scale, assessing how faithfully the synthesized audio replicates the timbre, pitch contour, and perceived identity of the reference speaker.
+    \item \textbf{Acoustic Spectral Distortion}: Measured via Mel-Cepstral Distortion (\acrshort{mcd}) between ground-truth and synthesized acoustic trajectories:
     \begin{equation}
         \text{MCD} = \frac{10\sqrt{2}}{\ln 10} \frac{1}{T} \sum_{t=1}^T \sqrt{\sum_{d=1}^D (c_t[d] - \hat{c}_t[d])^2}
     \end{equation}
     where $c_t[d]$ and $\hat{c}_t[d]$ denote the $d$-th mel-frequency cepstral coefficients of target and synthesized frames.
 \end{itemize}
 
-\subsection[Computational Throughput and RTF]{Computational Throughput and Real-Time Factor (\gls{rtf})}
-Operational throughput is quantified via the \gls{rtf}, defined as the ratio between the total wall-clock computational latency required to synthesize the audio and the physical duration of the resulting synthesized speech waveform:
+\subsection[Computational Throughput and RTF]{Computational Throughput and Real-Time Factor (\acrshort{rtf})}
+Operational throughput is quantified via the \acrshort{rtf}, defined as the ratio between the total wall-clock computational latency required to synthesize the audio and the physical duration of the resulting synthesized speech waveform:
 \begin{equation}
     \text{RTF} = \frac{T_{\text{synthesis}}}{T_{\text{audio}}} = \frac{\Delta t_{\text{proc}}}{\frac{N_{\text{samples}}}{f_s}}
     \label{eq:rtf_definition}
 \end{equation}
 where $\Delta t_{\text{proc}}$ represents execution time in seconds, $N_{\text{samples}}$ denotes synthesized audio samples, and $f_s$ represents the acoustic sampling frequency (24,000\,Hz).
 
-In edge environments lacking discrete GPUs, the immediate goal is to establish stable, deterministic execution latencies on mobile ARM CPUs, providing an empirical baseline for future NPU acceleration.
+In edge environments lacking discrete GPUs, the immediate goal is to establish stable, deterministic execution latencies on mobile ARM CPUs, providing an empirical baseline for future runtime optimizations and hardware acceleration.
 
-\subsection{The Fixed Overhead Anomaly in Short Utterances}
-In iterative flow-matching systems, empirical latency characterization reveals an effect we term the Fixed Overhead Anomaly. In traditional autoregressive systems, computational latency scales linearly with output sequence length ($O(T)$). However, in non-autoregressive continuous flow matching on edge hardware, total synthesis latency decomposes into fixed initialization overhead and length-dependent numerical solving:
+\subsection{Characterizing Short-Utterance Latency and Throughput Scaling}
+In non-autoregressive flow-matching systems, empirical benchmarking across sentence lengths reveals that short utterances frequently exhibit elevated Real-Time Factors compared to longer passages. In traditional autoregressive models, latency scales approximately linearly with sequence length ($O(T)$). In continuous flow matching, total synthesis latency reflects a combination of fixed setup costs and length-dependent numerical integration:
 \begin{equation}
-    T_{\text{synthesis}} = T_{\text{init}} + N_{\text{steps}} \cdot T_{\text{forward}}(T_{\text{audio}}) + T_{\text{vocoder}}(T_{\text{audio}})
+    T_{\text{synthesis}} = T_{\text{setup}} + N_{\text{steps}} \cdot T_{\text{forward}}(T_{\text{audio}}) + T_{\text{vocoder}}(T_{\text{audio}})
     \label{eq:latency_decomposition}
 \end{equation}
-Here, $T_{\text{init}}$ encompasses tokenization, vocabulary lookup, text embedding projections, runtime memory arena configuration, and vocoder setup. On mobile ARM hardware, $T_{\text{init}}$ represents an invariant baseline cost of approximately 1.0 to 1.5 seconds.
-
-Consequently, when synthesizing a short sentence (e.g., a five-word utterance yielding $T_{\text{audio}} \approx 1.2$\,seconds), the invariant overhead $T_{\text{init}}$ dominates the numerator of \eref{eq:rtf_definition}, producing an elevated \gls{rtf} (e.g., $\text{RTF} \in [3.8, 9.3]$). As target audio duration increases to medium ($T_{\text{audio}} \approx 5.5$\,s) and long ($T_{\text{audio}} \approx 15.0$\,s) sequences, $T_{\text{init}}$ amortizes over the larger denominator, allowing the measured \gls{rtf} to decrease toward the model's steady-state forward-pass throughput on physical ARM cores.
+Here, $T_{\text{setup}}$ includes text parsing, vocabulary lookup, intermediate buffer preparation, and vocoder session setup. When synthesizing a brief utterance (such as a 1.2-second phrase), fixed setup and memory allocation costs constitute a substantial proportion of overall runtime, elevating the observed \acrshort{rtf}. As utterance duration increases to medium ($T_{\text{audio}} \approx 5.5$\,s) and long ($T_{\text{audio}} \approx 15.0$\,s) sequences, fixed overhead is amortized across a longer generated duration, allowing throughput to approach the steady-state execution speed of the underlying neural solver. Dedicated stage-level profiling is necessary to isolate and quantify each constituent latency component precisely.
 
 \section{Scope and Structural Organization of the Report}
 This mid-semester technical report documents the theoretical foundations, iterative engineering milestones, hardware profiling results, and production roadmaps developed for on-device voice cloning. The remainder of this document is organized as follows:
 
 \begin{itemize}
-    \item \textbf{\cref{Chapter2} (Theoretical Foundations and Comprehensive Literature Survey)} provides a mathematical review of Continuous Normalizing Flows (\gls{cnf}), Optimal Transport Flow Matching (\gls{cfm}), Diffusion Transformers (\gls{dit}), neural vocoders (comparing \gls{hifigan} and Vocos), trajectory straightening via Rectified Flow, step distillation via FlashSpeech, Dravidian/Indic phonology, and edge machine learning runtimes.
-    \item \textbf{\cref{Chapter3} (System Architecture and Algorithmic Formulation)} details the system architecture progressing from our mobile proof of concept to the primary IndicF5 edge architecture, the signal conditioning pipeline, the calibration of our syllabic akshara duration model, the Euler \gls{ode} numerical solver, and formal algorithmic specifications.
+    \item \textbf{\cref{Chapter2} (Theoretical Foundations and Comprehensive Literature Survey)} provides a mathematical review of Continuous Normalizing Flows (\acrshort{cnf}), Optimal Transport Flow Matching (\acrshort{cfm}), Diffusion Transformers (\acrshort{dit}), neural vocoders (comparing \acrshort{hifigan} and Vocos), trajectory straightening via Rectified Flow, step distillation via FlashSpeech, Dravidian/Indic phonology, and edge machine learning runtimes.
+    \item \textbf{\cref{Chapter3} (System Architecture and Algorithmic Formulation)} details the system architecture progressing from our mobile proof of concept to the primary IndicF5 edge architecture, the signal conditioning pipeline, the calibration of our syllabic akshara duration model, the Euler \acrshort{ode} numerical solver, and formal algorithmic specifications.
     \item \textbf{\cref{Chapter4} (Implementation Methodology and Step-by-Step Engineering Iterations)} chronicles the ten engineering iterations executed during the project, detailing the empirical mobile proof of concept, physical hardware benchmarking across four silicon tiers, the inferences guiding our Indic implementation, the resolution of duration truncation and spatial alignment anomalies, integer quantization pipelines, and native C++ execution on mobile hardware.
     \item \textbf{\cref{Chapter5} (Strategic Future Architecture: Google LiteRT Implementation and Edge Acceleration Roadmap)} establishes the technical blueprint for migrating the IndicF5 pipeline to Google LiteRT, outlining the \texttt{litert-torch} conversion flow, hardware accelerator targeting via the \texttt{CompiledModel} API (Qualcomm QNN HTP and MediaTek NeuroPilot), zero-copy buffer sharing, and 2-step distillation for mobile efficiency.
     \item \textbf{\cref{Chapter6} (Conclusion and Research Summary)} summarizes the engineering accomplishments and outlines immediate next steps.

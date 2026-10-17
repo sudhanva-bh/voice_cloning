@@ -386,23 +386,23 @@ Date:\\
   \btypeout{Abstract Page}
   \addtotoc{Abstract}
   \addtocontents{toc}{\vspace{1em}}
-  \thispagestyle{empty}
-  \null\vfil
+  \thispagestyle{plain}
   \begin{center}
     \setlength{\parskip}{0pt}
-    {\normalsize \UNIVNAME \par} % University name in capitals
-    \bigskip
-    {\huge{\textit{Abstract}} \par}
-    \bigskip
-    {\normalsize \degreename\par} % Degree name
-    \bigskip
-    {\normalsize\bf \@title \par} % Thesis title
-    \medskip
-    {\normalsize by \authornames \par} % Author name
-    \bigskip
+    {\normalsize \UNIVNAME \par}
+    \vspace{0.2cm}
+    {\huge\bfseries Abstract \par}
+    \vspace{0.2cm}
+    {\normalsize\bfseries \ttitle \par}
+    \vspace{0.12cm}
+    {\normalsize by \authornames \par}
+    \vspace{0.25cm}
   \end{center}
 }
-{\clearpage}
+{
+  \vfill
+  \clearpage
+}
 %-------------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------------
