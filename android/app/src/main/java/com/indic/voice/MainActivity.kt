@@ -11,7 +11,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.snackbar.Snackbar
 import com.indic.voice.databinding.ActivityMainBinding
+import com.indic.voice.history.AudioExporter
+import com.indic.voice.history.GeneratedClipItem
+import com.indic.voice.history.GenerationHistoryManager
+import com.indic.voice.history.HistoryAdapter
 import com.indic.voice.presets.ExampleScriptsBottomSheet
 import com.indic.voice.presets.QuickIdeasBottomSheet
 import kotlinx.coroutines.Dispatchers
@@ -25,11 +31,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val engine by lazy { LiteRTIndicEngine(this) }
     private val recorderHelper by lazy { AudioRecorderHelper() }
+    private val historyManager by lazy { GenerationHistoryManager(this) }
+    private val audioExporter by lazy { AudioExporter(this) }
+    private val sessionCache by lazy { SessionCacheManager(this) }
+
+    private lateinit var historyAdapter: HistoryAdapter
 
     private var refPcm: FloatArray? = null
     private var refAudioPath: String? = null
     private var refAudioName: String = "ref_en.wav"
-    private var lastGeneratedPcm: FloatArray? = null
+    private var latestGeneratedFile: File? = null
 
     // Permission launcher for Microphone recording
     private val requestAudioPermissionLauncher = registerForActivityResult(
@@ -59,23 +70,26 @@ class MainActivity : AppCompatActivity() {
         setupStep1Listeners()
         setupStep2RecordingAndPicker()
         setupStep3TargetAndLanguage()
-        setupStep4Output()
+        setupStep4History()
         setupValidationListeners()
 
-        initializeEngineAndDefaultReference()
+        loadSession()
+        initializeEngine()
     }
 
     private fun setupStep1Listeners() {
         binding.btnClearRefText.setOnClickListener {
             binding.etRefText.setText("")
+            sessionCache.refText = ""
             updateValidationState()
         }
 
         binding.btnExampleScripts.setOnClickListener {
             ExampleScriptsBottomSheet { script ->
                 binding.etRefText.setText(script)
+                sessionCache.refText = script
                 updateValidationState()
-                Toast.makeText(this, "Reference script updated!", Toast.LENGTH_SHORT).show()
+                showFeedback("Reference script updated!")
             }.show(supportFragmentManager, "ExampleScriptsBottomSheet")
         }
     }
@@ -106,6 +120,7 @@ class MainActivity : AppCompatActivity() {
 
         // Reset clip button
         binding.ibResetRefAudio.setOnClickListener {
+            sessionCache.clearReference()
             loadDefaultAssetReference()
         }
     }
@@ -114,31 +129,46 @@ class MainActivity : AppCompatActivity() {
         binding.btnQuickIdeas.setOnClickListener {
             QuickIdeasBottomSheet { idea ->
                 binding.etTargetText.setText(idea)
+                sessionCache.targetText = idea
                 updateValidationState()
-                Toast.makeText(this, "Target text updated!", Toast.LENGTH_SHORT).show()
+                showFeedback("Target speech updated!")
             }.show(supportFragmentManager, "QuickIdeasBottomSheet")
         }
 
         binding.btnClearTargetText.setOnClickListener {
             binding.etTargetText.setText("")
+            sessionCache.targetText = ""
             updateValidationState()
         }
 
         binding.btnQuickEn.setOnClickListener {
             binding.etTargetText.setText("Google LiteRT is fast and clear.")
+            sessionCache.targetText = binding.etTargetText.text.toString()
             updateValidationState()
         }
         binding.btnQuickHi.setOnClickListener {
             binding.etTargetText.setText("यह एक वॉइस क्लोनिंग का परीक्षण है।")
+            sessionCache.targetText = binding.etTargetText.text.toString()
             updateValidationState()
         }
         binding.btnQuickTe.setOnClickListener {
             binding.etTargetText.setText("ఇది గూగుల్ లైట్-ఆర్టీతో వాయిస్ క్లోనింగ్ పరీక్ష.")
+            sessionCache.targetText = binding.etTargetText.text.toString()
             updateValidationState()
         }
         binding.btnQuickTa.setOnClickListener {
             binding.etTargetText.setText("கூகிள் லைட்-ஆர்டி தொழில்நுட்பம் மூலம் குரல் உருவாக்கம்.")
+            sessionCache.targetText = binding.etTargetText.text.toString()
             updateValidationState()
+        }
+
+        binding.rgSteps.setOnCheckedChangeListener { _, checkedId ->
+            val steps = when (checkedId) {
+                binding.rbStep8.id -> 8
+                binding.rbStep24.id -> 24
+                else -> 16
+            }
+            sessionCache.cfmSteps = steps
         }
 
         binding.btnSynthesize.setOnClickListener {
@@ -146,15 +176,134 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupStep4Output() {
+    private fun setupStep4History() {
+        historyAdapter = HistoryAdapter(
+            onExport = { clipItem ->
+                exportClipToDownloads(clipItem.file, clipItem.displayTitle)
+            },
+            onDelete = { clipItem ->
+                deleteClipFromHistory(clipItem)
+            }
+        )
+
+        binding.rvGenerationHistory.layoutManager = LinearLayoutManager(this)
+        binding.rvGenerationHistory.adapter = historyAdapter
+
         binding.btnExportLatest.setOnClickListener {
-            Toast.makeText(this, "Audio saved to app files: generated_voice.wav", Toast.LENGTH_SHORT).show()
+            latestGeneratedFile?.let { file ->
+                val title = binding.tvLatestTitle.text.toString()
+                exportClipToDownloads(file, title)
+            }
         }
+
+        refreshHistoryList()
     }
 
     private fun setupValidationListeners() {
-        binding.etRefText.addTextChangedListener { updateValidationState() }
-        binding.etTargetText.addTextChangedListener { updateValidationState() }
+        binding.etRefText.addTextChangedListener {
+            sessionCache.refText = it?.toString() ?: ""
+            updateValidationState()
+        }
+        binding.etTargetText.addTextChangedListener {
+            sessionCache.targetText = it?.toString() ?: ""
+            updateValidationState()
+        }
+    }
+
+    private fun loadSession() {
+        binding.etRefText.setText(sessionCache.refText)
+        binding.etTargetText.setText(sessionCache.targetText)
+
+        when (sessionCache.cfmSteps) {
+            8 -> binding.rbStep8.isChecked = true
+            24 -> binding.rbStep24.isChecked = true
+            else -> binding.rbStep16.isChecked = true
+        }
+
+        val cachedPath = sessionCache.refClipPath
+        val cachedName = sessionCache.refFileName
+        if (!cachedPath.isNullOrEmpty() && File(cachedPath).exists()) {
+            val file = File(cachedPath)
+            val pcm = LiteRTIndicEngine.decodeWav(file.readBytes())
+            if (pcm != null && pcm.isNotEmpty()) {
+                refPcm = pcm
+                refAudioPath = cachedPath
+                refAudioName = cachedName ?: file.name
+
+                val durationSec = pcm.size.toFloat() / 24000f
+                binding.tvRefFileName.text = "Clip Ready ($refAudioName • ${String.format("%.2f", durationSec)}s)"
+                binding.playerRefAudio.setAudioPath(refAudioPath)
+                binding.llRefAudioReady.visibility = View.VISIBLE
+                binding.llRefAudioNotReady.visibility = View.GONE
+                updateValidationState()
+                return
+            }
+        }
+        loadDefaultAssetReference()
+    }
+
+    private fun refreshHistoryList() {
+        val history = historyManager.loadHistory()
+        if (history.isEmpty()) {
+            binding.llEmptyOutput.visibility = View.VISIBLE
+            binding.llLatestOutput.visibility = View.GONE
+            binding.llHistorySection.visibility = View.GONE
+            latestGeneratedFile = null
+        } else {
+            binding.llEmptyOutput.visibility = View.GONE
+            binding.llLatestOutput.visibility = View.VISIBLE
+
+            val latest = history.first()
+            latestGeneratedFile = latest.file
+            binding.tvLatestTitle.text = latest.displayTitle
+
+            if (!latest.rtf.isNullOrEmpty()) {
+                binding.tvLatestRtf.visibility = View.VISIBLE
+                binding.tvLatestRtf.text = "RTF: ${latest.rtf}x"
+            } else {
+                binding.tvLatestRtf.visibility = View.GONE
+            }
+
+            if (!latest.rssMB.isNullOrEmpty()) {
+                binding.tvLatestRss.visibility = View.VISIBLE
+                binding.tvLatestRss.text = "Memory: ${latest.rssMB} MB"
+            } else {
+                binding.tvLatestRss.visibility = View.GONE
+            }
+
+            binding.playerLatestAudio.setAudioPath(latest.file.absolutePath)
+
+            // Past generations (skip 1)
+            if (history.size > 1) {
+                val pastClips = history.drop(1)
+                binding.llHistorySection.visibility = View.VISIBLE
+                binding.tvHistoryHeader.text = "Previous Generations (${pastClips.size}):"
+                historyAdapter.setItems(pastClips)
+            } else {
+                binding.llHistorySection.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun exportClipToDownloads(file: File, displayTitle: String) {
+        val exportResult = audioExporter.exportToDownloads(file, displayTitle)
+        if (exportResult != null) {
+            Snackbar.make(binding.root, "Saved to Downloads: $exportResult", Snackbar.LENGTH_LONG)
+                .setBackgroundTint(getColor(R.color.card_dark))
+                .setTextColor(getColor(R.color.accent_green))
+                .show()
+        } else {
+            Toast.makeText(this, "Failed to export audio to Downloads", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun deleteClipFromHistory(item: GeneratedClipItem) {
+        historyManager.deleteClip(item.file)
+        refreshHistoryList()
+        Snackbar.make(binding.root, "Deleted clip: ${item.displayTitle}", Snackbar.LENGTH_SHORT)
+            .setBackgroundTint(getColor(R.color.card_dark))
+            .setTextColor(getColor(R.color.text_primary))
+            .show()
     }
 
     private fun updateValidationState() {
@@ -222,13 +371,16 @@ class MainActivity : AppCompatActivity() {
                 refAudioPath = recordedFile.absolutePath
                 refAudioName = "recording.wav"
 
+                sessionCache.refClipPath = refAudioPath
+                sessionCache.refFileName = refAudioName
+
                 val durationSec = pcm.size.toFloat() / 24000f
                 binding.tvRefFileName.text = "Clip Ready ($refAudioName • ${String.format("%.2f", durationSec)}s)"
                 binding.playerRefAudio.setAudioPath(refAudioPath)
                 binding.llRefAudioReady.visibility = View.VISIBLE
                 binding.llRefAudioNotReady.visibility = View.GONE
                 updateValidationState()
-                Toast.makeText(this, "Voice recording ready!", Toast.LENGTH_SHORT).show()
+                showFeedback("Voice recording ready!")
                 return
             }
         }
@@ -247,7 +399,6 @@ class MainActivity : AppCompatActivity() {
             inputStream.close()
 
             val wavBytes = tempFile.readBytes()
-            // Check RIFF header
             val isRiff = wavBytes.size >= 12 &&
                     wavBytes[0] == 'R'.code.toByte() &&
                     wavBytes[1] == 'I'.code.toByte() &&
@@ -269,13 +420,16 @@ class MainActivity : AppCompatActivity() {
             refAudioPath = tempFile.absolutePath
             refAudioName = getFileNameFromUri(uri) ?: "uploaded.wav"
 
+            sessionCache.refClipPath = refAudioPath
+            sessionCache.refFileName = refAudioName
+
             val durationSec = pcm.size.toFloat() / 24000f
             binding.tvRefFileName.text = "Clip Ready ($refAudioName • ${String.format("%.2f", durationSec)}s)"
             binding.playerRefAudio.setAudioPath(refAudioPath)
             binding.llRefAudioReady.visibility = View.VISIBLE
             binding.llRefAudioNotReady.visibility = View.GONE
             updateValidationState()
-            Toast.makeText(this, "Audio file uploaded successfully", Toast.LENGTH_SHORT).show()
+            showFeedback("Audio file uploaded successfully!")
         } catch (e: Exception) {
             Toast.makeText(this, "Error uploading audio: ${e.message}", Toast.LENGTH_LONG).show()
         }
@@ -320,7 +474,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun initializeEngineAndDefaultReference() {
+    private fun initializeEngine() {
         binding.btnSynthesize.isEnabled = false
         binding.progressBar.visibility = View.VISIBLE
         binding.tvLatencyInfo.text = "Initializing Google LiteRT Engine (INT8)..."
@@ -333,8 +487,6 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this@MainActivity, "Engine init failed", Toast.LENGTH_LONG).show()
                     return@launch
                 }
-
-                loadDefaultAssetReference()
 
                 val vmrss = TelemetryMonitor.getResidentMemoryMB()
                 binding.tvMemoryInfo.text = "Resident Memory (VmRSS): $vmrss MB / 600 MB Target"
@@ -380,7 +532,6 @@ class MainActivity : AppCompatActivity() {
                     cfgStrength = 2.0f
                 )
 
-                lastGeneratedPcm = result.audioSamples
                 val vmrss = TelemetryMonitor.getResidentMemoryMB()
 
                 // Update Telemetry Diagnostics card
@@ -388,19 +539,16 @@ class MainActivity : AppCompatActivity() {
                 binding.tvLatencyInfo.text = "Mel: ${result.melTimeMs.toInt()}ms | DiT: ${result.diffusionTimeMs.toInt()}ms | Vocos: ${result.vocosTimeMs.toInt()}ms | Total: ${result.totalTimeMs.toInt()}ms"
                 binding.tvRtfInfo.text = "Real-Time Factor: ${String.format("%.2f", result.realTimeFactor)}x (${String.format("%.2f", result.audioDurationSec)}s audio)"
 
-                // Save WAV to filesDir
-                val wavFile = File(filesDir, "generated_voice.wav")
-                savePcmToWav(wavFile, result.audioSamples, 24000)
+                // Save WAV into persistent Generation History
+                val clipFile = withContext(Dispatchers.IO) {
+                    historyManager.saveGeneratedClip(result.audioSamples, result.realTimeFactor, vmrss)
+                }
 
-                // Update Step 4 LATEST Card & Auto-play with Seekable Player
-                binding.llEmptyOutput.visibility = View.GONE
-                binding.llLatestOutput.visibility = View.VISIBLE
-                binding.tvLatestRtf.text = "RTF: ${String.format("%.2f", result.realTimeFactor)}x"
-                binding.tvLatestRss.text = "Memory: $vmrss MB"
-                binding.tvLatestTitle.text = "generated_voice_${System.currentTimeMillis()}.wav"
-
-                binding.playerLatestAudio.setAudioPath(wavFile.absolutePath)
+                // Refresh history list and auto-play latest
+                refreshHistoryList()
                 binding.playerLatestAudio.play()
+
+                showFeedback("Voice cloned successfully! Scroll down to listen.")
 
             } catch (e: Exception) {
                 binding.tvLatencyInfo.text = "Synthesis Error: ${e.localizedMessage}"
@@ -412,50 +560,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun savePcmToWav(file: File, pcm: FloatArray, sampleRate: Int) {
-        val totalAudioLen = pcm.size * 2
-        val totalDataLen = totalAudioLen + 36
-        val channels = 1
-        val byteRate = sampleRate * channels * 2
-
-        file.outputStream().use { out ->
-            val header = ByteArray(44)
-            header[0] = 'R'.code.toByte(); header[1] = 'I'.code.toByte(); header[2] = 'F'.code.toByte(); header[3] = 'F'.code.toByte()
-            header[4] = (totalDataLen and 0xff).toByte()
-            header[5] = ((totalDataLen shr 8) and 0xff).toByte()
-            header[6] = ((totalDataLen shr 16) and 0xff).toByte()
-            header[7] = ((totalDataLen shr 24) and 0xff).toByte()
-            header[8] = 'W'.code.toByte(); header[9] = 'A'.code.toByte(); header[10] = 'V'.code.toByte(); header[11] = 'E'.code.toByte()
-            header[12] = 'f'.code.toByte(); header[13] = 'm'.code.toByte(); header[14] = 't'.code.toByte(); header[15] = ' '.code.toByte()
-            header[16] = 16; header[17] = 0; header[18] = 0; header[19] = 0
-            header[20] = 1; header[21] = 0
-            header[22] = channels.toByte(); header[23] = 0
-            header[24] = (sampleRate and 0xff).toByte()
-            header[25] = ((sampleRate shr 8) and 0xff).toByte()
-            header[26] = ((sampleRate shr 16) and 0xff).toByte()
-            header[27] = ((sampleRate shr 24) and 0xff).toByte()
-            header[28] = (byteRate and 0xff).toByte()
-            header[29] = ((byteRate shr 8) and 0xff).toByte()
-            header[30] = ((byteRate shr 16) and 0xff).toByte()
-            header[31] = ((byteRate shr 24) and 0xff).toByte()
-            header[32] = (channels * 2).toByte(); header[33] = 0
-            header[34] = 16; header[35] = 0
-            header[36] = 'd'.code.toByte(); header[37] = 'a'.code.toByte(); header[38] = 't'.code.toByte(); header[39] = 'a'.code.toByte()
-            header[40] = (totalAudioLen and 0xff).toByte()
-            header[41] = ((totalAudioLen shr 8) and 0xff).toByte()
-            header[42] = ((totalAudioLen shr 16) and 0xff).toByte()
-            header[43] = ((totalAudioLen shr 24) and 0xff).toByte()
-            out.write(header)
-
-            val pcmBytes = ByteArray(pcm.size * 2)
-            for (i in pcm.indices) {
-                val clamped = pcm[i].coerceIn(-1.0f, 1.0f)
-                val s16 = (clamped * 32767.0f).toInt().toShort()
-                pcmBytes[i * 2] = (s16.toInt() and 0xff).toByte()
-                pcmBytes[i * 2 + 1] = ((s16.toInt() shr 8) and 0xff).toByte()
-            }
-            out.write(pcmBytes)
-        }
+    private fun showFeedback(message: String) {
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT)
+            .setBackgroundTint(getColor(R.color.card_dark))
+            .setTextColor(getColor(R.color.text_primary))
+            .show()
     }
 
     override fun onDestroy() {

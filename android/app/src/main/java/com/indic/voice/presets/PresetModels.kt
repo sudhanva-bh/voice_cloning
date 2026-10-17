@@ -97,85 +97,140 @@ object PresetData {
     )
 
     val quickIdeas = listOf(
-        // SHORT IDEAS (1 sentence)
+        // ==========================================
+        // ENGLISH SHORT PHRASES (~2.0s to 3.0s)
+        // ==========================================
+        QuickIdea(
+            section = IdeaSection.SHORT,
+            language = IdeaLanguage.ENGLISH,
+            text = "Google LiteRT is fast and clear."
+        ),
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.ENGLISH,
             text = "Hello! This is a quick test of the voice cloning system."
         ),
         QuickIdea(
-            section = IdeaSection.SHORT,
+            section = IdeaSection.MEDIUM,
+            language = IdeaLanguage.ENGLISH,
+            text = "The weather is exceptionally pleasant outside this afternoon."
+        ),
+        QuickIdea(
+            section = IdeaSection.MEDIUM,
+            language = IdeaLanguage.ENGLISH,
+            text = "Artificial intelligence is running directly on your phone."
+        ),
+        QuickIdea(
+            section = IdeaSection.LONG,
             language = IdeaLanguage.ENGLISH,
             text = "How are you doing today? Hope everything is going well."
         ),
         QuickIdea(
-            section = IdeaSection.SHORT,
+            section = IdeaSection.LONG,
             language = IdeaLanguage.ENGLISH,
-            text = "Your voice model has been synthesized successfully."
-        ),
-        QuickIdea(
-            section = IdeaSection.SHORT,
-            language = IdeaLanguage.HINDI,
-            text = "नमस्ते! यह वॉइस क्लोनिंग प्रणाली का एक त्वरित परीक्षण है।"
-        ),
-        QuickIdea(
-            section = IdeaSection.SHORT,
-            language = IdeaLanguage.TELUGU,
-            text = "హలో! ఇది వాయిస్ క్లోనింగ్ సిస్టమ్ యొక్క శీఘ్ర పరీక్ష."
-        ),
-        QuickIdea(
-            section = IdeaSection.SHORT,
-            language = IdeaLanguage.TAMIL,
-            text = "வணக்கம்! இது குரல் குளோனிங் அமைப்பின் விரைவான சோதனை."
+            text = "Thank you for listening to this voice cloning demonstration."
         ),
 
-        // MEDIUM IDEAS (2-3 sentences)
+        // ==========================================
+        // HINDI SHORT PHRASES (हिंदी ~2.0s to 3.0s)
+        // ==========================================
         QuickIdea(
-            section = IdeaSection.MEDIUM,
-            language = IdeaLanguage.ENGLISH,
-            text = "Artificial intelligence is rapidly transforming how we communicate across different languages and cultures. With on-device neural voice cloning, you can generate natural speech in real time without relying on cloud servers or internet access."
+            section = IdeaSection.SHORT,
+            language = IdeaLanguage.HINDI,
+            text = "यह एक वॉइस क्लोनिंग का परीक्षण है।"
         ),
         QuickIdea(
-            section = IdeaSection.MEDIUM,
-            language = IdeaLanguage.ENGLISH,
-            text = "The weather is exceptionally pleasant outside this afternoon, with a gentle cool breeze and clear blue skies. It would be a great time to step out for a quick walk, catch some fresh air, and grab a cup of coffee."
+            section = IdeaSection.SHORT,
+            language = IdeaLanguage.HINDI,
+            text = "नमस्ते! आपका दिन शुभ और सुखद हो।"
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.HINDI,
-            text = "आर्टिफिशियल इंटेलिजेंस हमारे संवाद करने के तरीके को तेजी से बदल रहा है। ऑन-डिवाइस न्यूरल वॉइस क्लोनिंग के साथ, आप क्लाउड सर्वर पर निर्भर हुए बिना वास्तविक समय में स्वाभाविक आवाज उत्पन्न कर सकते हैं।"
+            text = "गूगल लाइट-आरटी फोन पर बहुत तेजी से चलता है।"
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
-            language = IdeaLanguage.TELUGU,
-            text = "కృత్రిమ మేధస్సు మనం వివిధ భాషలలో సంభాషించే విధానాన్ని వేగంగా మారుస్తోంది. ఆన్-డివైస్ న్యూరల్ వాయిస్ క్లోనింగ్ ద్వారా క్లౌడ్ సర్వర్‌లపై ఆధారపడకుండా రియల్ టైమ్‌లో సహజమైన ప్రసంగాన్ని రూపొందించవచ్చు."
+            language = IdeaLanguage.HINDI,
+            text = "आज मौसम बहुत सुहावना और खूबसूरत है।"
         ),
         QuickIdea(
-            section = IdeaSection.MEDIUM,
-            language = IdeaLanguage.TAMIL,
-            text = "செயற்கை நுண்ணறிவு மொழிகளுக்கு இடையேயான தகவல் தொடர்பை வேகமாக மாற்றி வருகிறது. சாதனத்திலேயே இயங்கும் குரல் குளோனிங் மூலம் கிளவுட் சேவையகம் இல்லாமல் இயற்கையான குரலை உருவாக்க முடியும்."
+            section = IdeaSection.LONG,
+            language = IdeaLanguage.HINDI,
+            text = "कृत्रिम बुद्धिमत्ता हमारे जीवन को आसान बना रही है।"
+        ),
+        QuickIdea(
+            section = IdeaSection.LONG,
+            language = IdeaLanguage.HINDI,
+            text = "क्या आप आज शाम को टहलने चलेंगे?"
         ),
 
-        // LONG IDEAS (Paragraph)
+        // ==========================================
+        // TELUGU SHORT PHRASES (తెలుగు ~2.0s to 3.0s)
+        // ==========================================
         QuickIdea(
-            section = IdeaSection.LONG,
-            language = IdeaLanguage.ENGLISH,
-            text = "The morning sun rose gently above the rolling green hills, casting a warm golden glow across the quiet valley below. A flock of wild geese soared gracefully against the amber dawn, while a cool morning mist slowly drifted through the pine forest. In the distance, the gentle rush of a mountain stream blended harmoniously with the awakening sounds of nature."
+            section = IdeaSection.SHORT,
+            language = IdeaLanguage.TELUGU,
+            text = "ఇది గూగుల్ లైట్-ఆర్టీతో వాయిస్ క్లోనింగ్ పరీక్ష."
         ),
         QuickIdea(
-            section = IdeaSection.LONG,
-            language = IdeaLanguage.HINDI,
-            text = "सुबह का सूरज धीरे-धीरे हरी पहाड़ियों के ऊपर उगा और नीचे शांत घाटी में एक सुनहरा प्रकाश बिखेर दिया। दूर पहाड़ों से बहने वाली नदी की कलकल ध्वनि प्रकृति के सुंदर वातावरण के साथ पूरी तरह घुलमिल गई, जिससे चारों ओर एक शांत और मनमोहक माहौल बन गया।"
+            section = IdeaSection.SHORT,
+            language = IdeaLanguage.TELUGU,
+            text = "నమస్కారం! మీ రోజు ఆహ్లాదకరంగా సాగాలని కోరుకుంటున్నాను."
+        ),
+        QuickIdea(
+            section = IdeaSection.MEDIUM,
+            language = IdeaLanguage.TELUGU,
+            text = "ఈ రోజు వాతావరణం చాలా ఆహ్లాదకరంగా మరియు చల్లగా ఉంది."
+        ),
+        QuickIdea(
+            section = IdeaSection.MEDIUM,
+            language = IdeaLanguage.TELUGU,
+            text = "కృత్రిమ మేధస్సు నేరుగా మీ మొబైల్ ఫోన్‌లో పనిచేస్తోంది."
         ),
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.TELUGU,
-            text = "ఉదయపు సూర్యుడు పచ్చని కొండల మీదుగా నెమ్మదిగా ఉదయించి, లోయ అంతటా వెచ్చని బంగారు కాంతిని ప్రసరింపజేశాడు. చెట్ల గుండా వీచే చల్లని పిల్లగాలులు మరియు సుదూర వాగుల మధురమైన శబ్దం ప్రకృతి అందాన్ని మరింత ఇనుమడింపజేశాయి."
+            text = "మీరు ఈ రోజు ఎలా ఉన్నారు? అంతా బాగుందా?"
+        ),
+        QuickIdea(
+            section = IdeaSection.LONG,
+            language = IdeaLanguage.TELUGU,
+            text = "ఈ వాయిస్ క్లోనింగ్ డెమో విన్నందుకు ధన్యవాదాలు."
+        ),
+
+        // ==========================================
+        // TAMIL SHORT PHRASES (தமிழ் ~2.0s to 3.0s)
+        // ==========================================
+        QuickIdea(
+            section = IdeaSection.SHORT,
+            language = IdeaLanguage.TAMIL,
+            text = "கூகிள் லைட்-ஆர்டி தொழில்நுட்பம் மூலம் குரல் உருவாக்கம்."
+        ),
+        QuickIdea(
+            section = IdeaSection.SHORT,
+            language = IdeaLanguage.TAMIL,
+            text = "வணக்கம்! உங்கள் நாள் மகிழ்ச்சியாக அமையட்டும்."
+        ),
+        QuickIdea(
+            section = IdeaSection.MEDIUM,
+            language = IdeaLanguage.TAMIL,
+            text = "இன்று வானிலை மிகவும் இனிமையாகவும் தென்றலாகவும் இருக்கிறது."
+        ),
+        QuickIdea(
+            section = IdeaSection.MEDIUM,
+            language = IdeaLanguage.TAMIL,
+            text = "செயற்கை நுண்ணறிவு நேரடியாக உங்கள் போனில் இயங்குகிறது."
         ),
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.TAMIL,
-            text = "காலை சூரியன் பசுமையான மலைகளுக்கு மேலே மெதுவாக எழுந்து, அமைதியான பள்ளத்தாக்கில் தங்கக் கதிர்களைப் பரப்பியது. பைன் மரக் காட்டின் வழியே குளிர்ந்த பனி மெல்ல நகர்ந்தது. தூரத்தில் உள்ள மலை ஓடையின் சலசலப்பு இயற்கையின் ஒலியோடு அழகாக இணைந்தது."
+            text = "நீங்கள் இன்று எப்படி இருக்கிறீர்கள்? எல்லாம் நலமா?"
+        ),
+        QuickIdea(
+            section = IdeaSection.LONG,
+            language = IdeaLanguage.TAMIL,
+            text = "இந்த குரல் சோதனையைக் கேட்டதற்கு மிக்க நன்றி."
         )
     )
 }
