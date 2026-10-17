@@ -35,6 +35,14 @@ public:
         int num_threads = 4
     );
 
+    // Initialize engine directly from file paths on local storage
+    bool initializeFromFiles(
+        const std::string& dit_model_path,
+        const std::string& vocos_model_path,
+        const std::string& vocab_path,
+        int num_threads = 4
+    );
+
     // End-to-end voice cloning synthesis
     std::vector<float> synthesize(
         const float* ref_pcm, size_t ref_pcm_samples,
@@ -54,13 +62,14 @@ private:
 
     TfLiteModel* dit_model_ = nullptr;
     TfLiteInterpreter* dit_interp_ = nullptr;
-    TfLiteDelegate* dit_xnnpack_ = nullptr;
+    TfLiteDelegate* dit_xnnpack_delegate_ = nullptr;
 
     TfLiteModel* vocos_model_ = nullptr;
     TfLiteInterpreter* vocos_interp_ = nullptr;
-    TfLiteDelegate* vocos_xnnpack_ = nullptr;
+    TfLiteDelegate* vocos_xnnpack_delegate_ = nullptr;
 
     IndicTokenizer tokenizer_;
+
     AudioProcessor audio_proc_;
     EulerSampler euler_sampler_;
 };

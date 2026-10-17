@@ -1,7 +1,15 @@
-#include "euler_sampler.h"
+﻿#include "euler_sampler.h"
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <string>
+#include <algorithm>
+#include <android/log.h>
+
+#define TAG "EulerSampler"
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
 namespace indic {
 
@@ -45,45 +53,103 @@ bool EulerSampler::sample(
     // 3. Compute time schedule
     std::vector<float> t_steps = computeSwaySchedule(num_steps, sway_coef);
 
-    // 4. Fetch tensor references
-    TfLiteTensor* in_x = TfLiteInterpreterGetInputTensor(dit_interp, 0);
-    TfLiteTensor* in_cond = TfLiteInterpreterGetInputTensor(dit_interp, 1);
-    TfLiteTensor* in_text = TfLiteInterpreterGetInputTensor(dit_interp, 2);
-    TfLiteTensor* in_t = TfLiteInterpreterGetInputTensor(dit_interp, 3);
-    const TfLiteTensor* out_v = TfLiteInterpreterGetOutputTensor(dit_interp, 0);
+    // 4. Bind input/output tensor references directly from the pre-allocated interpreter.
+    //
+    //    IMPORTANT: We do NOT use TfLiteSignatureRunner here. Calling
+    //    TfLiteSignatureRunnerAllocateTensors() after the interpreter has already been
+    //    fully allocated (in LiteRTIndicEngine::initializeFromFiles) triggers a second
+    //    arena allocation cycle that resets internal constant tensor arena pointers,
+    //    causing the "Input tensor 402 lacks data" error for arith.constant46 (~1.24 MB
+    //    INT8 weight tensor, alloc_type=kTfLiteArenaRw, data=0x0 after 2nd allocation).
+    //    We bypass SignatureRunner entirely and use raw interpreter tensor access,
+    //    relying on the arena that was already committed at engine initialization.
 
+    int raw_in_count = TfLiteInterpreterGetInputTensorCount(dit_interp);
+    LOGI("Raw interpreter input count: %d", raw_in_count);
+
+    TfLiteTensor* in_x    = nullptr;
+    TfLiteTensor* in_cond = nullptr;
+    TfLiteTensor* in_text = nullptr;
+    TfLiteTensor* in_t    = nullptr;
+    const TfLiteTensor* out_v = nullptr;
+
+    for (int i = 0; i < raw_in_count; ++i) {
+        TfLiteTensor* t = TfLiteInterpreterGetInputTensor(dit_interp, i);
+        if (!t) continue;
+        const char* name = TfLiteTensorName(t);
+        size_t bytes     = TfLiteTensorByteSize(t);
+        void*  data_ptr  = TfLiteTensorData(t);
+        LOGI("Raw interp input[%d]: name='%s', bytes=%zu, data=%p",
+             i, name ? name : "null", bytes, data_ptr);
+    }
+
+    // The DiT model exposes 4 inputs in fixed order (verified in Phase 5 logcat):
+    //   [0] serving_default_args_0 - x (noisy mel)   [1, FRAMES, MEL_BINS] float32  204800 bytes
+    //   [1] serving_default_args_1 - cond_mel         [1, FRAMES, MEL_BINS] float32  204800 bytes
+    //   [2] serving_default_args_2 - text_tokens      [1, TEXT_LEN]          int32      512 bytes
+    //   [3] serving_default_args_3 - t (time scalar)  [1]                    float32      4 bytes
+    if (raw_in_count >= 4) {
+        in_x    = TfLiteInterpreterGetInputTensor(dit_interp, 0);
+        in_cond = TfLiteInterpreterGetInputTensor(dit_interp, 1);
+        in_text = TfLiteInterpreterGetInputTensor(dit_interp, 2);
+        in_t    = TfLiteInterpreterGetInputTensor(dit_interp, 3);
+        out_v   = TfLiteInterpreterGetOutputTensor(dit_interp, 0);
+    }
+
+    // Validate all tensor handles and that their data buffers are live (non-null)
     if (!in_x || !in_cond || !in_text || !in_t || !out_v) {
-        std::cerr << "[EulerSampler] Failed to access DiT interpreter tensors" << std::endl;
+        LOGE("Failed to access all DiT interpreter tensors (handles null)");
         return false;
     }
+    if (!TfLiteTensorData(in_x) || !TfLiteTensorData(in_cond) ||
+        !TfLiteTensorData(in_text) || !TfLiteTensorData(in_t)) {
+        LOGE("One or more DiT input tensor data pointers are null - arena not allocated");
+        return false;
+    }
+
+    LOGI("Tensor bindings OK: in_x=%p(%zu) in_cond=%p(%zu) in_text=%p(%zu) in_t=%p(%zu) out_v=%p",
+         TfLiteTensorData(in_x),    TfLiteTensorByteSize(in_x),
+         TfLiteTensorData(in_cond), TfLiteTensorByteSize(in_cond),
+         TfLiteTensorData(in_text), TfLiteTensorByteSize(in_text),
+         TfLiteTensorData(in_t),    TfLiteTensorByteSize(in_t),
+         TfLiteTensorData(const_cast<TfLiteTensor*>(out_v)));
 
     // 5. Continuous Flow Matching Loop
     for (int step = 0; step < num_steps; ++step) {
         float t_val = t_steps[step];
-        float dt = t_steps[step + 1] - t_steps[step];
+        float dt    = t_steps[step + 1] - t_steps[step];
 
         // --- Conditioned Pass ---
-        TfLiteTensorCopyFromBuffer(in_x, mel_out, LATENT_ELEMENTS * sizeof(float));
-        TfLiteTensorCopyFromBuffer(in_cond, cond_mel, LATENT_ELEMENTS * sizeof(float));
-        TfLiteTensorCopyFromBuffer(in_text, text_tokens, TEXT_LEN * sizeof(int32_t));
-        TfLiteTensorCopyFromBuffer(in_t, &t_val, sizeof(float));
+        TfLiteStatus s_x    = TfLiteTensorCopyFromBuffer(in_x,    mel_out,     LATENT_ELEMENTS * sizeof(float));
+        TfLiteStatus s_cond = TfLiteTensorCopyFromBuffer(in_cond, cond_mel,    LATENT_ELEMENTS * sizeof(float));
+        TfLiteStatus s_text = TfLiteTensorCopyFromBuffer(in_text, text_tokens, TEXT_LEN        * sizeof(int32_t));
+        TfLiteStatus s_t    = TfLiteTensorCopyFromBuffer(in_t,    &t_val,      sizeof(float));
 
-        if (TfLiteInterpreterInvoke(dit_interp) != kTfLiteOk) {
-            std::cerr << "[EulerSampler] DiT conditioned invoke failed at step " << step << std::endl;
+        if (s_x != kTfLiteOk || s_cond != kTfLiteOk || s_text != kTfLiteOk || s_t != kTfLiteOk) {
+            LOGE("CopyFromBuffer failed at step %d: s_x=%d s_cond=%d s_text=%d s_t=%d",
+                 step, s_x, s_cond, s_text, s_t);
+            return false;
+        }
+
+        TfLiteStatus inv_status = TfLiteInterpreterInvoke(dit_interp);
+        if (inv_status != kTfLiteOk) {
+            LOGE("DiT conditioned invoke failed at step %d", step);
             return false;
         }
         TfLiteTensorCopyToBuffer(out_v, v_cond.data(), LATENT_ELEMENTS * sizeof(float));
 
         // --- Unconditioned Pass (Classifier-Free Guidance) ---
         TfLiteTensorCopyFromBuffer(in_cond, null_cond.data(), LATENT_ELEMENTS * sizeof(float));
-        TfLiteTensorCopyFromBuffer(in_text, null_text.data(), TEXT_LEN * sizeof(int32_t));
-        // in_x and in_t are unchanged
+        TfLiteTensorCopyFromBuffer(in_text, null_text.data(), TEXT_LEN        * sizeof(int32_t));
+        // in_x and in_t are unchanged from conditioned pass
 
-        if (TfLiteInterpreterInvoke(dit_interp) != kTfLiteOk) {
-            std::cerr << "[EulerSampler] DiT null invoke failed at step " << step << std::endl;
+        TfLiteStatus null_status = TfLiteInterpreterInvoke(dit_interp);
+        if (null_status != kTfLiteOk) {
+            LOGE("DiT null invoke failed at step %d", step);
             return false;
         }
-        const float* v_null_ptr = reinterpret_cast<const float*>(TfLiteTensorData(out_v));
+        std::vector<float> v_null(LATENT_ELEMENTS);
+        TfLiteTensorCopyToBuffer(out_v, v_null.data(), LATENT_ELEMENTS * sizeof(float));
 
         // --- Vector Field Combination & Euler Step ---
         // v = v_cond + (v_cond - v_null) * cfg
@@ -91,8 +157,8 @@ bool EulerSampler::sample(
         #pragma omp parallel for simd
         for (size_t i = 0; i < LATENT_ELEMENTS; ++i) {
             float vc = v_cond[i];
-            float vn = v_null_ptr[i];
-            float v = vc + (vc - vn) * cfg_strength;
+            float vn = v_null[i];
+            float v  = vc + (vc - vn) * cfg_strength;
             mel_out[i] += dt * v;
         }
     }

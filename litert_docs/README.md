@@ -148,8 +148,11 @@ c:/voice_cloning/
 │       ├── phase_2_parity_and_numerical_verification.md # Phase 2 Specification (Parity & Baseline)
 │       ├── phase_2_report.md                    # Phase 2 Verification Sign-off Report
 │       ├── phase_3_int8_quantization.md         # Phase 3 Specification (INT8 PTQ)
-│       └── phase_3_report.md                    # Phase 3 Verification Sign-off Report
-├── models/
+│       ├── phase_3_report.md                    # Phase 3 Verification Sign-off Report
+│       ├── phase_4_android_native_integration.md# Phase 4 Specification (NDK Pipeline)
+│       ├── phase_4_report.md                    # Phase 4 Build & Packaging Report
+│       └── phase_5_device_verification_report.md# Phase 5 Physical Device Hardware Verification
+│   ├── models/
 │   └── indicf5/                                 # Model Checkpoints & Export Artifacts
 │       ├── model.safetensors                    # 1.35 GB PyTorch IndicF5 Checkpoint
 │       ├── vocab.txt                            # Tokenizer Vocabulary

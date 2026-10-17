@@ -52,6 +52,46 @@ Java_com_indic_voice_LiteRTIndicEngine_nativeInit(
     return reinterpret_cast<jlong>(engine);
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_indic_voice_LiteRTIndicEngine_nativeInitFromFile(
+    JNIEnv* env,
+    jobject /* thiz */,
+    jstring dit_path_str,
+    jstring vocos_path_str,
+    jstring vocab_path_str,
+    jint num_threads
+) {
+    const char* dit_cstr = env->GetStringUTFChars(dit_path_str, nullptr);
+    const char* vocos_cstr = env->GetStringUTFChars(vocos_path_str, nullptr);
+    const char* vocab_cstr = env->GetStringUTFChars(vocab_path_str, nullptr);
+
+    std::string dit_path(dit_cstr);
+    std::string vocos_path(vocos_cstr);
+    std::string vocab_path(vocab_cstr);
+
+    env->ReleaseStringUTFChars(dit_path_str, dit_cstr);
+    env->ReleaseStringUTFChars(vocos_path_str, vocos_cstr);
+    env->ReleaseStringUTFChars(vocab_path_str, vocab_cstr);
+
+    auto* engine = new indic::LiteRTIndicEngine();
+    bool success = engine->initializeFromFiles(
+        dit_path,
+        vocos_path,
+        vocab_path,
+        num_threads
+    );
+
+    if (!success) {
+        LOGE("Failed to initialize LiteRT Indic Engine from files");
+        delete engine;
+        return 0;
+    }
+
+    LOGI("LiteRT Indic Engine initialized from files successfully with %d threads", num_threads);
+    return reinterpret_cast<jlong>(engine);
+}
+
+
 JNIEXPORT jfloatArray JNICALL
 Java_com_indic_voice_LiteRTIndicEngine_nativeSynthesize(
     JNIEnv* env,

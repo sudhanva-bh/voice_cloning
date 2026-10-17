@@ -9,6 +9,11 @@ android {
     buildToolsVersion = "35.0.0"
     ndkVersion = "28.2.13676358"
 
+    androidResources {
+        noCompress += listOf("tflite", "txt", "wav")
+    }
+
+
 
     defaultConfig {
 
@@ -87,7 +92,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     
-    // TensorFlow Lite / LiteRT Android Runtime with C API / Prefab
-    implementation("org.tensorflow:tensorflow-lite:2.16.1")
-    implementation("org.tensorflow:tensorflow-lite-api:2.16.1")
+    // Google LiteRT Android Runtime (AI Edge LiteRT 1.0.1)
+    implementation("com.google.ai.edge.litert:litert:1.0.1")
+    implementation("com.google.ai.edge.litert:litert-api:1.0.1")
 }

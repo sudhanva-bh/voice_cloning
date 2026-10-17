@@ -55,41 +55,44 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
     }
 
     private var enginePtr: Long = 0L
+    private val openResources = mutableListOf<AutoCloseable>()
 
     suspend fun initialize(numThreads: Int = 4): Boolean = withContext(Dispatchers.IO) {
         if (enginePtr != 0L) return@withContext true
 
-        val ditFd: AssetFileDescriptor = context.assets.openFd(DIT_MODEL_NAME)
-        val ditBuffer = loadModelMmap(ditFd)
-        val ditSize = ditFd.length
+        val ditFile = extractAssetIfNeeded(DIT_MODEL_NAME)
+        val vocosFile = extractAssetIfNeeded(VOCOS_MODEL_NAME)
+        val vocabFile = extractAssetIfNeeded(VOCAB_FILE_NAME)
 
-        val vocosFd: AssetFileDescriptor = context.assets.openFd(VOCOS_MODEL_NAME)
-        val vocosBuffer = loadModelMmap(vocosFd)
-        val vocosSize = vocosFd.length
-
-        val vocabText = context.assets.open(VOCAB_FILE_NAME).bufferedReader(Charsets.UTF_8).use {
-            it.readText()
-        }
-
-        enginePtr = nativeInit(
-            ditBuffer, ditSize,
-            vocosBuffer, vocosSize,
-            vocabText,
+        enginePtr = nativeInitFromFile(
+            ditFile.absolutePath,
+            vocosFile.absolutePath,
+            vocabFile.absolutePath,
             numThreads
         )
 
         return@withContext enginePtr != 0L
     }
 
-    private fun loadModelMmap(afd: AssetFileDescriptor): ByteBuffer {
-        val inputStream = FileInputStream(afd.fileDescriptor)
-        val channel = inputStream.channel
-        return channel.map(
-            FileChannel.MapMode.READ_ONLY,
-            afd.startOffset,
-            afd.declaredLength
-        )
+    private fun extractAssetIfNeeded(assetName: String): java.io.File {
+        val outFile = java.io.File(context.filesDir, assetName)
+        val expectedLength = try {
+            context.assets.openFd(assetName).length
+        } catch (e: Exception) {
+            -1L
+        }
+        // If file doesn't exist, size is 0, or size doesn't match uncompressed asset, copy from assets
+        if (!outFile.exists() || outFile.length() == 0L || (expectedLength > 0L && outFile.length() != expectedLength)) {
+            context.assets.open(assetName).use { input ->
+                outFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+        }
+        return outFile
     }
+
+
 
     suspend fun synthesize(
         refPcm: FloatArray,
@@ -131,7 +134,12 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
             nativeDestroy(enginePtr)
             enginePtr = 0L
         }
+        openResources.forEach {
+            try { it.close() } catch (ignored: Throwable) {}
+        }
+        openResources.clear()
     }
+
 
     // Native JNI functions
     private external fun nativeInit(
@@ -140,6 +148,14 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
         vocabStr: String,
         numThreads: Int
     ): Long
+
+    private external fun nativeInitFromFile(
+        ditPath: String,
+        vocosPath: String,
+        vocabPath: String,
+        numThreads: Int
+    ): Long
+
 
     private external fun nativeSynthesize(
         enginePtr: Long,
