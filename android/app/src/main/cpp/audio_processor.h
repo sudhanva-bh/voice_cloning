@@ -32,13 +32,11 @@ public:
     static std::vector<float> decodeWavBytes(const uint8_t* wav_bytes, size_t byte_len, int* out_sample_rate = nullptr);
 
 private:
-    void initMelFilterbank();
     void initHannWindow();
 
     kiss_fftr_cfg fft_cfg_;
     kiss_fftr_cfg ifft_cfg_;
     std::vector<float> hann_window_;
-    std::vector<std::vector<float>> mel_filters_; // [100][513]
 };
 
 } // namespace indic

@@ -129,6 +129,10 @@ class MainActivity : AppCompatActivity() {
                 binding.tvRtfInfo.text = "Real-Time Factor: ${String.format("%.2f", result.realTimeFactor)}x (${String.format("%.2f", result.audioDurationSec)}s audio)"
 
                 binding.btnPlay.isEnabled = true
+                try {
+                    val wavFile = java.io.File(filesDir, "generated_voice.wav")
+                    savePcmToWav(wavFile, result.audioSamples, 24000)
+                } catch (ignored: Exception) {}
                 audioPlayer.play(result.audioSamples, 24000)
             } catch (e: Exception) {
                 binding.tvLatencyInfo.text = "Synthesis Error: ${e.localizedMessage}"
@@ -137,6 +141,52 @@ class MainActivity : AppCompatActivity() {
                 binding.btnSynthesize.isEnabled = true
                 binding.progressBar.visibility = View.GONE
             }
+        }
+    }
+
+    private fun savePcmToWav(file: java.io.File, pcm: FloatArray, sampleRate: Int) {
+        val totalAudioLen = pcm.size * 2
+        val totalDataLen = totalAudioLen + 36
+        val channels = 1
+        val byteRate = sampleRate * channels * 2
+
+        file.outputStream().use { out ->
+            val header = ByteArray(44)
+            header[0] = 'R'.code.toByte(); header[1] = 'I'.code.toByte(); header[2] = 'F'.code.toByte(); header[3] = 'F'.code.toByte()
+            header[4] = (totalDataLen and 0xff).toByte()
+            header[5] = ((totalDataLen shr 8) and 0xff).toByte()
+            header[6] = ((totalDataLen shr 16) and 0xff).toByte()
+            header[7] = ((totalDataLen shr 24) and 0xff).toByte()
+            header[8] = 'W'.code.toByte(); header[9] = 'A'.code.toByte(); header[10] = 'V'.code.toByte(); header[11] = 'E'.code.toByte()
+            header[12] = 'f'.code.toByte(); header[13] = 'm'.code.toByte(); header[14] = 't'.code.toByte(); header[15] = ' '.code.toByte()
+            header[16] = 16; header[17] = 0; header[18] = 0; header[19] = 0
+            header[20] = 1; header[21] = 0
+            header[22] = channels.toByte(); header[23] = 0
+            header[24] = (sampleRate and 0xff).toByte()
+            header[25] = ((sampleRate shr 8) and 0xff).toByte()
+            header[26] = ((sampleRate shr 16) and 0xff).toByte()
+            header[27] = ((sampleRate shr 24) and 0xff).toByte()
+            header[28] = (byteRate and 0xff).toByte()
+            header[29] = ((byteRate shr 8) and 0xff).toByte()
+            header[30] = ((byteRate shr 16) and 0xff).toByte()
+            header[31] = ((byteRate shr 24) and 0xff).toByte()
+            header[32] = (channels * 2).toByte(); header[33] = 0
+            header[34] = 16; header[35] = 0
+            header[36] = 'd'.code.toByte(); header[37] = 'a'.code.toByte(); header[38] = 't'.code.toByte(); header[39] = 'a'.code.toByte()
+            header[40] = (totalAudioLen and 0xff).toByte()
+            header[41] = ((totalAudioLen shr 8) and 0xff).toByte()
+            header[42] = ((totalAudioLen shr 16) and 0xff).toByte()
+            header[43] = ((totalAudioLen shr 24) and 0xff).toByte()
+            out.write(header)
+
+            val pcmBytes = ByteArray(pcm.size * 2)
+            for (i in pcm.indices) {
+                val clamped = pcm[i].coerceIn(-1.0f, 1.0f)
+                val s16 = (clamped * 32767.0f).toInt().toShort()
+                pcmBytes[i * 2] = (s16.toInt() and 0xff).toByte()
+                pcmBytes[i * 2 + 1] = ((s16.toInt() shr 8) and 0xff).toByte()
+            }
+            out.write(pcmBytes)
         }
     }
 

@@ -1,4 +1,4 @@
-﻿#include "euler_sampler.h"
+#include "euler_sampler.h"
 #include <cmath>
 #include <cstring>
 #include <iostream>
@@ -88,11 +88,16 @@ bool EulerSampler::sample(
     //   [1] serving_default_args_1 - cond_mel         [1, FRAMES, MEL_BINS] float32  204800 bytes
     //   [2] serving_default_args_2 - text_tokens      [1, TEXT_LEN]          int32      512 bytes
     //   [3] serving_default_args_3 - t (time scalar)  [1]                    float32      4 bytes
+    int raw_out_count = TfLiteInterpreterGetOutputTensorCount(dit_interp);
+    LOGI("Raw interpreter output count: %d", raw_out_count);
+
     if (raw_in_count >= 4) {
         in_x    = TfLiteInterpreterGetInputTensor(dit_interp, 0);
         in_cond = TfLiteInterpreterGetInputTensor(dit_interp, 1);
         in_text = TfLiteInterpreterGetInputTensor(dit_interp, 2);
         in_t    = TfLiteInterpreterGetInputTensor(dit_interp, 3);
+    }
+    if (raw_out_count >= 1) {
         out_v   = TfLiteInterpreterGetOutputTensor(dit_interp, 0);
     }
 
@@ -107,17 +112,32 @@ bool EulerSampler::sample(
         return false;
     }
 
-    LOGI("Tensor bindings OK: in_x=%p(%zu) in_cond=%p(%zu) in_text=%p(%zu) in_t=%p(%zu) out_v=%p",
+    LOGI("out_v tensor details: name='%s', bytes=%zu, type=%d, num_dims=%d, shape=[%d, %d, %d]",
+         TfLiteTensorName(out_v), TfLiteTensorByteSize(out_v), TfLiteTensorType(out_v),
+         TfLiteTensorNumDims(out_v),
+         TfLiteTensorDim(out_v, 0), TfLiteTensorDim(out_v, 1),
+         TfLiteTensorNumDims(out_v) > 2 ? TfLiteTensorDim(out_v, 2) : -1);
+
+    LOGI("Tensor bindings OK: in_x=%p(%zu) in_cond=%p(%zu) in_text=%p(%zu) in_t=%p(%zu) out_v=%p(%zu)",
          TfLiteTensorData(in_x),    TfLiteTensorByteSize(in_x),
          TfLiteTensorData(in_cond), TfLiteTensorByteSize(in_cond),
          TfLiteTensorData(in_text), TfLiteTensorByteSize(in_text),
          TfLiteTensorData(in_t),    TfLiteTensorByteSize(in_t),
-         TfLiteTensorData(const_cast<TfLiteTensor*>(out_v)));
+         TfLiteTensorData(const_cast<TfLiteTensor*>(out_v)),
+         TfLiteTensorByteSize(out_v));
 
     // 5. Continuous Flow Matching Loop
     for (int step = 0; step < num_steps; ++step) {
         float t_val = t_steps[step];
         float dt    = t_steps[step + 1] - t_steps[step];
+
+        if (step == 0) {
+            LOGI("Step 0 inputs: mel_out[0..4]=[%.3f, %.3f, %.3f, %.3f, %.3f], cond_mel[0..4]=[%.3f, %.3f, %.3f, %.3f, %.3f], text[0..4]=[%d, %d, %d, %d, %d], t_val=%.4f",
+                 mel_out[0], mel_out[1], mel_out[2], mel_out[3], mel_out[4],
+                 cond_mel[0], cond_mel[1], cond_mel[2], cond_mel[3], cond_mel[4],
+                 text_tokens[0], text_tokens[1], text_tokens[2], text_tokens[3], text_tokens[4],
+                 t_val);
+        }
 
         // --- Conditioned Pass ---
         TfLiteStatus s_x    = TfLiteTensorCopyFromBuffer(in_x,    mel_out,     LATENT_ELEMENTS * sizeof(float));
@@ -136,6 +156,7 @@ bool EulerSampler::sample(
             LOGE("DiT conditioned invoke failed at step %d", step);
             return false;
         }
+
         TfLiteTensorCopyToBuffer(out_v, v_cond.data(), LATENT_ELEMENTS * sizeof(float));
 
         // --- Unconditioned Pass (Classifier-Free Guidance) ---
@@ -151,16 +172,30 @@ bool EulerSampler::sample(
         std::vector<float> v_null(LATENT_ELEMENTS);
         TfLiteTensorCopyToBuffer(out_v, v_null.data(), LATENT_ELEMENTS * sizeof(float));
 
+        if (step == 0) {
+            LOGI("Step 0 unconditioned v_null[0..4]=[%.3f, %.3f, %.3f, %.3f, %.3f]",
+                 v_null[0], v_null[1], v_null[2], v_null[3], v_null[4]);
+        }
+
         // --- Vector Field Combination & Euler Step ---
         // v = v_cond + (v_cond - v_null) * cfg
         // x = x + dt * v
-        #pragma omp parallel for simd
+        float norm_vc = 0.0f, norm_vn = 0.0f, norm_v = 0.0f;
+        int nan_vc_cnt = 0, nan_vn_cnt = 0;
         for (size_t i = 0; i < LATENT_ELEMENTS; ++i) {
             float vc = v_cond[i];
             float vn = v_null[i];
+            if (std::isnan(vc)) nan_vc_cnt++;
+            if (std::isnan(vn)) nan_vn_cnt++;
             float v  = vc + (vc - vn) * cfg_strength;
             mel_out[i] += dt * v;
+            norm_vc += vc * vc;
+            norm_vn += vn * vn;
+            norm_v  += v * v;
         }
+        LOGI("[EulerSampler] Step %d/%d (t=%.3f, dt=%.3f): |vc|=%.2f (nans=%d), |vn|=%.2f (nans=%d), |v|=%.2f",
+             step + 1, num_steps, t_val, dt,
+             std::sqrt(norm_vc), nan_vc_cnt, std::sqrt(norm_vn), nan_vn_cnt, std::sqrt(norm_v));
     }
 
     return true;

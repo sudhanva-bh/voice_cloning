@@ -319,16 +319,9 @@ void* TfLiteTensorData(const TfLiteTensor* tensor) {
 }
 
 TfLiteStatus TfLiteTensorCopyFromBuffer(TfLiteTensor* tensor, const void* input_data, size_t input_data_size) {
-    ensure_tflite_loaded();
-    if (p_TfLiteTensorCopyFromBuffer) {
-        TfLiteStatus status = p_TfLiteTensorCopyFromBuffer(tensor, input_data, input_data_size);
-        LOGI("p_TfLiteTensorCopyFromBuffer for '%s' (%zu bytes) returned status=%d",
-             TfLiteTensorName(tensor), input_data_size, status);
-        if (status == kTfLiteOk) return kTfLiteOk;
-    }
+    if (!tensor || !input_data) return kTfLiteError;
     void* dst = TfLiteTensorData(tensor);
-    LOGW("Fallback to memcpy for '%s': dst=%p", TfLiteTensorName(tensor), dst);
-    if (dst && input_data && input_data_size > 0) {
+    if (dst && input_data_size > 0) {
         std::memcpy(dst, input_data, input_data_size);
         return kTfLiteOk;
     }
@@ -336,13 +329,9 @@ TfLiteStatus TfLiteTensorCopyFromBuffer(TfLiteTensor* tensor, const void* input_
 }
 
 TfLiteStatus TfLiteTensorCopyToBuffer(const TfLiteTensor* tensor, void* output_data, size_t output_data_size) {
-    ensure_tflite_loaded();
-    if (p_TfLiteTensorCopyToBuffer) {
-        TfLiteStatus status = p_TfLiteTensorCopyToBuffer(tensor, output_data, output_data_size);
-        if (status == kTfLiteOk) return kTfLiteOk;
-    }
+    if (!tensor || !output_data) return kTfLiteError;
     const void* src = TfLiteTensorData(tensor);
-    if (src && output_data && output_data_size > 0) {
+    if (src && output_data_size > 0) {
         std::memcpy(output_data, src, output_data_size);
         return kTfLiteOk;
     }

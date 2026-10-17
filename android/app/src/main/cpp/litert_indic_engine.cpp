@@ -128,6 +128,13 @@ bool LiteRTIndicEngine::initializeFromFiles(
 
     TfLiteInterpreterOptions* dit_options = TfLiteInterpreterOptionsCreate();
     TfLiteInterpreterOptionsSetNumThreads(dit_options, num_threads_);
+
+    dit_xnnpack_delegate_ = TfLiteXNNPackDelegateCreate(nullptr);
+    if (dit_xnnpack_delegate_) {
+        TfLiteInterpreterOptionsAddDelegate(dit_options, dit_xnnpack_delegate_);
+        LOGI("[LiteRTIndicEngine] Attached official XNNPACK delegate to DiT interpreter options");
+    }
+
     dit_interp_ = TfLiteInterpreterCreate(dit_model_, dit_options);
     TfLiteInterpreterOptionsDelete(dit_options);
 
@@ -136,69 +143,12 @@ bool LiteRTIndicEngine::initializeFromFiles(
         return false;
     }
 
-    // Explicitly resize dynamic input tensors to concrete shapes first.
-    // XNNPACK requires concrete dimensions to build its execution plan.
-    int dit_dims_mel[] = {1, EulerSampler::FRAMES, EulerSampler::MEL_BINS}; // [1, 512, 100]
-    int dit_dims_text[] = {1, EulerSampler::TEXT_LEN};                      // [1, 128]
-    int dit_dims_t[] = {1};                                                  // [1]
-
-    TfLiteStatus s0 = TfLiteInterpreterResizeInputTensor(dit_interp_, 0, dit_dims_mel, 3);
-    TfLiteStatus s1 = TfLiteInterpreterResizeInputTensor(dit_interp_, 1, dit_dims_mel, 3);
-    TfLiteStatus s2 = TfLiteInterpreterResizeInputTensor(dit_interp_, 2, dit_dims_text, 2);
-    TfLiteStatus s3 = TfLiteInterpreterResizeInputTensor(dit_interp_, 3, dit_dims_t, 1);
-    LOGI("[LiteRTIndicEngine] DiT ResizeInputTensor status: s0=%d, s1=%d, s2=%d, s3=%d", s0, s1, s2, s3);
-
-    // CRITICAL FIX (Phase 5 root cause resolved):
-    // TfLiteInterpreterModifyGraphWithDelegate() internally calls AllocateTensors().
-    // If AllocateTensors() is called AGAIN afterwards it performs a second arena
-    // allocation cycle that resets the data pointer of kTfLiteArenaRw constant
-    // tensors (e.g. arith.constant46 / tensor 402, ~1.24 MB INT8) to 0x0, causing
-    // "Input tensor 402 lacks data" on the first Invoke().
-    //
-    // Correct sequence:
-    //   1. Resize → 2. ModifyGraphWithDelegate (does AllocateTensors internally) → DONE
-    //   If delegate fails → fall back to CPU → call AllocateTensors() manually.
-    //   Never call AllocateTensors() after a SUCCESSFUL ModifyGraphWithDelegate.
-    {
-        TfLiteXNNPackDelegateOptions xnnpack_opts = TfLiteXNNPackDelegateOptionsDefault();
-        xnnpack_opts.num_threads = num_threads_;
-        dit_xnnpack_delegate_ = TfLiteXNNPackDelegateCreate(&xnnpack_opts);
-    }
-
-    bool dit_delegate_ok = false;
-    if (dit_xnnpack_delegate_) {
-        TfLiteStatus del_status = TfLiteInterpreterModifyGraphWithDelegate(dit_interp_, dit_xnnpack_delegate_);
-        LOGI("[LiteRTIndicEngine] DiT ModifyGraphWithDelegate returned %d", del_status);
-        if (del_status == kTfLiteOk) {
-            // ModifyGraphWithDelegate ran AllocateTensors internally — do NOT call again.
-            dit_delegate_ok = true;
-            LOGI("[LiteRTIndicEngine] DiT tensors allocated via XNNPACK delegate (skipping extra AllocateTensors)");
-        } else {
-            LOGW("[LiteRTIndicEngine] DiT delegate modify failed; falling back to CPU-only interpreter");
-            TfLiteXNNPackDelegateDelete(dit_xnnpack_delegate_);
-            dit_xnnpack_delegate_ = nullptr;
-            // Recreate a clean interpreter (delegate contaminated the previous one)
-            TfLiteInterpreterDelete(dit_interp_);
-            TfLiteInterpreterOptions* clean_opts = TfLiteInterpreterOptionsCreate();
-            TfLiteInterpreterOptionsSetNumThreads(clean_opts, num_threads_);
-            dit_interp_ = TfLiteInterpreterCreate(dit_model_, clean_opts);
-            TfLiteInterpreterOptionsDelete(clean_opts);
-            TfLiteInterpreterResizeInputTensor(dit_interp_, 0, dit_dims_mel, 3);
-            TfLiteInterpreterResizeInputTensor(dit_interp_, 1, dit_dims_mel, 3);
-            TfLiteInterpreterResizeInputTensor(dit_interp_, 2, dit_dims_text, 2);
-            TfLiteInterpreterResizeInputTensor(dit_interp_, 3, dit_dims_t, 1);
-        }
-    }
-
     TfLiteStatus alloc_status = TfLiteInterpreterAllocateTensors(dit_interp_);
     if (alloc_status != kTfLiteOk) {
         LOGE("[LiteRTIndicEngine] Failed to allocate DiT tensors from file (status=%d)", alloc_status);
         return false;
     }
-    LOGI("[LiteRTIndicEngine] DiT tensors allocated successfully");
-
-    TfLiteStatus r_status = TfLiteInterpreterResetVariableTensors(dit_interp_);
-    LOGI("[LiteRTIndicEngine] TfLiteInterpreterResetVariableTensors returned status=%d", r_status);
+    LOGI("[LiteRTIndicEngine] DiT tensors allocated successfully with XNNPACK");
 
     // 3. Initialize Vocos Interpreter from file
     vocos_model_ = TfLiteModelCreateFromFile(vocos_model_path.c_str());
@@ -209,6 +159,12 @@ bool LiteRTIndicEngine::initializeFromFiles(
 
     TfLiteInterpreterOptions* vocos_options = TfLiteInterpreterOptionsCreate();
     TfLiteInterpreterOptionsSetNumThreads(vocos_options, num_threads_);
+    vocos_xnnpack_delegate_ = TfLiteXNNPackDelegateCreate(nullptr);
+    if (vocos_xnnpack_delegate_) {
+        TfLiteInterpreterOptionsAddDelegate(vocos_options, vocos_xnnpack_delegate_);
+        LOGI("[LiteRTIndicEngine] Attached official XNNPACK delegate to Vocos interpreter options");
+    }
+
     vocos_interp_ = TfLiteInterpreterCreate(vocos_model_, vocos_options);
     TfLiteInterpreterOptionsDelete(vocos_options);
 
@@ -217,37 +173,11 @@ bool LiteRTIndicEngine::initializeFromFiles(
         return false;
     }
 
-    // Resize Vocos input mel: [1, 100, 512]
-    int voc_dims[] = {1, EulerSampler::MEL_BINS, EulerSampler::FRAMES};
-    TfLiteInterpreterResizeInputTensor(vocos_interp_, 0, voc_dims, 3);
-
-    {
-        TfLiteXNNPackDelegateOptions xnnpack_opts = TfLiteXNNPackDelegateOptionsDefault();
-        xnnpack_opts.num_threads = num_threads_;
-        vocos_xnnpack_delegate_ = TfLiteXNNPackDelegateCreate(&xnnpack_opts);
-    }
-
-    if (vocos_xnnpack_delegate_) {
-        TfLiteStatus voc_del_status = TfLiteInterpreterModifyGraphWithDelegate(vocos_interp_, vocos_xnnpack_delegate_);
-        LOGI("[LiteRTIndicEngine] Vocos ModifyGraphWithDelegate returned %d", voc_del_status);
-        if (voc_del_status != kTfLiteOk) {
-            LOGW("[LiteRTIndicEngine] Vocos delegate modify failed; falling back to clean CPU interpreter");
-            TfLiteXNNPackDelegateDelete(vocos_xnnpack_delegate_);
-            vocos_xnnpack_delegate_ = nullptr;
-            TfLiteInterpreterDelete(vocos_interp_);
-            TfLiteInterpreterOptions* clean_opts = TfLiteInterpreterOptionsCreate();
-            TfLiteInterpreterOptionsSetNumThreads(clean_opts, num_threads_);
-            vocos_interp_ = TfLiteInterpreterCreate(vocos_model_, clean_opts);
-            TfLiteInterpreterOptionsDelete(clean_opts);
-            TfLiteInterpreterResizeInputTensor(vocos_interp_, 0, voc_dims, 3);
-        }
-    }
-
     if (TfLiteInterpreterAllocateTensors(vocos_interp_) != kTfLiteOk) {
         LOGE("[LiteRTIndicEngine] Failed to allocate Vocos tensors from file");
         return false;
     }
-    LOGI("[LiteRTIndicEngine] Vocos tensors allocated successfully");
+    LOGI("[LiteRTIndicEngine] Vocos tensors allocated successfully with XNNPACK");
 
     ready_ = true;
     return true;
@@ -343,16 +273,50 @@ std::vector<float> LiteRTIndicEngine::synthesize(
     const float* spec_imag = spec_data.data() + spec_plane;
 
 
-    std::vector<float> full_waveform = audio_proc_.synthesizeWaveform(spec_real, spec_imag, total_frames);
+    std::vector<float> full_waveform = audio_proc_.synthesizeWaveform(spec_real, spec_imag, AudioProcessor::MAX_FRAMES);
 
-    // Slice only the generated target audio (skip reference audio frames)
+    // Save debug dumps for on-device vs PC parity verification
+    {
+        std::ofstream f_mel("/data/data/com.indic.voice/files/debug_mel_out.bin", std::ios::binary);
+        if (f_mel.is_open()) {
+            f_mel.write(reinterpret_cast<const char*>(mel_out.data()), mel_out.size() * sizeof(float));
+        }
+        std::ofstream f_spec("/data/data/com.indic.voice/files/debug_vocos_spec.bin", std::ios::binary);
+        if (f_spec.is_open()) {
+            f_spec.write(reinterpret_cast<const char*>(spec_data.data()), spec_data.size() * sizeof(float));
+        }
+    }
+
+    // Slice only the generated target audio (skip reference audio frames, end at total_frames)
     size_t ref_samples = static_cast<size_t>(ref_frames) * AudioProcessor::HOP_LENGTH;
+    size_t end_samples = std::min(static_cast<size_t>(total_frames) * AudioProcessor::HOP_LENGTH, full_waveform.size());
     std::vector<float> gen_waveform;
     if (full_waveform.size() > ref_samples) {
-        gen_waveform.assign(full_waveform.begin() + ref_samples, full_waveform.end());
+        gen_waveform.assign(full_waveform.begin() + ref_samples, full_waveform.begin() + end_samples);
     } else {
         gen_waveform = std::move(full_waveform);
     }
+
+    // Target audio peak normalization to 0.95 (exact parity with Python inference)
+    float peak = 0.0f;
+    for (float s : gen_waveform) {
+        if (std::abs(s) > peak) peak = std::abs(s);
+    }
+    if (peak > 1e-4f) {
+        float scale = 0.95f / peak;
+        for (float& s : gen_waveform) {
+            s *= scale;
+        }
+    }
+
+    LOGI("[LiteRTIndicEngine] ref_frames=%d, total_frames=%d, full_wav=%zu, gen_wav=%zu (ref_samples=%zu, end_samples=%zu)",
+         ref_frames, total_frames, full_waveform.size(), gen_waveform.size(), ref_samples, end_samples);
+    float pmin = 0.0f, pmax = 0.0f;
+    for (float s : gen_waveform) {
+        if (s < pmin) pmin = s;
+        if (s > pmax) pmax = s;
+    }
+    LOGI("[LiteRTIndicEngine] gen_waveform min=%f, max=%f", pmin, pmax);
 
     auto t_istft = std::chrono::high_resolution_clock::now();
 

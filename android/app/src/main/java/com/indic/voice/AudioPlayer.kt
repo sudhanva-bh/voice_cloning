@@ -19,7 +19,7 @@ class AudioPlayer {
             AudioFormat.ENCODING_PCM_FLOAT
         )
 
-        val bufferSize = maxOf(minBufferSize, samples.size * 4)
+        val bufferSize = maxOf(minBufferSize * 2, 8192)
 
         audioTrack = AudioTrack.Builder()
             .setAudioAttributes(

@@ -1,4 +1,5 @@
 #include "audio_processor.h"
+#include "mel_filterbank.h"
 #include <cmath>
 #include <algorithm>
 #include <cstring>
@@ -6,19 +7,10 @@
 
 namespace indic {
 
-static inline float hzToMel(float hz) {
-    return 2595.0f * std::log10(1.0f + hz / 700.0f);
-}
-
-static inline float melToHz(float mel) {
-    return 700.0f * (std::pow(10.0f, mel / 2595.0f) - 1.0f);
-}
-
 AudioProcessor::AudioProcessor() {
     fft_cfg_ = kiss_fftr_alloc(N_FFT, 0, nullptr, nullptr);
     ifft_cfg_ = kiss_fftr_alloc(N_FFT, 1, nullptr, nullptr);
     initHannWindow();
-    initMelFilterbank();
 }
 
 AudioProcessor::~AudioProcessor() {
@@ -33,74 +25,67 @@ void AudioProcessor::initHannWindow() {
     }
 }
 
-void AudioProcessor::initMelFilterbank() {
-    int num_bins = N_FFT / 2 + 1; // 513
-    mel_filters_.assign(N_MELS, std::vector<float>(num_bins, 0.0f));
-
-    float min_mel = hzToMel(0.0f);
-    float max_mel = hzToMel(SAMPLE_RATE / 2.0f); // 12000 Hz
-
-    std::vector<float> mel_points(N_MELS + 2);
-    for (int i = 0; i < N_MELS + 2; ++i) {
-        mel_points[i] = min_mel + i * (max_mel - min_mel) / (N_MELS + 1);
-    }
-
-    std::vector<int> bin_points(N_MELS + 2);
-    for (int i = 0; i < N_MELS + 2; ++i) {
-        float hz = melToHz(mel_points[i]);
-        bin_points[i] = std::min(num_bins - 1, static_cast<int>(std::floor((N_FFT + 1) * hz / SAMPLE_RATE)));
-    }
-
-    for (int m = 1; m <= N_MELS; ++m) {
-        int left = bin_points[m - 1];
-        int center = bin_points[m];
-        int right = bin_points[m + 1];
-
-        for (int k = left; k < center; ++k) {
-            if (center != left) {
-                mel_filters_[m - 1][k] = static_cast<float>(k - left) / (center - left);
-            }
-        }
-        for (int k = center; k < right; ++k) {
-            if (right != center) {
-                mel_filters_[m - 1][k] = static_cast<float>(right - k) / (right - center);
-            }
-        }
-    }
-}
-
 int AudioProcessor::extractMel(const float* audio_data, size_t num_samples, float* mel_out, int max_frames) {
-    if (num_samples < static_cast<size_t>(N_FFT)) {
+    if (num_samples == 0) {
         return 0;
     }
 
-    int total_frames = static_cast<int>((num_samples - N_FFT) / HOP_LENGTH) + 1;
+    // 1. RMS normalization to target_rms = 0.1 (matches torchaudio & F5-TTS)
+    float sum_sq = 0.0f;
+    for (size_t i = 0; i < num_samples; ++i) {
+        sum_sq += audio_data[i] * audio_data[i];
+    }
+    float rms = std::sqrt(sum_sq / static_cast<float>(num_samples));
+    float scale = 1.0f;
+    if (rms < 0.1f && rms > 1e-6f) {
+        scale = 0.1f / rms;
+    }
+
+    // 2. Center padding with N_FFT / 2 (512 samples) on both sides (torchaudio center=True)
+    size_t pad = N_FFT / 2; // 512
+    size_t padded_len = num_samples + 2 * pad;
+    std::vector<float> padded_audio(padded_len, 0.0f);
+    for (size_t i = 0; i < num_samples; ++i) {
+        padded_audio[pad + i] = audio_data[i] * scale;
+    }
+    // Reflection padding
+    for (size_t i = 0; i < pad; ++i) {
+        size_t src = (i < num_samples) ? pad + (pad - i) : pad;
+        if (src >= padded_len) src = pad;
+        padded_audio[i] = padded_audio[src];
+    }
+    for (size_t i = 0; i < pad; ++i) {
+        size_t src = (num_samples > 1 + i) ? pad + num_samples - 2 - i : pad + num_samples - 1;
+        if (src >= padded_len) src = pad + num_samples - 1;
+        padded_audio[pad + num_samples + i] = padded_audio[src];
+    }
+
+    int total_frames = static_cast<int>(num_samples / HOP_LENGTH) + 1;
     int frames = std::min(total_frames, max_frames);
 
     std::vector<kiss_fft_scalar> frame_in(N_FFT);
     std::vector<kiss_fft_cpx> frame_out(N_FFT / 2 + 1);
+    std::vector<float> mag_spec(N_FFT / 2 + 1);
 
     for (int t = 0; t < frames; ++t) {
-        size_t offset = t * HOP_LENGTH;
+        size_t offset = static_cast<size_t>(t) * HOP_LENGTH;
         for (int n = 0; n < N_FFT; ++n) {
-            frame_in[n] = audio_data[offset + n] * hann_window_[n];
+            frame_in[n] = padded_audio[offset + n] * hann_window_[n];
         }
 
         kiss_fftr(fft_cfg_, frame_in.data(), frame_out.data());
 
-        // Linear power spectrum
-        std::vector<float> power_spec(N_FFT / 2 + 1);
+        // Magnitude spectrum (power = 1)
         for (int k = 0; k <= N_FFT / 2; ++k) {
-            power_spec[k] = frame_out[k].r * frame_out[k].r + frame_out[k].i * frame_out[k].i;
+            mag_spec[k] = std::sqrt(frame_out[k].r * frame_out[k].r + frame_out[k].i * frame_out[k].i);
         }
 
-        // Apply 100 mel filterbanks & log clamp
+        // Apply 100 mel filterbanks (TORCHAUDIO_MEL_FB is [513][100]) & clamp min 1e-5, log()
         for (int m = 0; m < N_MELS; ++m) {
             float energy = 0.0f;
             for (int k = 0; k <= N_FFT / 2; ++k) {
-                energy += power_spec[k] * mel_filters_[m][k];
+                energy += mag_spec[k] * TORCHAUDIO_MEL_FB[k][m];
             }
-            // Clamp min 1e-5 and log()
             mel_out[t * N_MELS + m] = std::log(std::max(energy, 1e-5f));
         }
     }
@@ -119,9 +104,9 @@ std::vector<float> AudioProcessor::synthesizeWaveform(const float* spec_real, co
 
     for (int t = 0; t < num_frames; ++t) {
         for (int k = 0; k < num_bins; ++k) {
-            // [513, 512] column-major or row-major depending on input
-            freq_frame[k].r = spec_real[k * num_frames + t];
-            freq_frame[k].i = spec_imag[k * num_frames + t];
+            // Vocos output is [1, 2, 513, 512] row-major in time (stride = MAX_FRAMES = 512)
+            freq_frame[k].r = spec_real[k * MAX_FRAMES + t];
+            freq_frame[k].i = spec_imag[k * MAX_FRAMES + t];
         }
 
         kiss_fftri(ifft_cfg_, freq_frame.data(), time_frame.data());
@@ -136,23 +121,35 @@ std::vector<float> AudioProcessor::synthesizeWaveform(const float* spec_real, co
         }
     }
 
-    // Overlap-add window normalization & peak scaling
-    float peak = 0.0f;
+    // Overlap-add window normalization
     for (size_t i = 0; i < out_len; ++i) {
         if (window_envelope[i] > 1e-4f) {
             output_waveform[i] /= window_envelope[i];
         }
-        peak = std::max(peak, std::abs(output_waveform[i]));
+    }
+
+    // Strip padding: PyTorch istft(center=True) strips N_FFT / 2 (512) from front and back
+    size_t pad = N_FFT / 2; // 512
+    if (out_len <= 2 * pad) {
+        return {};
+    }
+    size_t trimmed_len = out_len - 2 * pad;
+    std::vector<float> trimmed_waveform(output_waveform.begin() + pad, output_waveform.begin() + pad + trimmed_len);
+
+    // Peak normalization
+    float peak = 0.0f;
+    for (float s : trimmed_waveform) {
+        peak = std::max(peak, std::abs(s));
     }
 
     if (peak > 1e-4f) {
         float scale = 0.95f / peak;
-        for (size_t i = 0; i < out_len; ++i) {
-            output_waveform[i] *= scale;
+        for (float& s : trimmed_waveform) {
+            s *= scale;
         }
     }
 
-    return output_waveform;
+    return trimmed_waveform;
 }
 
 std::vector<float> AudioProcessor::decodeWavBytes(const uint8_t* wav_bytes, size_t byte_len, int* out_sample_rate) {
