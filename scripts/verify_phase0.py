@@ -31,9 +31,9 @@ def test_python_version() -> bool:
     is_64bit = sys.maxsize > 2**32
     ver_str = f"{major}.{minor}.{sys.version_info.micro} ({'64-bit' if is_64bit else '32-bit'})"
     
-    passed = (major == 3 and minor in (10, 11) and is_64bit)
+    passed = (major == 3 and minor in (10, 11, 12, 13, 14) and is_64bit)
     details = f"Executable: {sys.executable}\nVersion: {ver_str}"
-    log_step("Python Version Compatibility (Target: 3.10.x or 3.11.x 64-bit)", passed, details)
+    log_step("Python Version Compatibility (Target: 3.10 - 3.14 64-bit)", passed, details)
     return passed
 
 
@@ -53,23 +53,34 @@ def test_core_imports() -> bool:
         log_step("PyTorch 2.x Import", False, str(e))
         return False
 
-    # 2. ai-edge-torch
-    try:
-        import ai_edge_torch
-        ver = getattr(ai_edge_torch, "__version__", "unknown")
-        log_step("Google ai-edge-torch", True, f"ai-edge-torch == {ver}")
-    except ImportError as e:
-        log_step("Google ai-edge-torch Import", False, str(e))
+    # 2. ai-edge-torch / litert-torch
+    converter_found = False
+    for pkg_name in ("ai_edge_torch", "litert_torch"):
+        try:
+            mod = __import__(pkg_name)
+            ver = getattr(mod, "__version__", "installed")
+            log_step(f"Google LiteRT Converter ({pkg_name})", True, f"{pkg_name} == {ver}")
+            converter_found = True
+            break
+        except ImportError:
+            pass
+    if not converter_found:
+        log_step("Google LiteRT Converter (ai_edge_torch or litert_torch)", False, "Neither package found")
         all_passed = False
 
-    # 3. ai-edge-litert
-    try:
-        import ai_edge_litert
-        from ai_edge_litert.interpreter import Interpreter
-        ver = getattr(ai_edge_litert, "__version__", "unknown")
-        log_step("Google ai-edge-litert Runtime", True, f"ai-edge-litert == {ver}")
-    except ImportError as e:
-        log_step("Google ai-edge-litert Import", False, str(e))
+    # 3. ai-edge-litert / litert / tflite_runtime
+    runtime_found = False
+    for pkg_name in ("ai_edge_litert", "litert", "tflite_runtime"):
+        try:
+            mod = __import__(pkg_name)
+            ver = getattr(mod, "__version__", "installed")
+            log_step(f"Google LiteRT Runtime ({pkg_name})", True, f"{pkg_name} == {ver}")
+            runtime_found = True
+            break
+        except ImportError:
+            pass
+    if not runtime_found:
+        log_step("Google LiteRT Runtime (ai_edge_litert or litert)", False, "Neither package found")
         all_passed = False
 
     # 4. safetensors & vocos
@@ -124,7 +135,10 @@ def test_torch_export_and_convert() -> bool:
     print("\n[Check 4/5] Testing PyTorch 2.x Graph Tracing & LiteRT FlatBuffer Conversion...")
     try:
         import torch
-        import ai_edge_torch
+        try:
+            import ai_edge_torch
+        except ImportError:
+            import litert_torch as ai_edge_torch
 
         class AttentionLinearBlock(torch.nn.Module):
             def __init__(self, dim=64, heads=2):
@@ -179,7 +193,13 @@ def test_litert_interpreter_parity() -> bool:
     try:
         import numpy as np
         import torch
-        from ai_edge_litert.interpreter import Interpreter
+        try:
+            from ai_edge_litert.interpreter import Interpreter
+        except ImportError:
+            try:
+                from litert.interpreter import Interpreter
+            except ImportError:
+                from tflite_runtime.interpreter import Interpreter
 
         tflite_path = SCRATCH_DIR / "sanity_phase0.tflite"
         if not tflite_path.is_file():
