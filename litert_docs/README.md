@@ -139,19 +139,27 @@ c:/voice_cloning/
 │   └── phase_wise_implementation/               # Granular Phase Specifications & Reports
 │       ├── phase_0_toolchain_and_environment.md # Phase 0 Specification
 │       ├── phase_0_report.md                    # Phase 0 Verification Sign-off Report
-│       └── phase_1_graph_tracing_and_export.md  # Phase 1 Specification (Graph Export)
+│       ├── phase_1_graph_tracing_and_export.md  # Phase 1 Specification (Graph Export)
+│       ├── phase_1_report.md                    # Phase 1 Verification Sign-off Report
+│       ├── phase_2_parity_and_numerical_verification.md # Phase 2 Specification (Parity & Baseline)
+│       ├── phase_2_report.md                    # Phase 2 Verification Sign-off Report
+│       └── phase_3_int8_quantization.md         # Phase 3 Specification (INT8 PTQ)
 ├── models/
 │   └── indicf5/                                 # Model Checkpoints & Export Artifacts
 │       ├── model.safetensors                    # 1.35 GB PyTorch IndicF5 Checkpoint
 │       ├── vocab.txt                            # Tokenizer Vocabulary
-│       ├── indicf5_dit_fp32.tflite              # (Phase 1 Target) DiT FP32 FlatBuffer
-│       ├── indicf5_vocos_fp32.tflite            # (Phase 1 Target) Vocos FP32 FlatBuffer
-│       ├── indicf5_dit_int8.tflite              # (Phase 3 Target) Quantized DiT FlatBuffer
-│       └── indicf5_vocos_int8.tflite            # (Phase 3 Target) Quantized Vocos FlatBuffer
+│       ├── indicf5_dit_fp32.tflite              # DiT FP32 FlatBuffer (1,288 MB)
+│       ├── indicf5_vocos_fp32.tflite            # Vocos FP32 FlatBuffer (51.65 MB)
+│       ├── indicf5_dit_int8.tflite              # (Phase 3 Target) Quantized DiT FlatBuffer (~349 MB)
+│       └── indicf5_vocos_int8.tflite            # (Phase 3 Target) Quantized Vocos FlatBuffer (~22 MB)
 ├── scripts/                                     # Automation, Export & Test Scripts
 │   ├── verify_phase0.py                         # Phase 0 Automated Gate Verification Suite
-│   ├── export_dit_litert.py                     # (Phase 1 Target) DiT Graph Export Script
-│   └── export_vocos_litert.py                   # (Phase 1 Target) Vocos Graph Export Script
+│   ├── export_dit_litert.py                     # DiT Graph Export Script
+│   ├── export_vocos_litert.py                   # Vocos Graph Export Script
+│   ├── infer_litert.py                          # Desktop LiteRT Euler ODE Inference Engine
+│   ├── evaluate_parity.py                       # Dual-Engine Numerical Parity & MCD Evaluator
+│   ├── quantize_litert.py                       # (Phase 3 Target) INT8 Post-Training Quantizer
+│   └── benchmark_int8.py                        # (Phase 3 Target) INT8 Parity & Performance Suite
 ├── scratch/
 │   └── indicf5_repo/                            # F5-TTS Architecture Definition Source
 ├── litert-wsl-env/                              # WSL2 Python 3.14/LiteRT Compilation Env
