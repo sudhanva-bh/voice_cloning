@@ -144,8 +144,13 @@ c:/voice_cloning/
 │   │   ├── phase_1_2/                           # Phases 1 & 2: M3 Dark Layout & AudioRecord
 │   │   ├── phase_3_4/                           # Phases 3 & 4: Presets, Player & Badges
 │   │   └── phase_5_6/                           # Phases 5 & 6: History Library & Export
-│   ├── long_clips_support/                      # Long Clips & Paragraph Synthesis Plan
-│   │   └── long_clips_implementation_plan.md    # Multi-chunk synthesis & stitching specification
+│   ├── long_clips_support/                      # Long Clips & Multi-Sentence Paragraph Pipeline
+│   │   ├── long_clips_implementation_plan.md    # Master Long Clips Specification
+│   │   ├── phase_a/                             # Phase A: Multilingual Text Splitter & Chunker
+│   │   ├── phase_b/                             # Phase B: C++ Native Engine Mel Caching & Chunk Synthesis
+│   │   ├── phase_c/                             # Phase C: Waveform Stitching & 5ms Cosine Crossfade
+│   │   ├── phase_d/                             # Phase D: Kotlin Coroutine Orchestration & Dynamic Progress
+│   │   └── phase_e/                             # Phase E: Preset Expansion & Physical S23 Deployment
 │   └── phase_wise_implementation/               # Granular Phase Specifications & Reports
 │       ├── phase_0_toolchain_and_environment.md # Phase 0 Specification
 │       ├── phase_0_report.md                    # Phase 0 Verification Sign-off Report
