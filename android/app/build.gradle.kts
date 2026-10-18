@@ -95,4 +95,7 @@ dependencies {
     // Google LiteRT Android Runtime (AI Edge LiteRT 1.0.1)
     implementation("com.google.ai.edge.litert:litert:1.0.1")
     implementation("com.google.ai.edge.litert:litert-api:1.0.1")
+
+    // Unit Testing
+    testImplementation("junit:junit:4.13.2")
 }
