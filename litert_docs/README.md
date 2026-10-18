@@ -140,6 +140,12 @@ c:/voice_cloning/
 ├── litert_docs/                                 # Central LiteRT documentation
 │   ├── README.md                                # This document (Master Workflow Guide)
 │   ├── litert_implementation_plan.md            # Master 6-Phase Strategic Roadmap
+│   ├── app_parity/                              # Flutter UI Parity Implementation Plans & Reports
+│   │   ├── phase_1_2/                           # Phases 1 & 2: M3 Dark Layout & AudioRecord
+│   │   ├── phase_3_4/                           # Phases 3 & 4: Presets, Player & Badges
+│   │   └── phase_5_6/                           # Phases 5 & 6: History Library & Export
+│   ├── long_clips_support/                      # Long Clips & Paragraph Synthesis Plan
+│   │   └── long_clips_implementation_plan.md    # Multi-chunk synthesis & stitching specification
 │   └── phase_wise_implementation/               # Granular Phase Specifications & Reports
 │       ├── phase_0_toolchain_and_environment.md # Phase 0 Specification
 │       ├── phase_0_report.md                    # Phase 0 Verification Sign-off Report
