@@ -36,9 +36,19 @@
                 android:textStyle="bold" />
 
             <ImageButton
+                android:id="@+id/ibShareClip"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Share audio clip"
+                android:src="@android:drawable/ic_menu_share"
+                app:tint="@color/accent_green" />
+
+            <ImageButton
                 android:id="@+id/ibExportClip"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
+                android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Export to Downloads"
                 android:src="@android:drawable/stat_sys_download"

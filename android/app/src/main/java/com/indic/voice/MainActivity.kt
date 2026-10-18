@@ -1,14 +1,17 @@
 package com.indic.voice
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -172,6 +175,9 @@ class MainActivity : AppCompatActivity() {
             onExport = { clipItem ->
                 exportClipToDownloads(clipItem.file, clipItem.displayTitle)
             },
+            onShare = { clipItem ->
+                shareAudioClip(clipItem.file, clipItem.displayTitle)
+            },
             onDelete = { clipItem ->
                 deleteClipFromHistory(clipItem)
             }
@@ -179,6 +185,13 @@ class MainActivity : AppCompatActivity() {
 
         binding.rvGenerationHistory.layoutManager = LinearLayoutManager(this)
         binding.rvGenerationHistory.adapter = historyAdapter
+
+        binding.btnShareLatest.setOnClickListener {
+            latestGeneratedFile?.let { file ->
+                val title = binding.tvLatestTitle.text.toString()
+                shareAudioClip(file, title)
+            }
+        }
 
         binding.btnExportLatest.setOnClickListener {
             latestGeneratedFile?.let { file ->
@@ -285,6 +298,31 @@ class MainActivity : AppCompatActivity() {
                 .show()
         } else {
             Toast.makeText(this, "Failed to export audio to Downloads", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun shareAudioClip(file: File, displayTitle: String) {
+        if (!file.exists()) {
+            Toast.makeText(this, "Audio file not found", Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            val uri = FileProvider.getUriForFile(
+                this,
+                "${applicationContext.packageName}.fileprovider",
+                file
+            )
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "audio/wav"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, displayTitle)
+                putExtra(Intent.EXTRA_TEXT, "Voice cloned with Indic LiteRT Voice Cloning")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(shareIntent, "Share Audio Clip"))
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to share audio clip", e)
+            Toast.makeText(this, "Failed to share: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 

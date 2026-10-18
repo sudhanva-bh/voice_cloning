@@ -12,6 +12,7 @@ import com.indic.voice.SeekableAudioPlayerView
 
 class HistoryAdapter(
     private val onExport: (GeneratedClipItem) -> Unit,
+    private val onShare: (GeneratedClipItem) -> Unit,
     private val onDelete: (GeneratedClipItem) -> Unit
 ) : RecyclerView.Adapter<HistoryAdapter.ViewHolder>() {
 
@@ -25,6 +26,7 @@ class HistoryAdapter(
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvTitle: TextView = view.findViewById(R.id.tvClipTitle)
+        val ibShare: ImageButton = view.findViewById(R.id.ibShareClip)
         val ibExport: ImageButton = view.findViewById(R.id.ibExportClip)
         val ibDelete: ImageButton = view.findViewById(R.id.ibDeleteClip)
         val llBadges: LinearLayout = view.findViewById(R.id.llClipBadges)
@@ -66,6 +68,10 @@ class HistoryAdapter(
         }
 
         holder.player.setAudioPath(item.file.absolutePath)
+
+        holder.ibShare.setOnClickListener {
+            onShare(item)
+        }
 
         holder.ibExport.setOnClickListener {
             onExport(item)

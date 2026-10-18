@@ -793,6 +793,20 @@
                             android:layout_weight="1" />
 
                         <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnShareLatest"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="32dp"
+                            android:layout_marginEnd="6dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:text="Share"
+                            android:textColor="@color/text_primary"
+                            android:textSize="11sp"
+                            app:icon="@android:drawable/ic_menu_share"
+                            app:iconSize="14dp" />
+
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnExportLatest"
                             style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="wrap_content"
