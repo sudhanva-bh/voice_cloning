@@ -52,7 +52,7 @@ public:
     // Synthesize an individual speech chunk against cached reference audio
     std::vector<float> synthesizeChunk(
         const std::string& chunk_text,
-        int num_steps = 8,
+        int num_steps = 16,
         float cfg_strength = 2.0f,
         uint32_t seed = 42,
         EngineTelemetry* out_telemetry = nullptr
@@ -63,7 +63,7 @@ public:
         const float* ref_pcm, size_t ref_pcm_samples,
         const std::string& ref_text,
         const std::string& target_text,
-        int num_steps = 8,
+        int num_steps = 16,
         float cfg_strength = 2.0f,
         uint32_t seed = 42,
         EngineTelemetry* out_telemetry = nullptr

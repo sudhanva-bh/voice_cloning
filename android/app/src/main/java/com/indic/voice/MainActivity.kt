@@ -154,7 +154,6 @@ class MainActivity : AppCompatActivity() {
 
         binding.rgSteps.setOnCheckedChangeListener { _, checkedId ->
             val steps = when (checkedId) {
-                binding.rbStep6.id -> 6
                 binding.rbStep8.id -> 8
                 binding.rbStep24.id -> 24
                 else -> 16
@@ -222,7 +221,6 @@ class MainActivity : AppCompatActivity() {
         binding.etTargetText.setText(sessionCache.targetText)
 
         when (sessionCache.cfmSteps) {
-            6 -> binding.rbStep6.isChecked = true
             8 -> binding.rbStep8.isChecked = true
             24 -> binding.rbStep24.isChecked = true
             else -> binding.rbStep16.isChecked = true
@@ -551,11 +549,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val (steps, cfg) = when (binding.rgSteps.checkedRadioButtonId) {
-            binding.rbStep6.id -> Pair(6, 0.7f)
-            binding.rbStep8.id -> Pair(8, 1.0f)
-            binding.rbStep24.id -> Pair(24, 2.0f)
-            else -> Pair(16, 2.0f)
+        val steps = when (binding.rgSteps.checkedRadioButtonId) {
+            binding.rbStep8.id -> 8
+            binding.rbStep24.id -> 24
+            else -> 16
         }
 
         binding.playerRefAudio.pause()
@@ -611,7 +608,7 @@ class MainActivity : AppCompatActivity() {
                     val chunkRes = engine.synthesizeChunk(
                         chunkText = chunk.text,
                         numSteps = steps,
-                        cfgStrength = cfg,
+                        cfgStrength = 2.0f,
                         seed = 42 + chunk.index
                     )
 

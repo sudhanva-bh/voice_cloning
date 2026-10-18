@@ -129,18 +129,18 @@ class WaveformStitcherTest {
         val defaultStitcher = WaveformStitcher()
         assertEquals(30, defaultStitcher.interSentenceSilenceMs)
         assertEquals(720, defaultStitcher.silenceSamples) // 30ms * 24000 / 1000 = 720 samples
-        assertEquals(0.005f, defaultStitcher.silenceThreshold)
-        assertEquals(60.0f, defaultStitcher.cushionMs)
-        assertEquals(200, defaultStitcher.trailingComfortSilenceMs)
+        assertEquals(0.012f, defaultStitcher.silenceThreshold)
+        assertEquals(15.0f, defaultStitcher.cushionMs)
+        assertEquals(150, defaultStitcher.trailingComfortSilenceMs)
         assertTrue(defaultStitcher.trimSilence)
     }
 
     @Test
     fun testTrailingComfortSilencePadding() {
-        val stitcherWithPadding = WaveformStitcher(trailingComfortSilenceMs = 200)
+        val stitcherWithPadding = WaveformStitcher(trailingComfortSilenceMs = 150)
         val chunk = FloatArray(2400) { 0.5f }
         val stitched = stitcherWithPadding.stitch(listOf(chunk))
-        // 2400 + 200ms * 24000 / 1000 = 2400 + 4800 = 7200 samples
-        assertEquals(2400 + 4800, stitched.size)
+        // 2400 + 150ms * 24000 / 1000 = 2400 + 3600 = 6000 samples
+        assertEquals(2400 + 3600, stitched.size)
     }
 }

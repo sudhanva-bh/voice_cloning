@@ -540,19 +540,9 @@
                         android:orientation="horizontal">
 
                         <RadioButton
-                            android:id="@+id/rbStep6"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="6 (Turbo)"
-                            android:textColor="@color/text_primary"
-                            android:textSize="11sp" />
-
-                        <RadioButton
                             android:id="@+id/rbStep8"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
-                            android:checked="true"
                             android:text="8 (Fast)"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />
@@ -561,7 +551,8 @@
                             android:id="@+id/rbStep16"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
+                            android:layout_marginStart="8dp"
+                            android:checked="true"
                             android:text="16 (Balanced)"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />
@@ -570,7 +561,7 @@
                             android:id="@+id/rbStep24"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
+                            android:layout_marginStart="8dp"
                             android:text="24 (HQ)"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />

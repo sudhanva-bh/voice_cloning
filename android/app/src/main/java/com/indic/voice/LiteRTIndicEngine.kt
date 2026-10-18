@@ -104,7 +104,7 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
 
     suspend fun synthesizeChunk(
         chunkText: String,
-        numSteps: Int = 8,
+        numSteps: Int = 16,
         cfgStrength: Float = 2.0f,
         seed: Int = 42
     ): SynthesisResult = withContext(Dispatchers.Default) {
@@ -137,7 +137,7 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
         refPcm: FloatArray,
         refText: String,
         targetText: String,
-        numSteps: Int = 8,
+        numSteps: Int = 16,
         cfgStrength: Float = 2.0f,
         seed: Int = 42
     ): SynthesisResult = withContext(Dispatchers.Default) {

@@ -20,9 +20,9 @@ class WaveformStitcher(
     val fadeDurationMs: Float = 5.0f,
     val targetPeak: Float = 0.95f,
     val trimSilence: Boolean = true,
-    val silenceThreshold: Float = 0.005f,
-    val cushionMs: Float = 60.0f,
-    val trailingComfortSilenceMs: Int = 200
+    val silenceThreshold: Float = 0.012f,
+    val cushionMs: Float = 15.0f,
+    val trailingComfortSilenceMs: Int = 150
 ) {
 
     val fadeSamples: Int = (sampleRate * (fadeDurationMs / 1000f)).toInt().coerceAtLeast(1)
