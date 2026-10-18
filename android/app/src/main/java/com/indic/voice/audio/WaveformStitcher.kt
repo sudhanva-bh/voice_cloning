@@ -21,13 +21,15 @@ class WaveformStitcher(
     val targetPeak: Float = 0.95f,
     val trimSilence: Boolean = true,
     val silenceThreshold: Float = 0.012f,
-    val cushionMs: Float = 15.0f,
-    val trailingComfortSilenceMs: Int = 150
+    val cushionMs: Float = 25.0f,
+    val finalCushionMs: Float = 120.0f,
+    val trailingComfortSilenceMs: Int = 450
 ) {
 
     val fadeSamples: Int = (sampleRate * (fadeDurationMs / 1000f)).toInt().coerceAtLeast(1)
     val silenceSamples: Int = (sampleRate * (interSentenceSilenceMs / 1000f)).toInt().coerceAtLeast(0)
     val cushionSamples: Int = (sampleRate * (cushionMs / 1000f)).toInt().coerceAtLeast(0)
+    val finalCushionSamples: Int = (sampleRate * (finalCushionMs / 1000f)).toInt().coerceAtLeast(0)
     val trailingComfortSamples: Int = (sampleRate * (trailingComfortSilenceMs / 1000f)).toInt().coerceAtLeast(0)
 
     // Precomputed raised-cosine (Hann) fade ramps
@@ -49,9 +51,20 @@ class WaveformStitcher(
         val validChunks = chunks.filter { it.isNotEmpty() }
         if (validChunks.isEmpty()) return FloatArray(0)
 
-        // Optionally trim leading and trailing silence on each chunk to eliminate window dead air
+        // Optionally trim silence: intermediate chunks get tight trimming (cushionMs),
+        // while the final chunk receives generous trailing cushion (finalCushionMs)
+        // to protect the natural phoneme decay of the last sentence.
         val preparedChunks = if (trimSilence) {
-            validChunks.map { trimSilence(it) }.filter { it.isNotEmpty() }
+            validChunks.mapIndexed { index, chunk ->
+                val isLastChunk = (index == validChunks.size - 1)
+                val trailCushion = if (isLastChunk) finalCushionSamples else cushionSamples
+                trimSilence(
+                    samples = chunk,
+                    threshold = silenceThreshold,
+                    leadingCushion = cushionSamples,
+                    trailingCushion = trailCushion
+                )
+            }.filter { it.isNotEmpty() }
         } else {
             validChunks
         }
@@ -97,13 +110,14 @@ class WaveformStitcher(
     }
 
     /**
-     * Trims leading and trailing silence below [threshold], preserving [cushion] samples
-     * to protect natural phoneme onset and decay.
+     * Trims leading and trailing silence below [threshold], preserving [leadingCushion]
+     * and [trailingCushion] samples to protect natural phoneme onset and decay.
      */
     fun trimSilence(
         samples: FloatArray,
         threshold: Float = silenceThreshold,
-        cushion: Int = cushionSamples
+        leadingCushion: Int = cushionSamples,
+        trailingCushion: Int = cushionSamples
     ): FloatArray {
         if (samples.isEmpty()) return samples
 
@@ -126,8 +140,8 @@ class WaveformStitcher(
             }
         }
 
-        val trimStart = (start - cushion).coerceAtLeast(0)
-        val trimEnd = (end + 1 + cushion).coerceAtMost(samples.size)
+        val trimStart = (start - leadingCushion).coerceAtLeast(0)
+        val trimEnd = (end + 1 + trailingCushion).coerceAtMost(samples.size)
 
         return if (trimStart > 0 || trimEnd < samples.size) {
             samples.copyOfRange(trimStart, trimEnd)
@@ -135,6 +149,20 @@ class WaveformStitcher(
             samples
         }
     }
+
+    /**
+     * Backward-compatible overload for symmetric cushion.
+     */
+    fun trimSilence(
+        samples: FloatArray,
+        threshold: Float,
+        cushion: Int
+    ): FloatArray = trimSilence(
+        samples = samples,
+        threshold = threshold,
+        leadingCushion = cushion,
+        trailingCushion = cushion
+    )
 
     /**
      * Applies in-place raised-cosine fade-in at the start and fade-out at the end of the buffer.

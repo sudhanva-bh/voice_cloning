@@ -130,17 +130,42 @@ class WaveformStitcherTest {
         assertEquals(30, defaultStitcher.interSentenceSilenceMs)
         assertEquals(720, defaultStitcher.silenceSamples) // 30ms * 24000 / 1000 = 720 samples
         assertEquals(0.012f, defaultStitcher.silenceThreshold)
-        assertEquals(15.0f, defaultStitcher.cushionMs)
-        assertEquals(150, defaultStitcher.trailingComfortSilenceMs)
+        assertEquals(25.0f, defaultStitcher.cushionMs)
+        assertEquals(120.0f, defaultStitcher.finalCushionMs)
+        assertEquals(450, defaultStitcher.trailingComfortSilenceMs)
         assertTrue(defaultStitcher.trimSilence)
     }
 
     @Test
     fun testTrailingComfortSilencePadding() {
-        val stitcherWithPadding = WaveformStitcher(trailingComfortSilenceMs = 150)
+        val stitcherWithPadding = WaveformStitcher(trailingComfortSilenceMs = 450)
         val chunk = FloatArray(2400) { 0.5f }
         val stitched = stitcherWithPadding.stitch(listOf(chunk))
-        // 2400 + 150ms * 24000 / 1000 = 2400 + 3600 = 6000 samples
-        assertEquals(2400 + 3600, stitched.size)
+        // 2400 + 450ms * 24000 / 1000 = 2400 + 10800 = 13200 samples
+        assertEquals(2400 + 10800, stitched.size)
+    }
+
+    @Test
+    fun testAsymmetricTrimmingProtectsFinalChunkTail() {
+        val stitcher = WaveformStitcher(
+            cushionMs = 10.0f,        // 240 samples
+            finalCushionMs = 50.0f,   // 1200 samples
+            interSentenceSilenceMs = 0,
+            trailingComfortSilenceMs = 0
+        )
+
+        // Chunk 1: 500 silent, 1000 speech, 2000 silent
+        val chunk1 = FloatArray(3500)
+        for (i in 500 until 1500) chunk1[i] = 0.5f
+
+        // Chunk 2: 500 silent, 1000 speech, 2000 silent
+        val chunk2 = FloatArray(3500)
+        for (i in 500 until 1500) chunk2[i] = 0.5f
+
+        // Chunk 1 trimmed: leading 240 + speech 1000 + trailing 240 = 1480
+        // Chunk 2 trimmed: leading 240 + speech 1000 + trailing 1200 (final cushion) = 2440
+        // Total stitched: 1480 + 2440 = 3920
+        val stitched = stitcher.stitch(listOf(chunk1, chunk2))
+        assertEquals(3920, stitched.size)
     }
 }
