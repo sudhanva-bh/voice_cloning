@@ -92,6 +92,83 @@ Java_com_indic_voice_LiteRTIndicEngine_nativeInitFromFile(
 }
 
 
+JNIEXPORT jboolean JNICALL
+Java_com_indic_voice_LiteRTIndicEngine_nativeSetReferenceAudio(
+    JNIEnv* env,
+    jobject /* thiz */,
+    jlong engine_ptr,
+    jfloatArray ref_pcm_array,
+    jstring ref_text_str
+) {
+    auto* engine = reinterpret_cast<indic::LiteRTIndicEngine*>(engine_ptr);
+    if (!engine || !engine->isReady()) {
+        LOGE("nativeSetReferenceAudio: Engine pointer is invalid or not ready");
+        return JNI_FALSE;
+    }
+
+    jsize pcm_len = env->GetArrayLength(ref_pcm_array);
+    jfloat* pcm_elements = env->GetFloatArrayElements(ref_pcm_array, nullptr);
+    const char* ref_cstr = env->GetStringUTFChars(ref_text_str, nullptr);
+
+    std::string ref_text(ref_cstr);
+    env->ReleaseStringUTFChars(ref_text_str, ref_cstr);
+
+    bool ok = engine->setReferenceAudio(pcm_elements, static_cast<size_t>(pcm_len), ref_text);
+    env->ReleaseFloatArrayElements(ref_pcm_array, pcm_elements, JNI_ABORT);
+
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jfloatArray JNICALL
+Java_com_indic_voice_LiteRTIndicEngine_nativeSynthesizeChunk(
+    JNIEnv* env,
+    jobject /* thiz */,
+    jlong engine_ptr,
+    jstring chunk_text_str,
+    jint num_steps,
+    jfloat cfg_strength,
+    jint seed,
+    jfloatArray out_telemetry_array
+) {
+    auto* engine = reinterpret_cast<indic::LiteRTIndicEngine*>(engine_ptr);
+    if (!engine || !engine->isReady() || !engine->hasReferenceAudio()) {
+        LOGE("nativeSynthesizeChunk: Engine not ready or reference audio not set");
+        return nullptr;
+    }
+
+    const char* chunk_cstr = env->GetStringUTFChars(chunk_text_str, nullptr);
+    std::string chunk_text(chunk_cstr);
+    env->ReleaseStringUTFChars(chunk_text_str, chunk_cstr);
+
+    indic::EngineTelemetry telemetry{};
+    std::vector<float> audio_out = engine->synthesizeChunk(
+        chunk_text,
+        num_steps, cfg_strength, static_cast<uint32_t>(seed),
+        &telemetry
+    );
+
+    // Populate telemetry: [0]=mel_ms, [1]=diff_ms, [2]=voc_ms, [3]=istft_ms, [4]=total_ms, [5]=dur_sec, [6]=rtf
+    if (out_telemetry_array) {
+        jfloat telem_data[7] = {
+            telemetry.mel_extract_time_ms,
+            telemetry.diffusion_time_ms,
+            telemetry.vocos_time_ms,
+            telemetry.istft_time_ms,
+            telemetry.total_time_ms,
+            telemetry.audio_duration_sec,
+            telemetry.real_time_factor
+        };
+        env->SetFloatArrayRegion(out_telemetry_array, 0, 7, telem_data);
+    }
+
+    jfloatArray result = env->NewFloatArray(audio_out.size());
+    if (!audio_out.empty()) {
+        env->SetFloatArrayRegion(result, 0, audio_out.size(), audio_out.data());
+    }
+
+    return result;
+}
+
 JNIEXPORT jfloatArray JNICALL
 Java_com_indic_voice_LiteRTIndicEngine_nativeSynthesize(
     JNIEnv* env,

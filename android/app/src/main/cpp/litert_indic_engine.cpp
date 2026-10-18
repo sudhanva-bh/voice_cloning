@@ -184,6 +184,143 @@ bool LiteRTIndicEngine::initializeFromFiles(
 }
 
 
+bool LiteRTIndicEngine::setReferenceAudio(
+    const float* ref_pcm, size_t ref_pcm_samples,
+    const std::string& ref_text
+) {
+    if (!ready_ || !ref_pcm || ref_pcm_samples == 0) {
+        LOGE("[LiteRTIndicEngine] setReferenceAudio: Engine not ready or invalid PCM");
+        return false;
+    }
+
+    cached_ref_mel_.assign(AudioProcessor::MAX_FRAMES * AudioProcessor::N_MELS, 0.0f);
+    cached_ref_frames_ = audio_proc_.extractMel(ref_pcm, ref_pcm_samples, cached_ref_mel_.data(), AudioProcessor::MAX_FRAMES);
+    cached_ref_text_ = ref_text;
+    has_cached_ref_ = (cached_ref_frames_ > 0);
+
+    LOGI("[LiteRTIndicEngine] Cached reference audio: frames=%d, text_len=%zu", cached_ref_frames_, cached_ref_text_.length());
+    return has_cached_ref_;
+}
+
+std::vector<float> LiteRTIndicEngine::synthesizeChunk(
+    const std::string& chunk_text,
+    int num_steps,
+    float cfg_strength,
+    uint32_t seed,
+    EngineTelemetry* out_telemetry
+) {
+    if (!ready_ || !has_cached_ref_) {
+        LOGE("[LiteRTIndicEngine] synthesizeChunk: Engine not ready or no reference audio cached");
+        return {};
+    }
+
+    auto t_start = std::chrono::high_resolution_clock::now();
+
+    // 1. Duration allocation using cached reference frames
+    size_t ref_char_len = std::max<size_t>(cached_ref_text_.length(), 1);
+    size_t gen_char_len = std::max<size_t>(chunk_text.length(), 1);
+    int gen_frames = static_cast<int>(static_cast<float>(cached_ref_frames_) / ref_char_len * gen_char_len * 1.05f);
+    int total_frames = std::min(cached_ref_frames_ + gen_frames, AudioProcessor::MAX_FRAMES);
+    gen_frames = total_frames - cached_ref_frames_;
+
+    // 2. Prepare conditioning mel and tokens
+    std::vector<float> cond_mel(EulerSampler::LATENT_ELEMENTS, 0.0f);
+    std::memcpy(cond_mel.data(), cached_ref_mel_.data(), cached_ref_frames_ * AudioProcessor::N_MELS * sizeof(float));
+
+    std::string full_text = cached_ref_text_ + " " + chunk_text;
+    std::vector<int32_t> text_tokens = tokenizer_.encode(full_text, EulerSampler::TEXT_LEN, -1);
+
+    auto t_mel = std::chrono::high_resolution_clock::now();
+
+    // 3. Run CFM Euler ODE Sampler
+    std::vector<float> mel_out(EulerSampler::LATENT_ELEMENTS);
+    bool sample_ok = euler_sampler_.sample(
+        dit_interp_,
+        cond_mel.data(),
+        text_tokens.data(),
+        mel_out.data(),
+        num_steps,
+        cfg_strength,
+        -1.0f, // sway_coef
+        seed
+    );
+    if (!sample_ok) {
+        LOGE("EulerSampler failed to complete CFM ODE steps in chunk");
+        return {};
+    }
+
+    auto t_diff = std::chrono::high_resolution_clock::now();
+
+    // 4. Vocos Neural Vocoding
+    std::memcpy(mel_out.data(), cached_ref_mel_.data(), cached_ref_frames_ * AudioProcessor::N_MELS * sizeof(float));
+
+    // Transpose mel from [512, 100] (time, mel) to Vocos input layout [1, 100, 512] (mel, time)
+    TfLiteTensor* voc_in = TfLiteInterpreterGetInputTensor(vocos_interp_, 0);
+    std::vector<float> voc_in_buf(AudioProcessor::N_MELS * AudioProcessor::MAX_FRAMES);
+
+    for (int t = 0; t < AudioProcessor::MAX_FRAMES; ++t) {
+        for (int m = 0; m < AudioProcessor::N_MELS; ++m) {
+            voc_in_buf[m * AudioProcessor::MAX_FRAMES + t] = mel_out[t * AudioProcessor::N_MELS + m];
+        }
+    }
+    TfLiteTensorCopyFromBuffer(voc_in, voc_in_buf.data(), voc_in_buf.size() * sizeof(float));
+
+    if (TfLiteInterpreterInvoke(vocos_interp_) != kTfLiteOk) {
+        LOGE("[LiteRTIndicEngine] Vocos invoke failed in chunk");
+        return {};
+    }
+
+    auto t_voc = std::chrono::high_resolution_clock::now();
+
+    // 5. iSTFT Waveform Synthesis
+    const TfLiteTensor* voc_out = TfLiteInterpreterGetOutputTensor(vocos_interp_, 0);
+    const size_t spec_plane = 513 * AudioProcessor::MAX_FRAMES;
+    std::vector<float> spec_data(2 * spec_plane);
+    TfLiteTensorCopyToBuffer(voc_out, spec_data.data(), spec_data.size() * sizeof(float));
+
+    const float* spec_real = spec_data.data();
+    const float* spec_imag = spec_data.data() + spec_plane;
+
+    std::vector<float> full_waveform = audio_proc_.synthesizeWaveform(spec_real, spec_imag, AudioProcessor::MAX_FRAMES);
+
+    // Slice only the generated target audio (skip reference audio frames, end at total_frames)
+    size_t ref_samples = static_cast<size_t>(cached_ref_frames_) * AudioProcessor::HOP_LENGTH;
+    size_t end_samples = std::min(static_cast<size_t>(total_frames) * AudioProcessor::HOP_LENGTH, full_waveform.size());
+    std::vector<float> gen_waveform;
+    if (full_waveform.size() > ref_samples) {
+        gen_waveform.assign(full_waveform.begin() + ref_samples, full_waveform.begin() + end_samples);
+    } else {
+        gen_waveform = std::move(full_waveform);
+    }
+
+    // Target audio peak normalization to 0.95
+    float peak = 0.0f;
+    for (float s : gen_waveform) {
+        if (std::abs(s) > peak) peak = std::abs(s);
+    }
+    if (peak > 1e-4f) {
+        float scale = 0.95f / peak;
+        for (float& s : gen_waveform) {
+            s *= scale;
+        }
+    }
+
+    auto t_istft = std::chrono::high_resolution_clock::now();
+
+    // 6. Telemetry recording
+    if (out_telemetry) {
+        out_telemetry->mel_extract_time_ms = 0.0f; // Precomputed & cached!
+        out_telemetry->diffusion_time_ms = std::chrono::duration<float, std::milli>(t_diff - t_mel).count();
+        out_telemetry->vocos_time_ms = std::chrono::duration<float, std::milli>(t_voc - t_diff).count();
+        out_telemetry->istft_time_ms = std::chrono::duration<float, std::milli>(t_istft - t_voc).count();
+        out_telemetry->total_time_ms = std::chrono::duration<float, std::milli>(t_istft - t_start).count();
+        out_telemetry->audio_duration_sec = static_cast<float>(gen_waveform.size()) / AudioProcessor::SAMPLE_RATE;
+        out_telemetry->real_time_factor = (out_telemetry->total_time_ms / 1000.0f) / std::max(out_telemetry->audio_duration_sec, 0.01f);
+    }
+
+    return gen_waveform;
+}
+
 std::vector<float> LiteRTIndicEngine::synthesize(
     const float* ref_pcm, size_t ref_pcm_samples,
     const std::string& ref_text,
@@ -197,141 +334,22 @@ std::vector<float> LiteRTIndicEngine::synthesize(
 
     auto t_start = std::chrono::high_resolution_clock::now();
 
-    // 1. Extract reference Mel Spectrogram
-    std::vector<float> ref_mel(AudioProcessor::MAX_FRAMES * AudioProcessor::N_MELS, 0.0f);
-    int ref_frames = audio_proc_.extractMel(ref_pcm, ref_pcm_samples, ref_mel.data(), AudioProcessor::MAX_FRAMES);
+    if (!setReferenceAudio(ref_pcm, ref_pcm_samples, ref_text)) {
+        LOGE("[LiteRTIndicEngine] synthesize: Failed to set reference audio");
+        return {};
+    }
 
     auto t_mel = std::chrono::high_resolution_clock::now();
 
-    // 2. Duration allocation
-    size_t ref_char_len = std::max<size_t>(ref_text.length(), 1);
-    size_t gen_char_len = std::max<size_t>(target_text.length(), 1);
-    int gen_frames = static_cast<int>(static_cast<float>(ref_frames) / ref_char_len * gen_char_len * 1.05f);
-    int total_frames = std::min(ref_frames + gen_frames, AudioProcessor::MAX_FRAMES);
-    gen_frames = total_frames - ref_frames;
+    std::vector<float> result = synthesizeChunk(target_text, num_steps, cfg_strength, seed, out_telemetry);
 
-    // 3. Prepare conditioning mel and tokens
-    std::vector<float> cond_mel(EulerSampler::LATENT_ELEMENTS, 0.0f);
-    std::memcpy(cond_mel.data(), ref_mel.data(), ref_frames * AudioProcessor::N_MELS * sizeof(float));
-
-    std::string full_text = ref_text + " " + target_text;
-    std::vector<int32_t> text_tokens = tokenizer_.encode(full_text, EulerSampler::TEXT_LEN, -1);
-
-    // 4. Run CFM Euler ODE Sampler
-    std::vector<float> mel_out(EulerSampler::LATENT_ELEMENTS);
-    bool sample_ok = euler_sampler_.sample(
-        dit_interp_,
-        cond_mel.data(),
-        text_tokens.data(),
-        mel_out.data(),
-        num_steps,
-        cfg_strength,
-        -1.0f, // sway_coef
-        seed
-    );
-    if (!sample_ok) {
-        LOGE("EulerSampler failed to complete CFM ODE steps");
-        return {};
-    }
-
-    auto t_diff = std::chrono::high_resolution_clock::now();
-
-    // 5. Vocos Neural Vocoding
-    // Invert conditioning portion: replace generated ref_frames with ground-truth ref_mel
-    std::memcpy(mel_out.data(), ref_mel.data(), ref_frames * AudioProcessor::N_MELS * sizeof(float));
-
-    // Transpose mel from [512, 100] (time, mel) to Vocos input layout [1, 100, 512] (mel, time)
-    int voc_in_count = TfLiteInterpreterGetInputTensorCount(vocos_interp_);
-    LOGI("Vocos total input tensors: %d", voc_in_count);
-    TfLiteTensor* voc_in = TfLiteInterpreterGetInputTensor(vocos_interp_, 0);
-    if (voc_in) {
-        LOGI("Vocos input [0]: name='%s', bytes=%zu", TfLiteTensorName(voc_in), TfLiteTensorByteSize(voc_in));
-    }
-    std::vector<float> voc_in_buf(AudioProcessor::N_MELS * AudioProcessor::MAX_FRAMES);
-
-    for (int t = 0; t < AudioProcessor::MAX_FRAMES; ++t) {
-        for (int m = 0; m < AudioProcessor::N_MELS; ++m) {
-            voc_in_buf[m * AudioProcessor::MAX_FRAMES + t] = mel_out[t * AudioProcessor::N_MELS + m];
-        }
-    }
-    TfLiteTensorCopyFromBuffer(voc_in, voc_in_buf.data(), voc_in_buf.size() * sizeof(float));
-
-    if (TfLiteInterpreterInvoke(vocos_interp_) != kTfLiteOk) {
-        LOGE("[LiteRTIndicEngine] Vocos invoke failed");
-        return {};
-    }
-
-    auto t_voc = std::chrono::high_resolution_clock::now();
-
-    // 6. iSTFT Waveform Synthesis
-    const TfLiteTensor* voc_out = TfLiteInterpreterGetOutputTensor(vocos_interp_, 0);
-    const size_t spec_plane = 513 * AudioProcessor::MAX_FRAMES;
-    std::vector<float> spec_data(2 * spec_plane);
-    TfLiteTensorCopyToBuffer(voc_out, spec_data.data(), spec_data.size() * sizeof(float));
-
-    const float* spec_real = spec_data.data();
-    const float* spec_imag = spec_data.data() + spec_plane;
-
-
-    std::vector<float> full_waveform = audio_proc_.synthesizeWaveform(spec_real, spec_imag, AudioProcessor::MAX_FRAMES);
-
-    // Save debug dumps for on-device vs PC parity verification
-    {
-        std::ofstream f_mel("/data/data/com.indic.voice/files/debug_mel_out.bin", std::ios::binary);
-        if (f_mel.is_open()) {
-            f_mel.write(reinterpret_cast<const char*>(mel_out.data()), mel_out.size() * sizeof(float));
-        }
-        std::ofstream f_spec("/data/data/com.indic.voice/files/debug_vocos_spec.bin", std::ios::binary);
-        if (f_spec.is_open()) {
-            f_spec.write(reinterpret_cast<const char*>(spec_data.data()), spec_data.size() * sizeof(float));
-        }
-    }
-
-    // Slice only the generated target audio (skip reference audio frames, end at total_frames)
-    size_t ref_samples = static_cast<size_t>(ref_frames) * AudioProcessor::HOP_LENGTH;
-    size_t end_samples = std::min(static_cast<size_t>(total_frames) * AudioProcessor::HOP_LENGTH, full_waveform.size());
-    std::vector<float> gen_waveform;
-    if (full_waveform.size() > ref_samples) {
-        gen_waveform.assign(full_waveform.begin() + ref_samples, full_waveform.begin() + end_samples);
-    } else {
-        gen_waveform = std::move(full_waveform);
-    }
-
-    // Target audio peak normalization to 0.95 (exact parity with Python inference)
-    float peak = 0.0f;
-    for (float s : gen_waveform) {
-        if (std::abs(s) > peak) peak = std::abs(s);
-    }
-    if (peak > 1e-4f) {
-        float scale = 0.95f / peak;
-        for (float& s : gen_waveform) {
-            s *= scale;
-        }
-    }
-
-    LOGI("[LiteRTIndicEngine] ref_frames=%d, total_frames=%d, full_wav=%zu, gen_wav=%zu (ref_samples=%zu, end_samples=%zu)",
-         ref_frames, total_frames, full_waveform.size(), gen_waveform.size(), ref_samples, end_samples);
-    float pmin = 0.0f, pmax = 0.0f;
-    for (float s : gen_waveform) {
-        if (s < pmin) pmin = s;
-        if (s > pmax) pmax = s;
-    }
-    LOGI("[LiteRTIndicEngine] gen_waveform min=%f, max=%f", pmin, pmax);
-
-    auto t_istft = std::chrono::high_resolution_clock::now();
-
-    // 7. Telemetry recording
     if (out_telemetry) {
         out_telemetry->mel_extract_time_ms = std::chrono::duration<float, std::milli>(t_mel - t_start).count();
-        out_telemetry->diffusion_time_ms = std::chrono::duration<float, std::milli>(t_diff - t_mel).count();
-        out_telemetry->vocos_time_ms = std::chrono::duration<float, std::milli>(t_voc - t_diff).count();
-        out_telemetry->istft_time_ms = std::chrono::duration<float, std::milli>(t_istft - t_voc).count();
-        out_telemetry->total_time_ms = std::chrono::duration<float, std::milli>(t_istft - t_start).count();
-        out_telemetry->audio_duration_sec = static_cast<float>(gen_waveform.size()) / AudioProcessor::SAMPLE_RATE;
+        out_telemetry->total_time_ms += out_telemetry->mel_extract_time_ms;
         out_telemetry->real_time_factor = (out_telemetry->total_time_ms / 1000.0f) / std::max(out_telemetry->audio_duration_sec, 0.01f);
     }
 
-    return gen_waveform;
+    return result;
 }
 
 } // namespace indic

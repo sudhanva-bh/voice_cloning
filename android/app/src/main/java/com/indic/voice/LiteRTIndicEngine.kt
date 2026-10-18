@@ -94,6 +94,45 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
 
 
 
+    suspend fun setReferenceAudio(
+        refPcm: FloatArray,
+        refText: String
+    ): Boolean = withContext(Dispatchers.Default) {
+        check(enginePtr != 0L) { "LiteRTIndicEngine is not initialized!" }
+        return@withContext nativeSetReferenceAudio(enginePtr, refPcm, refText)
+    }
+
+    suspend fun synthesizeChunk(
+        chunkText: String,
+        numSteps: Int = 16,
+        cfgStrength: Float = 2.0f,
+        seed: Int = 42
+    ): SynthesisResult = withContext(Dispatchers.Default) {
+        check(enginePtr != 0L) { "LiteRTIndicEngine is not initialized!" }
+
+        val telemetry = FloatArray(7)
+        val pcmOut = nativeSynthesizeChunk(
+            enginePtr,
+            chunkText,
+            numSteps,
+            cfgStrength,
+            seed,
+            telemetry
+        )
+
+        return@withContext SynthesisResult(
+            audioSamples = pcmOut,
+            sampleRate = 24000,
+            melTimeMs = telemetry[0],
+            diffusionTimeMs = telemetry[1],
+            vocosTimeMs = telemetry[2],
+            istftTimeMs = telemetry[3],
+            totalTimeMs = telemetry[4],
+            audioDurationSec = telemetry[5],
+            realTimeFactor = telemetry[6]
+        )
+    }
+
     suspend fun synthesize(
         refPcm: FloatArray,
         refText: String,
@@ -156,6 +195,20 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
         numThreads: Int
     ): Long
 
+    private external fun nativeSetReferenceAudio(
+        enginePtr: Long,
+        refPcm: FloatArray,
+        refText: String
+    ): Boolean
+
+    private external fun nativeSynthesizeChunk(
+        enginePtr: Long,
+        chunkText: String,
+        numSteps: Int,
+        cfgStrength: Float,
+        seed: Int,
+        outTelemetry: FloatArray
+    ): FloatArray
 
     private external fun nativeSynthesize(
         enginePtr: Long,
