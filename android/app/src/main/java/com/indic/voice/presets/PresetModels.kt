@@ -103,32 +103,32 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.ENGLISH,
-            text = "Hey! Just wanted to check in and see how you're doing."
+            text = "Good morning, everyone! Let's quickly revise what we learned yesterday."
         ),
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.ENGLISH,
-            text = "I'll be there in about ten minutes, see you soon!"
+            text = "Hey! How's it going? Hope you're doing well!"
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.ENGLISH,
-            text = "Are you free to grab some lunch together this afternoon? There's a great little cafe nearby that makes amazing food."
+            text = "Before we start today's topic, can someone tell me what we learned in the last class? Don't worry if you're not sure, just give it a try!"
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.ENGLISH,
-            text = "I just finished reading that book you recommended last week. You were right, the ending was totally unexpected!"
+            text = "Hey, are you free for lunch today? There's this really nice place nearby I've been wanting to try. We should go together!"
         ),
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.ENGLISH,
-            text = "The morning sun rose gently above the rolling green hills, casting a warm golden glow across the quiet valley below. A cool morning mist slowly drifted through the pine forest. In the distance, the gentle rush of a mountain stream blended harmoniously with the awakening sounds of nature."
+            text = "Today, we're going to learn about how plants make their own food. Plants use sunlight, water, and carbon dioxide to prepare food through a process called photosynthesis. The green pigment in leaves, called chlorophyll, helps absorb sunlight. During this process, plants also release oxygen into the air. Now, can anyone tell me why sunlight is so important for plants?"
         ),
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.ENGLISH,
-            text = "I was thinking we could head out early on Saturday morning and make a road trip to the coast. We could stop by that scenic viewpoint for coffee, take a stroll along the beach in the afternoon, and catch the sunset before heading back. What do you think?"
+            text = "Hey, I was thinking we could go somewhere this Saturday. Maybe leave in the morning, grab breakfast on the way, and drive down to the beach. We could spend some time there, get something nice to eat, and come back by evening. It's been a while since we went out together, so I thought it would be fun!"
         ),
 
         // ==========================================
@@ -137,32 +137,32 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.HINDI,
-            text = "अरे सुनो, क्या तुम शाम को चाय पीने आ रहे हो?"
+            text = "बच्चों, आज हम एक नया पाठ शुरू करेंगे।"
         ),
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.HINDI,
-            text = "नमस्ते! उम्मीद है आपका आज का दिन बहुत अच्छा बीत रहा होगा।"
+            text = "अरे सुनो, आज शाम को चाय पीने चलोगे?"
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.HINDI,
-            text = "क्या हम आज शाम को थोड़ी देर के लिए पार्क में टहलने चलें? काफी दिन हो गए हमें सुकून से बैठकर बातें किए हुए।"
+            text = "अच्छा बच्चों, बताओ अगर हम किसी संख्या को दो से गुणा करें, तो क्या होगा? चलो, एक उदाहरण से समझते हैं।"
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.HINDI,
-            text = "आज मौसम बहुत सुहावना और खूबसूरत है। चारों ओर ठंडी हवाएं और हरी-भरी प्रकृति मन को बहुत शांति देती हैं।"
+            text = "अरे, आज शाम को थोड़ा बाहर घूमने चलें क्या? बहुत दिन हो गए आराम से बैठकर बातें किए हुए।"
         ),
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.HINDI,
-            text = "सुबह का सूरज धीरे-धीरे हरी पहाड़ियों के ऊपर उगा और नीचे शांत घाटी में एक सुनहरा प्रकाश बिखेर दिया। दूर पहाड़ों से बहने वाली नदी की मधुर ध्वनि प्रकृति के शांत वातावरण के साथ पूरी तरह घुलमिल गई, जिससे चारों ओर एक शांत और मनमोहक माहौल बन गया।"
+            text = "बच्चों, आज हम जानेंगे कि बारिश कैसे होती है। जब सूरज की गर्मी से नदियों और समुद्र का पानी भाप बनकर ऊपर उठता है, तो वह ठंडा होकर छोटे-छोटे पानी की बूंदों में बदल जाता है। ये बूंदें मिलकर बादल बनाती हैं। जब बादल भारी हो जाते हैं, तो पानी बारिश के रूप में नीचे गिरता है। अब बताओ, बारिश हमारे लिए क्यों जरूरी है?"
         ),
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.HINDI,
-            text = "मुझे पुरानी यादें ताजा करना बहुत पसंद है। जब हम सब दोस्त एक साथ बैठकर पुरानी बातें याद करते हैं और हंसते हैं, तो दिन की सारी थकान पल भर में गायब हो जाती है। हमें जिंदगी में ऐसी छोटी-छोटी खुशियों के लिए हमेशा वक्त निकालना चाहिए।"
+            text = "यार, याद है पहले हम सब दोस्त कितनी मस्ती किया करते थे? हर छोटी सी बात पर हँसना, बिना किसी वजह के बाहर घूमने निकल जाना और घंटों बैठकर बातें करना। अब सब अपने-अपने काम में इतने बिजी हो गए हैं कि मिलने का टाइम ही नहीं मिलता। इस बार सबको बुलाकर कहीं मिलते हैं ना!"
         ),
 
         // ==========================================
@@ -171,32 +171,32 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.TELUGU,
-            text = "హలో! సాయంత్రం కాఫీ తాగడానికి బయటకు వెళ్దామా?"
+            text = "పిల్లలూ, ఈ రోజు మనం కొత్త పాఠం నేర్చుకుందాం."
         ),
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.TELUGU,
-            text = "నమస్కారం! మీ రోజంతా చాలా సంతోషంగా సాగాలని కోరుకుంటున్నాను."
+            text = "హేయ్! సాయంత్రం కాఫీ తాగడానికి వెళ్దామా?"
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.TELUGU,
-            text = "నువ్వు చెప్పిన సినిమా నిన్న రాత్రి చూశాను. కథ మరియు పాటలు నిజంగా చాలా బాగున్నాయి, నాకు చాలా బాగా నచ్చింది."
+            text = "పిల్లలూ, ఒక సంఖ్యను రెండుతో గుణిస్తే ఏమవుతుందో చెప్పగలరా? సరే, ఒక చిన్న ఉదాహరణతో అర్థం చేసుకుందాం."
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.TELUGU,
-            text = "ఈ రోజు వాతావరణం చాలా ఆహ్లాదకరంగా మరియు చల్లగా ఉంది. సుదూర కొండల నుండి వీచే పిల్లగాలులు మనసుకు ప్రశాంతతను కలిగిస్తున్నాయి."
+            text = "నువ్వు చెప్పిన సినిమా నిన్న రాత్రి చూశాను. నిజంగా చాలా బాగుంది! ముఖ్యంగా చివర్లో జరిగినది అస్సలు ఊహించలేదు."
         ),
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.TELUGU,
-            text = "ఉదయపు సూర్యుడు పచ్చని కొండల మీదుగా నెమ్మదిగా ఉదయించి, లోయ అంతటా వెచ్చని బంగారు కాంతిని ప్రసరింపజేశాడు. చెట్ల గుండా వీచే చల్లని పిల్లగాలులు మరియు సుదూర వాగుల మధురమైన శబ్దం ప్రకృతి అందాన్ని మరింత ఇనుమడింపజేశాయి."
+            text = "పిల్లలూ, ఈ రోజు మనం వర్షం ఎలా పడుతుందో తెలుసుకుందాం. సూర్యుడి వేడికి సముద్రాలు, నదుల్లోని నీరు ఆవిరిగా మారి పైకి వెళ్తుంది. పైకి వెళ్లిన ఆవిరి చల్లబడి చిన్న చిన్న నీటి బిందువులుగా మారుతుంది. అవన్నీ కలిసి మేఘాలుగా ఏర్పడతాయి. మేఘాల్లో నీరు ఎక్కువైనప్పుడు వర్షం పడుతుంది. ఇప్పుడు చెప్పండి, వర్షం మనకు ఎందుకు అవసరం?"
         ),
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.TELUGU,
-            text = "జీవితంలో ఎంత బిజీగా ఉన్నా సరే, మనసుకు నచ్చిన పనుల కోసం మరియు కుటుంబంతో గడపడానికి కొద్దిగా సమయం కేటాయించాలి. అప్పుడే మనసుకి కొత్త ఉత్సాహం మరియు పని చేయడంలో ఆనందం లభిస్తుంది. నువ్వు ఏమంటావు?"
+            text = "ఒరేయ్, మనం అందరం కలిసి బయటకు వెళ్లి ఎన్ని రోజులైందో కదా! ఒకప్పుడు ప్రతి వారాంతం ఏదో ఒక ప్లాన్ వేసుకునేవాళ్లం. ఇప్పుడు ఎవరి పనుల్లో వాళ్లు బిజీ అయిపోయారు. ఈ శనివారం అందరికీ వీలైతే ఎక్కడికైనా వెళ్దాం. మంచి రెస్టారెంట్లో తిని, కాసేపు సరదాగా మాట్లాడుకుందాం. ఏమంటావు?"
         ),
 
         // ==========================================
@@ -205,32 +205,32 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.TAMIL,
-            text = "ஹலோ! சாயங்காலம் டீ குடிக்க வெளியில போலாமா?"
+            text = "மாணவர்களே, இன்னைக்கு ஒரு புது பாடம் படிக்கலாம்."
         ),
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.TAMIL,
-            text = "வணக்கம்! உங்கள் நாள் மகிழ்ச்சியாக அமையட்டும்."
+            text = "ஹேய்! சாயங்காலம் டீ குடிக்க போலாமா?"
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.TAMIL,
-            text = "நீங்க சொன்ன அந்த புத்தகத்தை படிச்சு முடிச்சுட்டேன். கதை ரொம்ப சுவாரசியமா இருந்தது, எனக்கு ரொம்ப பிடிச்சிருந்தது."
+            text = "சரி மாணவர்களே, ஒரு எண்ணை ரெண்டால பெருக்கினா என்ன கிடைக்கும்? யாராவது சொல்ல முடியுமா? வாங்க, ஒரு சின்ன உதாரணத்தோட புரிஞ்சுக்கலாம்."
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.TAMIL,
-            text = "இன்று வானிலை மிகவும் இனிமையாகவும் தென்றலாகவும் இருக்கிறது. பசுமையான சூழலில் மெல்லிய தென்றல் காற்று மனதிற்கு இதமளிக்கிறது."
+            text = "நீங்க சொன்ன அந்த படத்தை நேத்து பார்த்தேன். செமையா இருந்துச்சு! முக்கியமா அந்த கடைசி சீன், சுத்தமா எதிர்பார்க்கவே இல்ல!"
         ),
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.TAMIL,
-            text = "காலை சூரியன் பசுமையான மலைகளுக்கு மேலே மெதுவாக எழுந்து, அமைதியான பள்ளத்தாக்கில் தங்கக் கதிர்களைப் பரப்பியது. பைன் மரக் காட்டின் வழியே குளிர்ந்த பனி மெல்ல நகர்ந்தது. தூரத்தில் உள்ள மலை ஓடையின் சலசலப்பு இயற்கையின் ஒலியோடு அழகாக இணைந்தது."
+            text = "மாணவர்களே, இன்னைக்கு மழை எப்படி பெய்யுதுன்னு பார்க்கலாம். சூரியனோட வெப்பத்தால கடல், ஆறுகள்ல இருக்குற தண்ணீர் ஆவியாகி மேல போகுது. அந்த ஆவி மேல போய் குளிர்ந்ததும் சின்ன சின்ன நீர்த்துளிகளா மாறுது. அந்த நீர்த்துளிகள் எல்லாம் சேர்ந்து மேகங்களா உருவாகுது. மேகத்துல தண்ணீர் அதிகமானதும் மழையா கீழ விழுது. இப்ப சொல்லுங்க, மழை நமக்கு ஏன் முக்கியம்?"
         ),
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.TAMIL,
-            text = "எவ்வளவு வேலைகள் இருந்தாலும், நமக்குப் பிடித்த விஷயங்களுக்காகவும் குடும்பத்துடனும் சிறிது நேரம் ஒதுக்குவது மனதிற்கு மிகுந்த நிம்மதியைத் தரும். அப்பொழுதுதான் அடுத்த வேலைகளை உற்சாகமாக செய்ய முடியும். இதைப்பற்றி நீங்க என்ன நினைக்கிறீங்க?"
+            text = "டேய், நாம எல்லாரும் சேர்ந்து வெளிய போய் எவ்வளவு நாள் ஆச்சு தெரியுமா? முன்னாடி எல்லா வாரமும் ஏதாவது பிளான் போட்டுட்டே இருப்போம். இப்ப எல்லாரும் அவங்க அவங்க வேலையில பிசியா இருக்காங்க. இந்த சனிக்கிழமை எல்லாருக்கும் ஃப்ரீயா இருந்தா எங்கேயாவது போலாம். நல்லா சாப்பிட்டு, கொஞ்ச நேரம் ஜாலியா பேசிட்டு வரலாம். என்ன சொல்ற?"
         )
     )
 }
