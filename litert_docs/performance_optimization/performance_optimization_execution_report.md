@@ -61,3 +61,22 @@ This optimization cycle delivers an estimated **~2.2x to 2.5x total synthesis ac
 ```bash
 adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+---
+
+## 5. Low-Step Distortion Resolution (6 & 8 Steps Stabilization)
+
+### Problem
+Initial testing of 6-step and 8-step modes produced metallic distortion and static. Mathematical investigation revealed:
+1. **CFG Extrapolation Instability**: At high step counts ($N=16$), $\Delta t \approx 0.06$. At $N=6$, $\Delta t$ reached $0.259$. Multiplying by $\text{CFG}=2.0$ ($v = 3v_c - 2v_n$) caused massive Euler overshoot, sending mel latents far outside the legitimate acoustic range.
+2. **Cosine Sway Schedule Incompatibility**: `sway_coef = -1.0f` concentrated steps at $t \approx 0$ and dumped a massive $\Delta t = 0.259$ leap at the final step ($t \approx 1.0$), right where high-frequency phonemes are resolved.
+3. **Unbounded Accumulator**: `mel_out` had no bounds protection in C++.
+
+### Solution Applied
+1. **Adaptive CFG Scaling**:
+   - $N=6$ (Turbo): $\text{CFG} = 0.7\text{f}$
+   - $N=8$ (Fast): $\text{CFG} = 1.0\text{f}$
+   - $N=16$ (Balanced) & $N=24$ (HQ): $\text{CFG} = 2.0\text{f}$
+2. **Schedule Linearization**: Uniform linear time schedule ($dt = 1/N$, `sway_coef = 0.0f`) applied for $N \le 8$, eliminating the late-step $0.259$ jump.
+3. **Dynamic Mel Clamping**: Clamped `mel_out` values to $[-4.5\text{f}, +4.5\text{f}]$ at every step in [`euler_sampler.cpp`](file:///c:/voice_cloning/android/app/src/main/cpp/euler_sampler.cpp#L193), strictly preventing out-of-distribution values from reaching the Vocos neural vocoder.
+
