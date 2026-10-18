@@ -103,4 +103,31 @@ class WaveformStitcherTest {
         assertTrue("Stitching 30s audio should take under 25ms, took ${elapsedMs}ms", elapsedMs < 25.0)
         assertTrue(stitched.isNotEmpty())
     }
+
+    @Test
+    fun testTrimSilenceRemovesDeadAir() {
+        val cushion = 240 // 10ms at 24kHz
+        val leadingSilence = FloatArray(1000) { 0.0f }
+        val speech = FloatArray(2000) { 0.4f }
+        val trailingSilence = FloatArray(1000) { 0.005f } // below 0.012 threshold
+
+        val raw = FloatArray(4000)
+        System.arraycopy(leadingSilence, 0, raw, 0, 1000)
+        System.arraycopy(speech, 0, raw, 1000, 2000)
+        System.arraycopy(trailingSilence, 0, raw, 3000, 1000)
+
+        val trimmed = stitcher.trimSilence(raw, threshold = 0.012f, cushion = cushion)
+
+        // Expected trimmed length: cushion (240) + speech (2000) + cushion (240) = 2480 samples
+        // (compared to original 4000 samples)
+        assertEquals(2480, trimmed.size)
+    }
+
+    @Test
+    fun testDefaultPacingTightInterSentenceGap() {
+        val defaultStitcher = WaveformStitcher()
+        assertEquals(30, defaultStitcher.interSentenceSilenceMs)
+        assertEquals(720, defaultStitcher.silenceSamples) // 30ms * 24000 / 1000 = 720 samples
+        assertTrue(defaultStitcher.trimSilence)
+    }
 }

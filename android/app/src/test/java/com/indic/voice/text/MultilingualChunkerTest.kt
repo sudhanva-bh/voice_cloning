@@ -28,7 +28,7 @@ class MultilingualChunkerTest {
 
     @Test
     fun testSingleShortEnglishSentenceReturnsOneChunk() {
-        val input = "Google LiteRT is fast and clear."
+        val input = "Hey there! Hope you are having a wonderful day."
         val chunks = chunker.split(input)
 
         assertEquals(1, chunks.size)

@@ -36,9 +36,9 @@ object PresetData {
             text = "Some call me nature."
         ),
         ExampleTranscript(
-            title = "Voice Test",
+            title = "Friendly Greeting",
             advantageBadge = "Quick 2.5s",
-            text = "Hello, this is a voice cloning test."
+            text = "Hello there! It is wonderful to meet you."
         ),
         ExampleTranscript(
             title = "Compact Pangram",
@@ -51,9 +51,9 @@ object PresetData {
             text = "How is the weather outside today?"
         ),
         ExampleTranscript(
-            title = "Formal Intro",
-            advantageBadge = "Clear articulation (2.5s)",
-            text = "Welcome to the speech laboratory."
+            title = "Coffee Break",
+            advantageBadge = "Casual chat (2.5s)",
+            text = "Let's take a quick coffee break and relax."
         ),
         ExampleTranscript(
             title = "Steady Cadence",
@@ -68,19 +68,19 @@ object PresetData {
 
         // SHORT INDIC REFERENCE SCRIPTS
         ExampleTranscript(
-            title = "Hindi Reference (हिंदी)",
+            title = "Hindi Greeting (हिंदी)",
             advantageBadge = "Short Indic (2.5s)",
-            text = "नमस्ते, यह मेरी आवाज का परीक्षण है।"
+            text = "नमस्ते, आप कैसे हैं? सब कुछ कैसा चल रहा है?"
         ),
         ExampleTranscript(
-            title = "Telugu Reference (తెలుగు)",
+            title = "Telugu Greeting (తెలుగు)",
             advantageBadge = "Short Indic (2.5s)",
-            text = "నమస్కారం, ఇది నా గొంతు పరీక్ష."
+            text = "నమస్కారం, ఎలా ఉన్నారు? మీ పనులు ఎలా సాగుతున్నాయి?"
         ),
         ExampleTranscript(
-            title = "Tamil Reference (தமிழ்)",
+            title = "Tamil Greeting (தமிழ்)",
             advantageBadge = "Short Indic (2.5s)",
-            text = "வணக்கம், இது என் குரலின் சோதனை."
+            text = "வணக்கம், எப்படி இருக்கீங்க? இன்னைக்கு நாள் எப்படி போகுது?"
         ),
 
         // MEDIUM / LONGER REFERENCE SCRIPTS
@@ -90,9 +90,9 @@ object PresetData {
             text = "Honestly, I am just hanging out at home today, relaxing and catching up on a few things before going out."
         ),
         ExampleTranscript(
-            title = "Professional Narration",
-            advantageBadge = "Formal narration (~7s)",
-            text = "Welcome to the voice cloning demonstration. Accurate pronunciation and consistent pacing ensure the highest quality voice synthesis."
+            title = "Weekend Road Trip",
+            advantageBadge = "Natural storytelling (~6s)",
+            text = "We packed our bags early in the morning and drove out to the lake to spend the whole day outdoors."
         )
     )
 
@@ -103,22 +103,22 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.ENGLISH,
-            text = "Google LiteRT is fast and clear."
+            text = "Hey! Just wanted to check in and see how you're doing."
         ),
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.ENGLISH,
-            text = "Hello! This is a quick test of the voice cloning system."
+            text = "I'll be there in about ten minutes, see you soon!"
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.ENGLISH,
-            text = "Artificial intelligence is running directly on your phone. On-device neural voice cloning enables natural speech synthesis without cloud latency."
+            text = "Are you free to grab some lunch together this afternoon? There's a great little cafe nearby that makes amazing food."
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.ENGLISH,
-            text = "The weather is exceptionally pleasant outside this afternoon. Cool morning breezes through the hills bring fresh energy to the day."
+            text = "I just finished reading that book you recommended last week. You were right, the ending was totally unexpected!"
         ),
         QuickIdea(
             section = IdeaSection.LONG,
@@ -128,7 +128,7 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.ENGLISH,
-            text = "Zero-shot voice cloning with Google LiteRT brings powerful neural speech synthesis right to your fingertips. By leveraging continuous flow matching and efficient neural vocoding, natural speech is synthesized completely offline on edge mobile devices."
+            text = "I was thinking we could head out early on Saturday morning and make a road trip to the coast. We could stop by that scenic viewpoint for coffee, take a stroll along the beach in the afternoon, and catch the sunset before heading back. What do you think?"
         ),
 
         // ==========================================
@@ -137,17 +137,17 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.HINDI,
-            text = "यह एक वॉइस क्लोनिंग का परीक्षण है।"
+            text = "अरे सुनो, क्या तुम शाम को चाय पीने आ रहे हो?"
         ),
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.HINDI,
-            text = "नमस्ते! आपका दिन शुभ और सुखद हो।"
+            text = "नमस्ते! उम्मीद है आपका आज का दिन बहुत अच्छा बीत रहा होगा।"
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.HINDI,
-            text = "गूगल लाइट-आरटी फोन पर बहुत तेजी से चलता है। कृत्रिम बुद्धिमत्ता हमारे दैनिक जीवन को आसान और बेहतर बना रही है।"
+            text = "क्या हम आज शाम को थोड़ी देर के लिए पार्क में टहलने चलें? काफी दिन हो गए हमें सुकून से बैठकर बातें किए हुए।"
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
@@ -162,7 +162,7 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.HINDI,
-            text = "ऑन-डिवाइस वॉइस क्लोनिंग तकनीक बिना किसी इंटरनेट या क्लाउड सर्वर के आपके फोन पर काम करती है। यह भारतीय भाषाओं में स्वाभाविक और सजीव आवाज उत्पन्न करने की दिशा में एक बड़ा कदम है।"
+            text = "मुझे पुरानी यादें ताजा करना बहुत पसंद है। जब हम सब दोस्त एक साथ बैठकर पुरानी बातें याद करते हैं और हंसते हैं, तो दिन की सारी थकान पल भर में गायब हो जाती है। हमें जिंदगी में ऐसी छोटी-छोटी खुशियों के लिए हमेशा वक्त निकालना चाहिए।"
         ),
 
         // ==========================================
@@ -171,17 +171,17 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.TELUGU,
-            text = "ఇది గూగుల్ లైట్-ఆర్టీతో వాయిస్ క్లోనింగ్ పరీక్ష."
+            text = "హలో! సాయంత్రం కాఫీ తాగడానికి బయటకు వెళ్దామా?"
         ),
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.TELUGU,
-            text = "నమస్కారం! మీ రోజు ఆహ్లాదకరంగా సాగాలని కోరుకుంటున్నాను."
+            text = "నమస్కారం! మీ రోజంతా చాలా సంతోషంగా సాగాలని కోరుకుంటున్నాను."
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.TELUGU,
-            text = "కృత్రిమ మేధస్సు నేరుగా మీ మొబైల్ ఫోన్‌లో పనిచేస్తోంది. ఆన్-డివైస్ వాయిస్ క్లోనింగ్ ద్వారా క్లౌడ్ సర్వర్‌లపై ఆధారపడకుండా సహజమైన ప్రసంగాన్ని రూపొందించవచ్చు."
+            text = "నువ్వు చెప్పిన సినిమా నిన్న రాత్రి చూశాను. కథ మరియు పాటలు నిజంగా చాలా బాగున్నాయి, నాకు చాలా బాగా నచ్చింది."
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
@@ -196,7 +196,7 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.TELUGU,
-            text = "గూగుల్ లైట్-ఆర్టీ సాంకేతికతతో ఎలాంటి ఇంటర్నెట్ అవసరం లేకుండా నేరుగా మొబైల్‌లోనే సహజమైన తెలుగు స్వరాన్ని సృష్టించవచ్చు. ఇది భారతీయ భాషా సాంకేతికతలో విప్లవాత్మక మార్పుకు నాంది."
+            text = "జీవితంలో ఎంత బిజీగా ఉన్నా సరే, మనసుకు నచ్చిన పనుల కోసం మరియు కుటుంబంతో గడపడానికి కొద్దిగా సమయం కేటాయించాలి. అప్పుడే మనసుకి కొత్త ఉత్సాహం మరియు పని చేయడంలో ఆనందం లభిస్తుంది. నువ్వు ఏమంటావు?"
         ),
 
         // ==========================================
@@ -205,7 +205,7 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.SHORT,
             language = IdeaLanguage.TAMIL,
-            text = "கூகிள் லைட்-ஆர்டி தொழில்நுட்பம் மூலம் குரல் உருவாக்கம்."
+            text = "ஹலோ! சாயங்காலம் டீ குடிக்க வெளியில போலாமா?"
         ),
         QuickIdea(
             section = IdeaSection.SHORT,
@@ -215,7 +215,7 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.MEDIUM,
             language = IdeaLanguage.TAMIL,
-            text = "செயற்கை நுண்ணறிவு நேரடியாக உங்கள் போனில் இயங்குகிறது. சாதனத்திலேயே இயங்கும் குரல் குளோனிங் மூலம் கிளவுட் இல்லாமல் இயற்கையான குரலை உருவாக்க முடியும்."
+            text = "நீங்க சொன்ன அந்த புத்தகத்தை படிச்சு முடிச்சுட்டேன். கதை ரொம்ப சுவாரசியமா இருந்தது, எனக்கு ரொம்ப பிடிச்சிருந்தது."
         ),
         QuickIdea(
             section = IdeaSection.MEDIUM,
@@ -230,7 +230,7 @@ object PresetData {
         QuickIdea(
             section = IdeaSection.LONG,
             language = IdeaLanguage.TAMIL,
-            text = "கூகிள் லைட்-ஆர்டி மூலம் இணைய இணைப்பு இன்றியே உங்கள் போனில் அதிவேகமாக குரல் குளோனிங் செய்ய முடிகிறது. தமிழ் மொழியில் மிகத் துல்லியமான உச்சரிப்புடன் இயற்கையான பேச்சை உருவாக்க இது உதவுகிறது."
+            text = "எவ்வளவு வேலைகள் இருந்தாலும், நமக்குப் பிடித்த விஷயங்களுக்காகவும் குடும்பத்துடனும் சிறிது நேரம் ஒதுக்குவது மனதிற்கு மிகுந்த நிம்மதியைத் தரும். அப்பொழுதுதான் அடுத்த வேலைகளை உற்சாகமாக செய்ய முடியும். இதைப்பற்றி நீங்க என்ன நினைக்கிறீங்க?"
         )
     )
 }

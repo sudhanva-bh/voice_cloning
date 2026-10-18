@@ -30,7 +30,7 @@ class SessionCacheManager(context: Context) {
         set(value) = prefs.edit().putString(KEY_REF_TEXT, value).apply()
 
     var targetText: String
-        get() = prefs.getString(KEY_TARGET_TEXT, "Google LiteRT is fast and clear.") ?: "Google LiteRT is fast and clear."
+        get() = prefs.getString(KEY_TARGET_TEXT, "Hey there! Hope you are having a wonderful day.") ?: "Hey there! Hope you are having a wonderful day."
         set(value) = prefs.edit().putString(KEY_TARGET_TEXT, value).apply()
 
     var cfmSteps: Int
