@@ -28,9 +28,8 @@ This optimization cycle delivers an estimated **~2.2x to 2.5x total synthesis ac
 
 | Setting | CFM Steps ($N$) | DiT Forward Passes | S23 DiT Latency / Chunk | Total Time / Chunk (incl. Vocos) | Projected Speedup | Recommended Use Case |
 | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **6 (Turbo)** | 6 | 12 | ~14.4s | **~16.0s** | **~2.7x faster** | Real-time chat, conversational quick ideas |
-| **8 (Fast)** *(Default)* | 8 | 16 | ~19.2s | **~20.8s** | **~2.1x faster** | Standard everyday voice generation |
-| **16 (Balanced)** | 16 | 32 | ~38.4s | **~40.0s** | 1.0x baseline | High-fidelity narration |
+| **12 (Fast)** | 12 | 24 | ~28.8s | **~30.4s** | **~1.33x faster** | Accelerated generation with near-native fidelity |
+| **16 (Balanced)** *(Default)* | 16 | 32 | ~38.4s | **~40.0s** | 1.0x baseline | High-fidelity, broadcast-quality voice cloning |
 | **24 (HQ)** | 24 | 48 | ~57.6s | **~60.0s** | 0.67x | Studio-grade archival master clips |
 
 *(Measured with 5 threads active on Snapdragon 8 Gen 2 at ~1.2s per DiT INT8 forward pass)*
@@ -79,4 +78,16 @@ Initial testing of 6-step and 8-step modes produced metallic distortion and stat
    - $N=16$ (Balanced) & $N=24$ (HQ): $\text{CFG} = 2.0\text{f}$
 2. **Schedule Linearization**: Uniform linear time schedule ($dt = 1/N$, `sway_coef = 0.0f`) applied for $N \le 8$, eliminating the late-step $0.259$ jump.
 3. **Dynamic Mel Clamping**: Clamped `mel_out` values to $[-4.5\text{f}, +4.5\text{f}]$ at every step in [`euler_sampler.cpp`](file:///c:/voice_cloning/android/app/src/main/cpp/euler_sampler.cpp#L193), strictly preventing out-of-distribution values from reaching the Vocos neural vocoder.
+
+---
+
+## 6. Adoption of 12-Step Mode & Removal of 8-Step Mode
+
+Physical testing confirmed that $N \le 8$ without dedicated model distillation (like Consistency Models or Rectified Flow student distillation) exhibits severe truncation error in the middle of sentences where self-attention lacks reference grounding, causing volume surging or muffled breathing noise.
+
+**Architecture Refinement**:
+- **Removed**: 6-step (Turbo) and 8-step (Fast) modes.
+- **Added**: **12-step (Fast)** mode ($N=12$), reducing forward passes from 32 to 24 (**25% latency reduction**) while keeping step size $\Delta t$ within the stable convergence boundary of the ODE vector field.
+- **Default Production Mode**: **16-step (Balanced)** mode ($N=16$), delivering consistent, crystal-clear voice cloning across all sentences.
+
 
