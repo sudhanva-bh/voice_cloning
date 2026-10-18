@@ -95,7 +95,7 @@ class MultilingualChunker(
         // 8. Construct SpeechChunk objects with telemetry estimation
         val total = mergedSegments.size
         return mergedSegments.mapIndexed { idx, text ->
-            val estFrames = (text.length * framesPerChar).toInt().coerceAtLeast(30)
+            val estFrames = (text.length * framesPerChar).toInt().coerceAtLeast(80)
             val estSec = estFrames * 256f / 24000f
             SpeechChunk(
                 index = idx,

@@ -220,6 +220,12 @@ std::vector<float> LiteRTIndicEngine::synthesizeChunk(
     size_t ref_char_len = std::max<size_t>(cached_ref_text_.length(), 1);
     size_t gen_char_len = std::max<size_t>(chunk_text.length(), 1);
     int gen_frames = static_cast<int>(static_cast<float>(cached_ref_frames_) / ref_char_len * gen_char_len * 1.05f);
+
+    // Enforce a minimum frame floor of 80 frames (~0.85s) for short / single-word utterances.
+    // This provides the necessary acoustic headroom for the DiT inter-utterance transition
+    // pause, consonant attack, and phoneme articulation before any slicing occurs.
+    gen_frames = std::max(gen_frames, 80);
+
     int total_frames = std::min(cached_ref_frames_ + gen_frames, AudioProcessor::MAX_FRAMES);
     gen_frames = total_frames - cached_ref_frames_;
 
@@ -227,7 +233,16 @@ std::vector<float> LiteRTIndicEngine::synthesizeChunk(
     std::vector<float> cond_mel(EulerSampler::LATENT_ELEMENTS, 0.0f);
     std::memcpy(cond_mel.data(), cached_ref_mel_.data(), cached_ref_frames_ * AudioProcessor::N_MELS * sizeof(float));
 
-    std::string full_text = cached_ref_text_ + " " + chunk_text;
+    // Ensure utterance has clean terminal punctuation so DiT tokenizers recognize completion
+    std::string sanitized_chunk = chunk_text;
+    if (!sanitized_chunk.empty()) {
+        char last = sanitized_chunk.back();
+        if (last != '.' && last != '!' && last != '?' && last != ',' && last != ';') {
+            sanitized_chunk += ".";
+        }
+    }
+
+    std::string full_text = cached_ref_text_ + " " + sanitized_chunk;
     std::vector<int32_t> text_tokens = tokenizer_.encode(full_text, EulerSampler::TEXT_LEN, -1);
 
     auto t_mel = std::chrono::high_resolution_clock::now();
@@ -293,12 +308,13 @@ std::vector<float> LiteRTIndicEngine::synthesizeChunk(
         gen_waveform = std::move(full_waveform);
     }
 
-    // Target audio peak normalization to 0.95
+    // Target audio peak normalization: only amplify if audible speech is present (peak >= 0.03f)
+    // Prevents amplifying sub-audible background noise/static by 500x
     float peak = 0.0f;
     for (float s : gen_waveform) {
         if (std::abs(s) > peak) peak = std::abs(s);
     }
-    if (peak > 1e-4f) {
+    if (peak >= 0.03f) {
         float scale = 0.95f / peak;
         for (float& s : gen_waveform) {
             s *= scale;
