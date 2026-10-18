@@ -91,9 +91,9 @@ class QuickIdeasBottomSheet(
             val item = items[position]
             holder.language.text = item.language.displayName
             holder.length.text = when (item.section) {
-                IdeaSection.SHORT -> "Quick (~2.0s)"
-                IdeaSection.MEDIUM -> "Short (~2.5s)"
-                IdeaSection.LONG -> "Short (~3.0s)"
+                IdeaSection.SHORT -> "Short (~2.5s)"
+                IdeaSection.MEDIUM -> "Medium (~7s)"
+                IdeaSection.LONG -> "Paragraph (~15s)"
             }
             holder.text.text = item.text
 
