@@ -344,7 +344,7 @@ TfLiteXNNPackDelegateOptions TfLiteXNNPackDelegateOptionsDefault(void) {
         return p_TfLiteXNNPackDelegateOptionsDefault();
     }
     TfLiteXNNPackDelegateOptions opt{};
-    opt.num_threads = 4;
+    opt.num_threads = 5;
     return opt;
 }
 

@@ -129,10 +129,12 @@ bool LiteRTIndicEngine::initializeFromFiles(
     TfLiteInterpreterOptions* dit_options = TfLiteInterpreterOptionsCreate();
     TfLiteInterpreterOptionsSetNumThreads(dit_options, num_threads_);
 
-    dit_xnnpack_delegate_ = TfLiteXNNPackDelegateCreate(nullptr);
+    TfLiteXNNPackDelegateOptions dit_xnnpack_opts = TfLiteXNNPackDelegateOptionsDefault();
+    dit_xnnpack_opts.num_threads = num_threads_;
+    dit_xnnpack_delegate_ = TfLiteXNNPackDelegateCreate(&dit_xnnpack_opts);
     if (dit_xnnpack_delegate_) {
         TfLiteInterpreterOptionsAddDelegate(dit_options, dit_xnnpack_delegate_);
-        LOGI("[LiteRTIndicEngine] Attached official XNNPACK delegate to DiT interpreter options");
+        LOGI("[LiteRTIndicEngine] Attached official XNNPACK delegate to DiT interpreter options (%d threads)", num_threads_);
     }
 
     dit_interp_ = TfLiteInterpreterCreate(dit_model_, dit_options);
@@ -159,10 +161,13 @@ bool LiteRTIndicEngine::initializeFromFiles(
 
     TfLiteInterpreterOptions* vocos_options = TfLiteInterpreterOptionsCreate();
     TfLiteInterpreterOptionsSetNumThreads(vocos_options, num_threads_);
-    vocos_xnnpack_delegate_ = TfLiteXNNPackDelegateCreate(nullptr);
+
+    TfLiteXNNPackDelegateOptions vocos_xnnpack_opts = TfLiteXNNPackDelegateOptionsDefault();
+    vocos_xnnpack_opts.num_threads = num_threads_;
+    vocos_xnnpack_delegate_ = TfLiteXNNPackDelegateCreate(&vocos_xnnpack_opts);
     if (vocos_xnnpack_delegate_) {
         TfLiteInterpreterOptionsAddDelegate(vocos_options, vocos_xnnpack_delegate_);
-        LOGI("[LiteRTIndicEngine] Attached official XNNPACK delegate to Vocos interpreter options");
+        LOGI("[LiteRTIndicEngine] Attached official XNNPACK delegate to Vocos interpreter options (%d threads)", num_threads_);
     }
 
     vocos_interp_ = TfLiteInterpreterCreate(vocos_model_, vocos_options);

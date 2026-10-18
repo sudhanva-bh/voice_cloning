@@ -57,7 +57,7 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
     private var enginePtr: Long = 0L
     private val openResources = mutableListOf<AutoCloseable>()
 
-    suspend fun initialize(numThreads: Int = 4): Boolean = withContext(Dispatchers.IO) {
+    suspend fun initialize(numThreads: Int = 5): Boolean = withContext(Dispatchers.IO) {
         if (enginePtr != 0L) return@withContext true
 
         val ditFile = extractAssetIfNeeded(DIT_MODEL_NAME)
@@ -104,7 +104,7 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
 
     suspend fun synthesizeChunk(
         chunkText: String,
-        numSteps: Int = 16,
+        numSteps: Int = 8,
         cfgStrength: Float = 2.0f,
         seed: Int = 42
     ): SynthesisResult = withContext(Dispatchers.Default) {
@@ -137,7 +137,7 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
         refPcm: FloatArray,
         refText: String,
         targetText: String,
-        numSteps: Int = 16,
+        numSteps: Int = 8,
         cfgStrength: Float = 2.0f,
         seed: Int = 42
     ): SynthesisResult = withContext(Dispatchers.Default) {

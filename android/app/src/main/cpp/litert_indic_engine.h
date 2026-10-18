@@ -32,7 +32,7 @@ public:
         const void* dit_model_data, size_t dit_model_size,
         const void* vocos_model_data, size_t vocos_model_size,
         const char* vocab_data, size_t vocab_size,
-        int num_threads = 4
+        int num_threads = 5
     );
 
     // Initialize engine directly from file paths on local storage
@@ -40,7 +40,7 @@ public:
         const std::string& dit_model_path,
         const std::string& vocos_model_path,
         const std::string& vocab_path,
-        int num_threads = 4
+        int num_threads = 5
     );
 
     // Set and cache speaker reference audio features for sequential chunk synthesis
@@ -52,7 +52,7 @@ public:
     // Synthesize an individual speech chunk against cached reference audio
     std::vector<float> synthesizeChunk(
         const std::string& chunk_text,
-        int num_steps = 16,
+        int num_steps = 8,
         float cfg_strength = 2.0f,
         uint32_t seed = 42,
         EngineTelemetry* out_telemetry = nullptr
@@ -63,7 +63,7 @@ public:
         const float* ref_pcm, size_t ref_pcm_samples,
         const std::string& ref_text,
         const std::string& target_text,
-        int num_steps = 16,
+        int num_steps = 8,
         float cfg_strength = 2.0f,
         uint32_t seed = 42,
         EngineTelemetry* out_telemetry = nullptr
@@ -74,7 +74,7 @@ public:
 
 private:
     bool ready_ = false;
-    int num_threads_ = 4;
+    int num_threads_ = 5;
 
     // Cached speaker conditioning state for multi-chunk synthesis
     bool has_cached_ref_ = false;

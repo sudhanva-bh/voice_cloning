@@ -154,6 +154,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.rgSteps.setOnCheckedChangeListener { _, checkedId ->
             val steps = when (checkedId) {
+                binding.rbStep6.id -> 6
                 binding.rbStep8.id -> 8
                 binding.rbStep24.id -> 24
                 else -> 16
@@ -219,6 +220,7 @@ class MainActivity : AppCompatActivity() {
         binding.etTargetText.setText(sessionCache.targetText)
 
         when (sessionCache.cfmSteps) {
+            6 -> binding.rbStep6.isChecked = true
             8 -> binding.rbStep8.isChecked = true
             24 -> binding.rbStep24.isChecked = true
             else -> binding.rbStep16.isChecked = true
@@ -510,7 +512,7 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val ok = engine.initialize(numThreads = 4)
+                val ok = engine.initialize(numThreads = 5)
                 if (!ok) {
                     binding.tvLatencyInfo.text = "Failed to initialize LiteRT Engine"
                     Toast.makeText(this@MainActivity, "Engine init failed", Toast.LENGTH_LONG).show()
@@ -518,6 +520,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 val vmrss = TelemetryMonitor.getResidentMemoryMB()
+                binding.tvDelegateInfo.text = "Delegate: XNNPACK ARM NEON (5 Threads)"
                 binding.tvMemoryInfo.text = "Resident Memory (VmRSS): $vmrss MB / 600 MB Target"
                 binding.tvLatencyInfo.text = "Engine Ready. Tap Synthesize."
                 updateValidationState()
@@ -547,6 +550,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val steps = when (binding.rgSteps.checkedRadioButtonId) {
+            binding.rbStep6.id -> 6
             binding.rbStep8.id -> 8
             binding.rbStep24.id -> 24
             else -> 16

@@ -34,7 +34,7 @@ class SessionCacheManager(context: Context) {
         set(value) = prefs.edit().putString(KEY_TARGET_TEXT, value).apply()
 
     var cfmSteps: Int
-        get() = prefs.getInt(KEY_CFM_STEPS, 16)
+        get() = prefs.getInt(KEY_CFM_STEPS, 8)
         set(value) = prefs.edit().putInt(KEY_CFM_STEPS, value).apply()
 
     fun clearReference() {
