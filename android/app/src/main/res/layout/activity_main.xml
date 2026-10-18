@@ -540,10 +540,10 @@
                         android:orientation="horizontal">
 
                         <RadioButton
-                            android:id="@+id/rbStep8"
+                            android:id="@+id/rbStep12"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="8 (Fast)"
+                            android:text="12 (Fast)"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />
 

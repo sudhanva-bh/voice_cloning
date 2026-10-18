@@ -154,7 +154,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.rgSteps.setOnCheckedChangeListener { _, checkedId ->
             val steps = when (checkedId) {
-                binding.rbStep8.id -> 8
+                binding.rbStep12.id -> 12
                 binding.rbStep24.id -> 24
                 else -> 16
             }
@@ -221,7 +221,7 @@ class MainActivity : AppCompatActivity() {
         binding.etTargetText.setText(sessionCache.targetText)
 
         when (sessionCache.cfmSteps) {
-            8 -> binding.rbStep8.isChecked = true
+            12 -> binding.rbStep12.isChecked = true
             24 -> binding.rbStep24.isChecked = true
             else -> binding.rbStep16.isChecked = true
         }
@@ -550,7 +550,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val steps = when (binding.rgSteps.checkedRadioButtonId) {
-            binding.rbStep8.id -> 8
+            binding.rbStep12.id -> 12
             binding.rbStep24.id -> 24
             else -> 16
         }
