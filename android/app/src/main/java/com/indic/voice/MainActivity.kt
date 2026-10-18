@@ -148,26 +148,6 @@ class MainActivity : AppCompatActivity() {
             updateValidationState()
         }
 
-        binding.btnQuickEn.setOnClickListener {
-            binding.etTargetText.setText("Google LiteRT is fast and clear.")
-            sessionCache.targetText = binding.etTargetText.text.toString()
-            updateValidationState()
-        }
-        binding.btnQuickHi.setOnClickListener {
-            binding.etTargetText.setText("यह एक वॉइस क्लोनिंग का परीक्षण है।")
-            sessionCache.targetText = binding.etTargetText.text.toString()
-            updateValidationState()
-        }
-        binding.btnQuickTe.setOnClickListener {
-            binding.etTargetText.setText("ఇది గూగుల్ లైట్-ఆర్టీతో వాయిస్ క్లోనింగ్ పరీక్ష.")
-            sessionCache.targetText = binding.etTargetText.text.toString()
-            updateValidationState()
-        }
-        binding.btnQuickTa.setOnClickListener {
-            binding.etTargetText.setText("கூகிள் லைட்-ஆர்டி தொழில்நுட்பம் மூலம் குரல் உருவாக்கம்.")
-            sessionCache.targetText = binding.etTargetText.text.toString()
-            updateValidationState()
-        }
 
         binding.rgSteps.setOnCheckedChangeListener { _, checkedId ->
             val steps = when (checkedId) {
