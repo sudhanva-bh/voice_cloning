@@ -254,14 +254,27 @@ std::vector<float> LiteRTIndicEngine::synthesizeChunk(
 
     // 3. Run CFM Euler ODE Sampler
     std::vector<float> mel_out(EulerSampler::LATENT_ELEMENTS);
+
+    // Calibrate sway schedule and CFG based on step count:
+    // At low step counts (<= 8), cosine sway (-1.0f) produces massive late steps (dt > 0.25)
+    // which triggers Euler overshoot and harsh distortion. Use uniform linear schedule (sway=0.0f).
+    // Also scale down CFG extrapolation to keep the trajectory stable.
+    float effective_sway = (num_steps <= 8) ? 0.0f : -1.0f;
+    float effective_cfg = cfg_strength;
+    if (num_steps <= 6 && effective_cfg > 0.8f) {
+        effective_cfg = 0.7f;
+    } else if (num_steps <= 8 && effective_cfg > 1.2f) {
+        effective_cfg = 1.0f;
+    }
+
     bool sample_ok = euler_sampler_.sample(
         dit_interp_,
         cond_mel.data(),
         text_tokens.data(),
         mel_out.data(),
         num_steps,
-        cfg_strength,
-        -1.0f, // sway_coef
+        effective_cfg,
+        effective_sway,
         seed
     );
     if (!sample_ok) {

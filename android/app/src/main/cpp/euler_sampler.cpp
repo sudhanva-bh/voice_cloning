@@ -188,7 +188,9 @@ bool EulerSampler::sample(
             if (std::isnan(vc)) nan_vc_cnt++;
             if (std::isnan(vn)) nan_vn_cnt++;
             float v  = vc + (vc - vn) * cfg_strength;
-            mel_out[i] += dt * v;
+            float new_x = mel_out[i] + dt * v;
+            // Dynamic mel boundary protection: clamp intermediate latents to valid acoustic dynamic range [-4.5, +4.5]
+            mel_out[i] = std::max(-4.5f, std::min(4.5f, new_x));
             norm_vc += vc * vc;
             norm_vn += vn * vn;
             norm_v  += v * v;

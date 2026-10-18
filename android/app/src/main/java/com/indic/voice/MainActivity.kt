@@ -551,11 +551,11 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val steps = when (binding.rgSteps.checkedRadioButtonId) {
-            binding.rbStep6.id -> 6
-            binding.rbStep8.id -> 8
-            binding.rbStep24.id -> 24
-            else -> 16
+        val (steps, cfg) = when (binding.rgSteps.checkedRadioButtonId) {
+            binding.rbStep6.id -> Pair(6, 0.7f)
+            binding.rbStep8.id -> Pair(8, 1.0f)
+            binding.rbStep24.id -> Pair(24, 2.0f)
+            else -> Pair(16, 2.0f)
         }
 
         binding.playerRefAudio.pause()
@@ -611,7 +611,7 @@ class MainActivity : AppCompatActivity() {
                     val chunkRes = engine.synthesizeChunk(
                         chunkText = chunk.text,
                         numSteps = steps,
-                        cfgStrength = 2.0f,
+                        cfgStrength = cfg,
                         seed = 42 + chunk.index
                     )
 
