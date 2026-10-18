@@ -177,6 +177,7 @@ class MainActivity : AppCompatActivity() {
                 exportClipToDownloads(clipItem.file, clipItem.displayTitle)
             },
             onShare = { clipItem ->
+                binding.playerLatestAudio.pause()
                 shareAudioClip(clipItem.file, clipItem.displayTitle)
             },
             onDelete = { clipItem ->
@@ -188,6 +189,7 @@ class MainActivity : AppCompatActivity() {
         binding.rvGenerationHistory.adapter = historyAdapter
 
         binding.btnShareLatest.setOnClickListener {
+            binding.playerLatestAudio.pause()
             latestGeneratedFile?.let { file ->
                 val title = binding.tvLatestTitle.text.toString()
                 shareAudioClip(file, title)

@@ -20,13 +20,15 @@ class WaveformStitcher(
     val fadeDurationMs: Float = 5.0f,
     val targetPeak: Float = 0.95f,
     val trimSilence: Boolean = true,
-    val silenceThreshold: Float = 0.012f,
-    val cushionMs: Float = 15.0f
+    val silenceThreshold: Float = 0.005f,
+    val cushionMs: Float = 60.0f,
+    val trailingComfortSilenceMs: Int = 200
 ) {
 
     val fadeSamples: Int = (sampleRate * (fadeDurationMs / 1000f)).toInt().coerceAtLeast(1)
     val silenceSamples: Int = (sampleRate * (interSentenceSilenceMs / 1000f)).toInt().coerceAtLeast(0)
     val cushionSamples: Int = (sampleRate * (cushionMs / 1000f)).toInt().coerceAtLeast(0)
+    val trailingComfortSamples: Int = (sampleRate * (trailingComfortSilenceMs / 1000f)).toInt().coerceAtLeast(0)
 
     // Precomputed raised-cosine (Hann) fade ramps
     private val fadeInTable: FloatArray = FloatArray(fadeSamples) { i ->
@@ -59,17 +61,22 @@ class WaveformStitcher(
             val single = preparedChunks[0].copyOf()
             applyBoundaryFades(single)
             normalizePeak(single, targetPeak)
+            if (trailingComfortSamples > 0) {
+                val withTrailing = FloatArray(single.size + trailingComfortSamples)
+                System.arraycopy(single, 0, withTrailing, 0, single.size)
+                return withTrailing
+            }
             return single
         }
 
-        // Calculate exact total sample count with inter-sentence silence
+        // Calculate exact total sample count with inter-sentence silence and trailing comfort silence
         var totalSamples = 0
         for (c in preparedChunks) {
             totalSamples += c.size
         }
         totalSamples += (preparedChunks.size - 1) * silenceSamples
 
-        val stitched = FloatArray(totalSamples)
+        val stitched = FloatArray(totalSamples + trailingComfortSamples)
         var writeOffset = 0
 
         for (i in preparedChunks.indices) {

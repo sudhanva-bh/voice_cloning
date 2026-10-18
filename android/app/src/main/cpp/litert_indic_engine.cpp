@@ -224,7 +224,7 @@ std::vector<float> LiteRTIndicEngine::synthesizeChunk(
     // 1. Duration allocation using cached reference frames
     size_t ref_char_len = std::max<size_t>(cached_ref_text_.length(), 1);
     size_t gen_char_len = std::max<size_t>(chunk_text.length(), 1);
-    int gen_frames = static_cast<int>(static_cast<float>(cached_ref_frames_) / ref_char_len * gen_char_len * 1.05f);
+    int gen_frames = static_cast<int>(static_cast<float>(cached_ref_frames_) / ref_char_len * gen_char_len * 1.20f) + 15;
 
     // Enforce a minimum frame floor of 80 frames (~0.85s) for short / single-word utterances.
     // This provides the necessary acoustic headroom for the DiT inter-utterance transition
