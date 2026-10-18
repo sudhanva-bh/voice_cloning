@@ -14,13 +14,17 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.snackbar.Snackbar
 import com.indic.voice.databinding.ActivityMainBinding
+import com.indic.voice.audio.WaveformStitcher
 import com.indic.voice.history.AudioExporter
 import com.indic.voice.history.GeneratedClipItem
 import com.indic.voice.history.GenerationHistoryManager
 import com.indic.voice.history.HistoryAdapter
 import com.indic.voice.presets.ExampleScriptsBottomSheet
 import com.indic.voice.presets.QuickIdeasBottomSheet
+import com.indic.voice.text.MultilingualChunker
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -34,6 +38,8 @@ class MainActivity : AppCompatActivity() {
     private val historyManager by lazy { GenerationHistoryManager(this) }
     private val audioExporter by lazy { AudioExporter(this) }
     private val sessionCache by lazy { SessionCacheManager(this) }
+    private val chunker by lazy { MultilingualChunker() }
+    private val stitcher by lazy { WaveformStitcher() }
 
     private lateinit var historyAdapter: HistoryAdapter
 
@@ -41,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     private var refAudioPath: String? = null
     private var refAudioName: String = "ref_en.wav"
     private var latestGeneratedFile: File? = null
+    private var synthesisJob: Job? = null
 
     // Permission launcher for Microphone recording
     private val requestAudioPermissionLauncher = registerForActivityResult(
@@ -173,6 +180,10 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnSynthesize.setOnClickListener {
             synthesizeCurrentText()
+        }
+
+        binding.btnCancelSynthesis.setOnClickListener {
+            synthesisJob?.cancel()
         }
     }
 
@@ -510,6 +521,13 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // 1. Segment text into safe chunks that obey the 512-frame window
+        val chunks = chunker.split(targetText)
+        if (chunks.isEmpty()) {
+            Toast.makeText(this, "No valid text to synthesize", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val steps = when (binding.rgSteps.checkedRadioButtonId) {
             binding.rbStep8.id -> 8
             binding.rbStep24.id -> 24
@@ -518,44 +536,121 @@ class MainActivity : AppCompatActivity() {
 
         binding.playerRefAudio.pause()
         binding.playerLatestAudio.pause()
-        binding.btnSynthesize.isEnabled = false
-        binding.progressBar.visibility = View.VISIBLE
-        binding.tvLatencyInfo.text = "Solving Flow Matching ODE ($steps steps)..."
 
-        lifecycleScope.launch {
+        // Configure UI for progress
+        binding.btnSynthesize.visibility = View.GONE
+        binding.llSynthesisProgress.visibility = View.VISIBLE
+        binding.btnCancelSynthesis.isEnabled = true
+
+        if (chunks.size == 1) {
+            binding.chunkProgressBar.isIndeterminate = true
+            binding.tvChunkProgressTitle.text = "Synthesizing voice (1 chunk)..."
+            binding.tvChunkSubText.text = chunks[0].text
+        } else {
+            binding.chunkProgressBar.isIndeterminate = false
+            binding.chunkProgressBar.max = chunks.size
+            binding.chunkProgressBar.progress = 0
+            binding.tvChunkProgressTitle.text = "Synthesizing sentence 1 of ${chunks.size}..."
+            binding.tvChunkSubText.text = chunks[0].text
+        }
+
+        binding.tvLatencyInfo.text = "Solving Flow Matching ODE ($steps steps, ${chunks.size} chunk${if (chunks.size > 1) "s" else ""})..."
+
+        synthesisJob = lifecycleScope.launch {
+            val chunkWaveforms = mutableListOf<FloatArray>()
+            var totalDiffMs = 0f
+            var totalVocMs = 0f
+            var totalIstftMs = 0f
+            var totalComputeMs = 0f
+            var isCancelled = false
+
             try {
-                val result = engine.synthesize(
-                    refPcm = pcm,
-                    refText = refText,
-                    targetText = targetText,
-                    numSteps = steps,
-                    cfgStrength = 2.0f
-                )
+                // Precompute speaker conditioning Mel ONCE
+                val refOk = engine.setReferenceAudio(pcm, refText)
+                if (!refOk) {
+                    throw IllegalStateException("Failed to extract reference audio Mel conditioning")
+                }
 
+                // Sequential synthesis loop
+                for (chunk in chunks) {
+                    if (!isActive) {
+                        isCancelled = true
+                        break
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        binding.chunkProgressBar.progress = chunk.index
+                        binding.tvChunkProgressTitle.text = "Synthesizing sentence ${chunk.index + 1} of ${chunks.size}..."
+                        binding.tvChunkSubText.text = chunk.text
+                    }
+
+                    val chunkRes = engine.synthesizeChunk(
+                        chunkText = chunk.text,
+                        numSteps = steps,
+                        cfgStrength = 2.0f,
+                        seed = 42 + chunk.index
+                    )
+
+                    if (!isActive) {
+                        isCancelled = true
+                        break
+                    }
+
+                    if (chunkRes.audioSamples.isNotEmpty()) {
+                        chunkWaveforms.add(chunkRes.audioSamples)
+                    }
+
+                    totalDiffMs += chunkRes.diffusionTimeMs
+                    totalVocMs += chunkRes.vocosTimeMs
+                    totalIstftMs += chunkRes.istftTimeMs
+                    totalComputeMs += chunkRes.totalTimeMs
+                }
+
+                if (isCancelled || !isActive) {
+                    showFeedback("Synthesis cancelled.")
+                    return@launch
+                }
+
+                if (chunkWaveforms.isEmpty()) {
+                    Toast.makeText(this@MainActivity, "Synthesis produced no audio", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                // Stitch audio chunks with 5ms cosine crossfade and 120ms natural pauses
+                val finalWaveform = withContext(Dispatchers.Default) {
+                    stitcher.stitch(chunkWaveforms)
+                }
+
+                val finalDurationSec = finalWaveform.size.toFloat() / 24000f
+                val finalRtf = (totalComputeMs / 1000f) / maxOf(finalDurationSec, 0.01f)
                 val vmrss = TelemetryMonitor.getResidentMemoryMB()
 
                 // Update Telemetry Diagnostics card
                 binding.tvMemoryInfo.text = "Resident Memory (VmRSS): $vmrss MB / 600 MB Target"
-                binding.tvLatencyInfo.text = "Mel: ${result.melTimeMs.toInt()}ms | DiT: ${result.diffusionTimeMs.toInt()}ms | Vocos: ${result.vocosTimeMs.toInt()}ms | Total: ${result.totalTimeMs.toInt()}ms"
-                binding.tvRtfInfo.text = "Real-Time Factor: ${String.format("%.2f", result.realTimeFactor)}x (${String.format("%.2f", result.audioDurationSec)}s audio)"
+                binding.tvLatencyInfo.text = "Chunks: ${chunks.size} | DiT: ${totalDiffMs.toInt()}ms | Vocos: ${totalVocMs.toInt()}ms | Total: ${totalComputeMs.toInt()}ms"
+                binding.tvRtfInfo.text = "Real-Time Factor: ${String.format("%.2f", finalRtf)}x (${String.format("%.2f", finalDurationSec)}s audio across ${chunks.size} chunks)"
 
-                // Save WAV into persistent Generation History
+                // Save stitched WAV into persistent Generation History
                 val clipFile = withContext(Dispatchers.IO) {
-                    historyManager.saveGeneratedClip(result.audioSamples, result.realTimeFactor, vmrss)
+                    historyManager.saveGeneratedClip(finalWaveform, finalRtf, vmrss)
                 }
 
                 // Refresh history list and auto-play latest
                 refreshHistoryList()
                 binding.playerLatestAudio.play()
 
-                showFeedback("Voice cloned successfully! Scroll down to listen.")
+                showFeedback("Generated ${String.format("%.1f", finalDurationSec)}s audio across ${chunks.size} sentences!")
 
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                showFeedback("Synthesis cancelled.")
             } catch (e: Exception) {
                 binding.tvLatencyInfo.text = "Synthesis Error: ${e.localizedMessage}"
                 Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
+                binding.btnSynthesize.visibility = View.VISIBLE
                 binding.btnSynthesize.isEnabled = true
-                binding.progressBar.visibility = View.GONE
+                binding.llSynthesisProgress.visibility = View.GONE
+                synthesisJob = null
             }
         }
     }
