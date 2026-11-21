@@ -78,11 +78,8 @@
 
                 <!-- Step Header -->
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="10dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:id="@+id/step1Header"
+                    style="@style/Widget.IndicVoice.CollapsibleHeader">
 
                     <TextView
                         android:layout_width="24dp"
@@ -106,7 +103,6 @@
                             android:layout_height="wrap_content"
                             android:fontFamily="sans-serif"
                             android:textStyle="bold"
-                            android:accessibilityHeading="true"
                             android:text="Reference Script"
                             android:textColor="@color/text_primary"
                             android:textSize="17sp" />
@@ -119,81 +115,99 @@
                             android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/step1Chevron"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_marginStart="8dp"
+                        android:importantForAccessibility="no"
+                        android:rotation="180"
+                        android:src="@drawable/ic_expand_more"
+                        app:tint="@color/text_secondary" />
                 </LinearLayout>
 
-                <!-- Action Toolbar: Example Scripts & Clear -->
-                <LinearLayout
+                <com.indic.voice.CollapsibleSectionBody
+                    android:id="@+id/step1Body"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:paddingTop="10dp"
+                    android:orientation="vertical">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnExampleScripts"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:insetTop="4dp"
-                        android:insetBottom="4dp"
-                        android:text="Example Scripts"
-                        android:textColor="@color/secondary"
-                        android:textSize="11.5sp"
-                        app:cornerRadius="8dp"
-                        app:icon="@android:drawable/ic_menu_agenda"
-                        app:iconSize="13dp"
-                        app:iconTint="@color/secondary"
-                        app:strokeColor="@color/card_stroke" />
-
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_height="1dp"
-                        android:layout_weight="1" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnClearRefText"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:insetTop="4dp"
-                        android:insetBottom="4dp"
-                        android:text="Clear"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="11.5sp" />
-                </LinearLayout>
-
-                <!-- Input Text Box -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    app:boxBackgroundColor="@color/surface_dark"
-                    app:boxCornerRadiusBottomEnd="10dp"
-                    app:boxCornerRadiusBottomStart="10dp"
-                    app:boxCornerRadiusTopEnd="10dp"
-                    app:boxCornerRadiusTopStart="10dp"
-                    app:boxStrokeColor="@color/input_stroke"
-                    app:boxStrokeWidth="1dp"
-                    app:boxStrokeWidthFocused="2dp"
-                    app:hintEnabled="false">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etRefText"
+                    <!-- Action Toolbar: Example Scripts & Clear -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="top|start"
-                        android:hint="Enter the reference transcript"
-                        android:inputType="textCapSentences|textMultiLine"
-                        android:imeOptions="flagNoExtractUi"
-                        android:lineSpacingExtra="2dp"
-                        android:minLines="2"
-                        android:padding="12dp"
-                        android:text="Some call me nature."
-                        android:textColor="@color/text_primary"
-                        android:textColorHint="@color/text_secondary"
-                        android:textSize="14sp" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnExampleScripts"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minHeight="48dp"
+                            android:insetTop="4dp"
+                            android:insetBottom="4dp"
+                            android:text="Example Scripts"
+                            android:textColor="@color/secondary"
+                            android:textSize="11.5sp"
+                            app:cornerRadius="8dp"
+                            app:icon="@android:drawable/ic_menu_agenda"
+                            app:iconSize="13dp"
+                            app:iconTint="@color/secondary"
+                            app:strokeColor="@color/card_stroke" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="1dp"
+                            android:layout_weight="1" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnClearRefText"
+                            style="@style/Widget.Material3.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minHeight="48dp"
+                            android:insetTop="4dp"
+                            android:insetBottom="4dp"
+                            android:text="Clear"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                    <!-- Input Text Box -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        app:boxBackgroundColor="@color/surface_dark"
+                        app:boxCornerRadiusBottomEnd="10dp"
+                        app:boxCornerRadiusBottomStart="10dp"
+                        app:boxCornerRadiusTopEnd="10dp"
+                        app:boxCornerRadiusTopStart="10dp"
+                        app:boxStrokeColor="@color/input_stroke"
+                        app:boxStrokeWidth="1dp"
+                        app:boxStrokeWidthFocused="2dp"
+                        app:hintEnabled="false">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etRefText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="top|start"
+                            android:hint="Enter the reference transcript"
+                            android:inputType="textCapSentences|textMultiLine"
+                            android:imeOptions="flagNoExtractUi"
+                            android:lineSpacingExtra="2dp"
+                            android:minLines="2"
+                            android:padding="12dp"
+                            android:text="Some call me nature."
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_secondary"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </com.indic.voice.CollapsibleSectionBody>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -214,11 +228,8 @@
 
                 <!-- Step Header -->
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="10dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:id="@+id/step2Header"
+                    style="@style/Widget.IndicVoice.CollapsibleHeader">
 
                     <TextView
                         android:layout_width="24dp"
@@ -242,7 +253,6 @@
                             android:layout_height="wrap_content"
                             android:fontFamily="sans-serif"
                             android:textStyle="bold"
-                            android:accessibilityHeading="true"
                             android:text="Reference Voice Audio"
                             android:textColor="@color/text_primary"
                             android:textSize="17sp" />
@@ -255,174 +265,192 @@
                             android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/step2Chevron"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_marginStart="8dp"
+                        android:importantForAccessibility="no"
+                        android:rotation="180"
+                        android:src="@drawable/ic_expand_more"
+                        app:tint="@color/text_secondary" />
                 </LinearLayout>
 
-                <!-- Ready State Layout (When Audio is Loaded) -->
-                <LinearLayout
-                    android:id="@+id/llRefAudioReady"
+                <com.indic.voice.CollapsibleSectionBody
+                    android:id="@+id/step2Body"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_ready_box"
-                    android:orientation="vertical"
-                    android:padding="12dp"
-                    android:visibility="gone">
+                    android:paddingTop="10dp"
+                    android:orientation="vertical">
 
+                    <!-- Ready State Layout (When Audio is Loaded) -->
                     <LinearLayout
+                        android:id="@+id/llRefAudioReady"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:background="@drawable/bg_ready_box"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:visibility="gone">
 
-                        <ImageView
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_audio_ready"
-                            app:tint="@color/accent_green" />
-
-                        <TextView
-                            android:id="@+id/tvRefFileName"
-                            android:layout_width="0dp"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:fontFamily="sans-serif-medium"
-                            android:maxLines="2"
-                            tools:text="ref_en.wav · 2.20 s"
-                            android:textColor="@color/text_primary"
-                            android:textSize="13sp" />
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
-                        <ImageButton
-                            android:id="@+id/ibUploadNew"
-                            style="@style/Widget.IndicVoice.IconButton"
-                            android:contentDescription="Upload replacement clip"
-                            android:src="@drawable/ic_upload"
-                            app:tint="@color/text_secondary" />
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_audio_ready"
+                                app:tint="@color/accent_green" />
 
-                        <ImageButton
-                            android:id="@+id/ibResetRefAudio"
-                            style="@style/Widget.IndicVoice.IconButton"
-                            android:contentDescription="Restore default reference clip"
-                            android:src="@drawable/ic_restore"
-                            app:tint="@color/text_secondary" />
-                    </LinearLayout>
+                            <TextView
+                                android:id="@+id/tvRefFileName"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-medium"
+                                android:maxLines="2"
+                                tools:text="ref_en.wav · 2.20 s"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp" />
 
-                    <!-- Preview Audio Player Row (Clean Flat Container) -->
-                    <com.indic.voice.SeekableAudioPlayerView
-                        android:id="@+id/playerRefAudio"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
+                            <ImageButton
+                                android:id="@+id/ibUploadNew"
+                                style="@style/Widget.IndicVoice.IconButton"
+                                android:contentDescription="Upload replacement clip"
+                                android:src="@drawable/ic_upload"
+                                app:tint="@color/text_secondary" />
 
-                    <!-- Re-record voice clip button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnReRecordAudio"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:layout_marginTop="4dp"
-                        android:insetTop="4dp"
-                        android:insetBottom="4dp"
-                        android:text="Record again"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        app:cornerRadius="8dp"
-                        app:icon="@drawable/ic_microphone"
-                        app:iconGravity="textStart"
-                        app:iconSize="14dp"
-                        app:iconTint="@color/record_red"
-                        app:strokeColor="@color/card_stroke" />
-                </LinearLayout>
+                            <ImageButton
+                                android:id="@+id/ibResetRefAudio"
+                                style="@style/Widget.IndicVoice.IconButton"
+                                android:contentDescription="Restore default reference clip"
+                                android:src="@drawable/ic_restore"
+                                app:tint="@color/text_secondary" />
+                        </LinearLayout>
 
-                <!-- Not Ready State / Dual Record & Upload Buttons -->
-                <LinearLayout
-                    android:id="@+id/llRefAudioNotReady"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:visibility="visible">
+                        <!-- Preview Audio Player Row (Clean Flat Container) -->
+                        <com.indic.voice.SeekableAudioPlayerView
+                            android:id="@+id/playerRefAudio"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
+                        <!-- Re-record voice clip button -->
                         <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnRecordAudio"
-                            style="@style/Widget.Material3.Button"
-                            android:layout_width="0dp"
+                            android:id="@+id/btnReRecordAudio"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minHeight="48dp"
-                            android:layout_weight="1"
-                            android:backgroundTint="@color/primary"
-                            android:text="Record"
+                            android:layout_marginTop="4dp"
+                            android:insetTop="4dp"
+                            android:insetBottom="4dp"
+                            android:text="Record again"
                             android:textColor="@color/text_primary"
-                            android:paddingStart="8dp"
-                            android:paddingEnd="8dp"
-                            android:textSize="13sp"
-                            android:textStyle="bold"
-                            app:cornerRadius="10dp"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
                             app:icon="@drawable/ic_microphone"
                             app:iconGravity="textStart"
-                            app:iconSize="16dp"
-                            app:iconPadding="6dp"
-                            app:iconTint="@color/text_primary" />
-
-                        <View
-                            android:layout_width="10dp"
-                            android:layout_height="1dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnUploadAudio"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:minHeight="48dp"
-                            android:layout_weight="1"
-                            android:text="Upload WAV"
-                            android:textColor="@color/control_label"
-                            android:paddingStart="8dp"
-                            android:paddingEnd="8dp"
-                            android:textSize="13sp"
-                            app:cornerRadius="10dp"
-                            app:icon="@drawable/ic_upload"
-                            app:iconGravity="textStart"
-                            app:iconSize="16dp"
-                            app:iconPadding="6dp"
-                            app:iconTint="@color/control_label"
+                            app:iconSize="14dp"
+                            app:iconTint="@color/record_red"
                             app:strokeColor="@color/card_stroke" />
                     </LinearLayout>
 
-                    <!-- Recording In Progress Banner -->
+                    <!-- Not Ready State / Dual Record & Upload Buttons -->
                     <LinearLayout
-                        android:id="@+id/llRecordingInProgress"
+                        android:id="@+id/llRefAudioNotReady"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:background="@drawable/bg_ready_box"
-                        android:gravity="center"
-                        android:orientation="horizontal"
-                        android:padding="10dp"
-                        android:visibility="gone">
+                        android:orientation="vertical"
+                        android:visibility="visible">
 
-                        <View
-                            android:layout_width="8dp"
-                            android:layout_height="8dp"
-                            android:background="@drawable/bg_recording_dot" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:fontFamily="sans-serif-medium"
-                            android:accessibilityLiveRegion="polite"
-                            android:text="Recording… Speak into the microphone."
-                            android:textColor="@color/record_red"
-                            android:textSize="12.5sp" />
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnRecordAudio"
+                                style="@style/Widget.Material3.Button"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:minHeight="48dp"
+                                android:layout_weight="1"
+                                android:backgroundTint="@color/primary"
+                                android:text="Record"
+                                android:textColor="@color/text_primary"
+                                android:paddingStart="8dp"
+                                android:paddingEnd="8dp"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                app:cornerRadius="10dp"
+                                app:icon="@drawable/ic_microphone"
+                                app:iconGravity="textStart"
+                                app:iconSize="16dp"
+                                app:iconPadding="6dp"
+                                app:iconTint="@color/text_primary" />
+
+                            <View
+                                android:layout_width="10dp"
+                                android:layout_height="1dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnUploadAudio"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:minHeight="48dp"
+                                android:layout_weight="1"
+                                android:text="Upload WAV"
+                                android:textColor="@color/control_label"
+                                android:paddingStart="8dp"
+                                android:paddingEnd="8dp"
+                                android:textSize="13sp"
+                                app:cornerRadius="10dp"
+                                app:icon="@drawable/ic_upload"
+                                app:iconGravity="textStart"
+                                app:iconSize="16dp"
+                                app:iconPadding="6dp"
+                                app:iconTint="@color/control_label"
+                                app:strokeColor="@color/card_stroke" />
+                        </LinearLayout>
+
+                        <!-- Recording In Progress Banner -->
+                        <LinearLayout
+                            android:id="@+id/llRecordingInProgress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:background="@drawable/bg_ready_box"
+                            android:gravity="center"
+                            android:orientation="horizontal"
+                            android:padding="10dp"
+                            android:visibility="gone">
+
+                            <View
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:background="@drawable/bg_recording_dot" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:fontFamily="sans-serif-medium"
+                                android:accessibilityLiveRegion="polite"
+                                android:text="Recording… Speak into the microphone."
+                                android:textColor="@color/record_red"
+                                android:textSize="12.5sp" />
+                        </LinearLayout>
                     </LinearLayout>
-                </LinearLayout>
+                </com.indic.voice.CollapsibleSectionBody>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -666,7 +694,7 @@
                             android:layout_height="wrap_content"
                             android:minHeight="48dp"
                             android:text="Cancel"
-                            android:textColor="@color/record_red"
+                            android:textColor="@color/cancel_label"
                             android:textSize="12sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -680,16 +708,14 @@
                         app:trackColor="@color/card_stroke"
                         app:trackCornerRadius="3dp" />
 
-                    <TextView
+                    <com.indic.voice.ChunkProgressTextView
                         android:id="@+id/tvChunkSubText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:ellipsize="end"
-                        android:fontFamily="monospace"
-                        android:maxLines="1"
-                        tools:text="Chunk text preview…"
+                        android:gravity="top|start"
                         android:textColor="@color/text_secondary"
-                        android:textSize="11.5sp" />
+                        android:textSize="13sp"
+                        tools:text="Chunk text preview…" />
                 </LinearLayout>
 
             </LinearLayout>
@@ -711,11 +737,8 @@
 
                 <!-- Step Header -->
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="10dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:id="@+id/step4Header"
+                    style="@style/Widget.IndicVoice.CollapsibleHeader">
 
                     <TextView
                         android:layout_width="24dp"
@@ -739,7 +762,6 @@
                             android:layout_height="wrap_content"
                             android:fontFamily="sans-serif"
                             android:textStyle="bold"
-                            android:accessibilityHeading="true"
                             android:text="Generated Speech &amp; Library"
                             android:textColor="@color/text_primary"
                             android:textSize="17sp" />
@@ -752,195 +774,213 @@
                             android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/step4Chevron"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_marginStart="8dp"
+                        android:importantForAccessibility="no"
+                        android:rotation="180"
+                        android:src="@drawable/ic_expand_more"
+                        app:tint="@color/text_secondary" />
                 </LinearLayout>
 
-                <!-- Empty State Layout (Restrained & Compact) -->
-                <LinearLayout
-                    android:id="@+id/llEmptyOutput"
+                <com.indic.voice.CollapsibleSectionBody
+                    android:id="@+id/step4Body"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_ready_box"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:paddingTop="18dp"
-                    android:paddingBottom="18dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:visibility="visible">
+                    android:paddingTop="10dp"
+                    android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="No generated clips yet"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center"
-                        android:text="Generated speech will appear here."
-                        android:textColor="@color/text_secondary"
-                        android:textSize="11.5sp" />
-                </LinearLayout>
-
-                <!-- LATEST Output Card -->
-                <LinearLayout
-                    android:id="@+id/llLatestOutput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_latest_card"
-                    android:orientation="vertical"
-                    android:padding="14dp"
-                    android:visibility="gone">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif"
-                        android:textStyle="bold"
-                        android:text="Latest clip"
-                        android:textColor="@color/secondary"
-                        android:textSize="12sp" />
-
-                    <TextView
-                        android:id="@+id/tvLatestTitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:fontFamily="sans-serif-medium"
-                        tools:text="generated_voice.wav"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp" />
-
-                    <!-- Telemetry Badges Row -->
+                    <!-- Empty State Layout (Restrained & Compact) -->
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:id="@+id/llEmptyOutput"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:orientation="horizontal">
+                        android:background="@drawable/bg_ready_box"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:paddingTop="18dp"
+                        android:paddingBottom="18dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:visibility="visible">
 
                         <TextView
-                            android:id="@+id/tvLatestRtf"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="@drawable/bg_pill_rtf"
-                            android:fontFamily="monospace"
-                            android:paddingStart="6dp"
-                            android:paddingTop="2dp"
-                            android:paddingEnd="6dp"
-                            android:paddingBottom="2dp"
-                            android:text="RTF: 1.32x"
-                            android:textColor="@color/accent_green"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
+                            android:gravity="center"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="No generated clips yet"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
 
                         <TextView
-                            android:id="@+id/tvLatestRss"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
-                            android:background="@drawable/bg_pill_rss"
-                            android:fontFamily="monospace"
-                            android:paddingStart="6dp"
-                            android:paddingTop="2dp"
-                            android:paddingEnd="6dp"
-                            android:paddingBottom="2dp"
-                            android:text="Memory: 380 MB"
-                            android:textColor="@color/accent_blue"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
+                            android:layout_marginTop="4dp"
+                            android:gravity="center"
+                            android:text="Generated speech will appear here."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11.5sp" />
                     </LinearLayout>
 
-                    <!-- Seekable Audio Player for Generated Voice (Flat Container) -->
-                    <com.indic.voice.SeekableAudioPlayerView
-                        android:id="@+id/playerLatestAudio"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
-
+                    <!-- LATEST Output Card -->
                     <LinearLayout
+                        android:id="@+id/llLatestOutput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:background="@drawable/bg_latest_card"
+                        android:orientation="vertical"
+                        android:padding="14dp"
+                        android:visibility="gone">
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnShareLatest"
-                            style="@style/Widget.Material3.Button.TonalButton"
-                            android:layout_width="0dp"
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:minHeight="48dp"
-                            android:paddingStart="6dp"
-                            android:paddingEnd="6dp"
-                            android:layout_marginEnd="6dp"
-                            android:backgroundTint="@color/surface_container_highest"
-                            android:insetTop="4dp"
-                            android:insetBottom="4dp"
-                            android:text="Share"
-                            android:textColor="@color/text_primary"
-                            android:textSize="13sp"
-                            app:cornerRadius="10dp"
-                            app:icon="@android:drawable/ic_menu_share"
-                            app:iconGravity="textStart"
-                            app:iconSize="13dp"
-                            app:iconTint="@color/secondary" />
+                            android:fontFamily="sans-serif"
+                            android:textStyle="bold"
+                            android:text="Latest clip"
+                            android:textColor="@color/secondary"
+                            android:textSize="12sp" />
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnExportLatest"
-                            style="@style/Widget.Material3.Button.TonalButton"
-                            android:layout_width="0dp"
+                        <TextView
+                            android:id="@+id/tvLatestTitle"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:minHeight="48dp"
-                            android:paddingStart="6dp"
-                            android:paddingEnd="6dp"
-                            android:backgroundTint="@color/surface_container_highest"
-                            android:insetTop="4dp"
-                            android:insetBottom="4dp"
-                            android:text="Export"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="sans-serif-medium"
+                            tools:text="generated_voice.wav"
                             android:textColor="@color/text_primary"
-                            android:textSize="13sp"
-                            app:cornerRadius="10dp"
-                            app:icon="@android:drawable/stat_sys_download"
-                            app:iconGravity="textStart"
-                            app:iconSize="13dp"
-                            app:iconTint="@color/text_primary" />
+                            android:textSize="14sp" />
+
+                        <!-- Telemetry Badges Row -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tvLatestRtf"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_pill_rtf"
+                                android:fontFamily="monospace"
+                                android:paddingStart="6dp"
+                                android:paddingTop="2dp"
+                                android:paddingEnd="6dp"
+                                android:paddingBottom="2dp"
+                                android:text="RTF: 1.32x"
+                                android:textColor="@color/accent_green"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvLatestRss"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:background="@drawable/bg_pill_rss"
+                                android:fontFamily="monospace"
+                                android:paddingStart="6dp"
+                                android:paddingTop="2dp"
+                                android:paddingEnd="6dp"
+                                android:paddingBottom="2dp"
+                                android:text="Memory: 380 MB"
+                                android:textColor="@color/accent_blue"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- Seekable Audio Player for Generated Voice (Flat Container) -->
+                        <com.indic.voice.SeekableAudioPlayerView
+                            android:id="@+id/playerLatestAudio"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnShareLatest"
+                                style="@style/Widget.Material3.Button.TonalButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:minHeight="48dp"
+                                android:paddingStart="6dp"
+                                android:paddingEnd="6dp"
+                                android:layout_marginEnd="6dp"
+                                android:backgroundTint="@color/surface_container_highest"
+                                android:insetTop="4dp"
+                                android:insetBottom="4dp"
+                                android:text="Share"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                app:cornerRadius="10dp"
+                                app:icon="@android:drawable/ic_menu_share"
+                                app:iconGravity="textStart"
+                                app:iconSize="13dp"
+                                app:iconTint="@color/secondary" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnExportLatest"
+                                style="@style/Widget.Material3.Button.TonalButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:minHeight="48dp"
+                                android:paddingStart="6dp"
+                                android:paddingEnd="6dp"
+                                android:backgroundTint="@color/surface_container_highest"
+                                android:insetTop="4dp"
+                                android:insetBottom="4dp"
+                                android:text="Export"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                app:cornerRadius="10dp"
+                                app:icon="@android:drawable/stat_sys_download"
+                                app:iconGravity="textStart"
+                                app:iconSize="13dp"
+                                app:iconTint="@color/text_primary" />
+                        </LinearLayout>
                     </LinearLayout>
-                </LinearLayout>
 
-                <!-- Previous Generations History List -->
-                <LinearLayout
-                    android:id="@+id/llHistorySection"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:orientation="vertical"
-                    android:visibility="gone">
-
-                    <TextView
-                        android:id="@+id/tvHistoryHeader"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:fontFamily="sans-serif"
-                        android:textStyle="bold"
-                        android:accessibilityHeading="true"
-                        tools:text="Previous generations (2)"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp" />
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvGenerationHistory"
+                    <!-- Previous Generations History List -->
+                    <LinearLayout
+                        android:id="@+id/llHistorySection"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false" />
-                </LinearLayout>
+                        android:layout_marginTop="14dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tvHistoryHeader"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:fontFamily="sans-serif"
+                            android:textStyle="bold"
+                            android:accessibilityHeading="true"
+                            tools:text="Previous generations (2)"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rvGenerationHistory"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:nestedScrollingEnabled="false" />
+                    </LinearLayout>
+                </com.indic.voice.CollapsibleSectionBody>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

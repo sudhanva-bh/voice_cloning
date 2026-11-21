@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <functional>
 #include "tensorflow/lite/c/c_api.h"
 #include "tensorflow/lite/delegates/xnnpack/xnnpack_delegate.h"
 #include "indic_tokenizer.h"
@@ -55,7 +56,8 @@ public:
         int num_steps = 16,
         float cfg_strength = 2.0f,
         uint32_t seed = 42,
-        EngineTelemetry* out_telemetry = nullptr
+        EngineTelemetry* out_telemetry = nullptr,
+        const std::function<bool(int)>& continue_after_step = {}
     );
 
     // End-to-end voice cloning synthesis (backward-compatible single-shot)

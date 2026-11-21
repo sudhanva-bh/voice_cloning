@@ -37,6 +37,12 @@ class SessionCacheManager(context: Context) {
         get() = prefs.getInt(KEY_CFM_STEPS, 16)
         set(value) = prefs.edit().putInt(KEY_CFM_STEPS, value).apply()
 
+    fun isStepExpanded(step: Int): Boolean = prefs.getBoolean("step_${step}_expanded", true)
+
+    fun setStepExpanded(step: Int, expanded: Boolean) {
+        prefs.edit().putBoolean("step_${step}_expanded", expanded).apply()
+    }
+
     fun clearReference() {
         prefs.edit().remove(KEY_REF_PATH).remove(KEY_REF_NAME).apply()
     }

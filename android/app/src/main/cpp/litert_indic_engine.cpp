@@ -212,7 +212,8 @@ std::vector<float> LiteRTIndicEngine::synthesizeChunk(
     int num_steps,
     float cfg_strength,
     uint32_t seed,
-    EngineTelemetry* out_telemetry
+    EngineTelemetry* out_telemetry,
+    const std::function<bool(int)>& continue_after_step
 ) {
     if (!ready_ || !has_cached_ref_) {
         LOGE("[LiteRTIndicEngine] synthesizeChunk: Engine not ready or no reference audio cached");
@@ -263,10 +264,10 @@ std::vector<float> LiteRTIndicEngine::synthesizeChunk(
         num_steps,
         cfg_strength,
         -1.0f, // sway_coef
-        seed
+        seed,
+        continue_after_step
     );
     if (!sample_ok) {
-        LOGE("EulerSampler failed to complete CFM ODE steps in chunk");
         return {};
     }
 

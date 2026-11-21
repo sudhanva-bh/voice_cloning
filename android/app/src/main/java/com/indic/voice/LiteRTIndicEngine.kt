@@ -3,10 +3,13 @@ package com.indic.voice
 import android.content.Context
 import android.content.res.AssetFileDescriptor
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
+import java.util.function.IntConsumer
+import java.util.function.IntPredicate
 
 data class SynthesisResult(
     val audioSamples: FloatArray,
@@ -106,7 +109,8 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
         chunkText: String,
         numSteps: Int = 16,
         cfgStrength: Float = 2.0f,
-        seed: Int = 42
+        seed: Int = 42,
+        onStepCompleted: IntConsumer? = null
     ): SynthesisResult = withContext(Dispatchers.Default) {
         check(enginePtr != 0L) { "LiteRTIndicEngine is not initialized!" }
 
@@ -117,7 +121,11 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
             numSteps,
             cfgStrength,
             seed,
-            telemetry
+            telemetry,
+            IntPredicate { completedSteps ->
+                if (isActive && completedSteps > 0) onStepCompleted?.accept(completedSteps)
+                isActive
+            }
         )
 
         return@withContext SynthesisResult(
@@ -207,7 +215,8 @@ class LiteRTIndicEngine(private val context: Context) : AutoCloseable {
         numSteps: Int,
         cfgStrength: Float,
         seed: Int,
-        outTelemetry: FloatArray
+        outTelemetry: FloatArray,
+        continueAfterStep: IntPredicate
     ): FloatArray
 
     private external fun nativeSynthesize(

@@ -32,9 +32,11 @@ bool EulerSampler::sample(
     int num_steps,
     float cfg_strength,
     float sway_coef,
-    uint32_t seed
+    uint32_t seed,
+    const std::function<bool(int)>& continue_after_step
 ) {
     if (!dit_interp) return false;
+    if (continue_after_step && !continue_after_step(0)) return false;
 
     // 1. Initialize Gaussian noise x_0 ~ N(0, 1)
     std::mt19937 gen(seed);
@@ -198,6 +200,10 @@ bool EulerSampler::sample(
         LOGI("[EulerSampler] Step %d/%d (t=%.3f, dt=%.3f): |vc|=%.2f (nans=%d), |vn|=%.2f (nans=%d), |v|=%.2f",
              step + 1, num_steps, t_val, dt,
              std::sqrt(norm_vc), nan_vc_cnt, std::sqrt(norm_vn), nan_vn_cnt, std::sqrt(norm_v));
+        if (continue_after_step && !continue_after_step(step + 1)) {
+            LOGI("Synthesis stopped after step %d/%d", step + 1, num_steps);
+            return false;
+        }
     }
 
     return true;

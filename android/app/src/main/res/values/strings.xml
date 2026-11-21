@@ -11,6 +11,9 @@
     <string name="audio_position">Playback position</string>
     <string name="audio_unavailable">Audio unavailable</string>
     <string name="close_sheet">Close</string>
+    <string name="section_expanded">Expanded</string>
+    <string name="section_collapsed">Collapsed</string>
+    <string name="stop_recording_before_collapse">Stop recording before collapsing Step 2.</string>
     <plurals name="diagnostic_chunks">
         <item quantity="one">%d chunk</item>
         <item quantity="other">%d chunks</item>

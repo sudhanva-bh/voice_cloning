@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <functional>
 #include <random>
 #include "tensorflow/lite/c/c_api.h"
 
@@ -27,7 +28,8 @@ public:
         int num_steps = 16,
         float cfg_strength = 2.0f,
         float sway_coef = -1.0f,
-        uint32_t seed = 42
+        uint32_t seed = 42,
+        const std::function<bool(int)>& continue_after_step = {}
     );
 
 private:

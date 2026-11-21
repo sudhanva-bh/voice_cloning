@@ -1,4 +1,5 @@
 #include <jni.h>
+#include <functional>
 #include <string>
 #include <vector>
 #include <android/log.h>
@@ -128,12 +129,28 @@ Java_com_indic_voice_LiteRTIndicEngine_nativeSynthesizeChunk(
     jint num_steps,
     jfloat cfg_strength,
     jint seed,
-    jfloatArray out_telemetry_array
+    jfloatArray out_telemetry_array,
+    jobject step_callback
 ) {
     auto* engine = reinterpret_cast<indic::LiteRTIndicEngine*>(engine_ptr);
     if (!engine || !engine->isReady() || !engine->hasReferenceAudio()) {
         LOGE("nativeSynthesizeChunk: Engine not ready or reference audio not set");
         return nullptr;
+    }
+
+    std::function<bool(int)> continue_after_step;
+    if (step_callback) {
+        jclass callback_class = env->GetObjectClass(step_callback);
+        if (!callback_class) return nullptr;
+        jmethodID test = env->GetMethodID(callback_class, "test", "(I)Z");
+        env->DeleteLocalRef(callback_class);
+        if (!test) return nullptr;
+
+        // The sampler calls back synchronously on this same JNI thread.
+        continue_after_step = [env, step_callback, test](int completed_steps) {
+            const jboolean keep_going = env->CallBooleanMethod(step_callback, test, completed_steps);
+            return !env->ExceptionCheck() && keep_going == JNI_TRUE;
+        };
     }
 
     const char* chunk_cstr = env->GetStringUTFChars(chunk_text_str, nullptr);
@@ -144,8 +161,9 @@ Java_com_indic_voice_LiteRTIndicEngine_nativeSynthesizeChunk(
     std::vector<float> audio_out = engine->synthesizeChunk(
         chunk_text,
         num_steps, cfg_strength, static_cast<uint32_t>(seed),
-        &telemetry
+        &telemetry, continue_after_step
     );
+    if (env->ExceptionCheck()) return nullptr;
 
     // Populate telemetry: [0]=mel_ms, [1]=diff_ms, [2]=voc_ms, [3]=istft_ms, [4]=total_ms, [5]=dur_sec, [6]=rtf
     if (out_telemetry_array) {

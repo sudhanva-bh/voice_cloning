@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -15,6 +16,7 @@ import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.children
 import androidx.core.view.updatePadding
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
@@ -31,11 +33,12 @@ import com.indic.voice.presets.QuickIdeasBottomSheet
 import com.indic.voice.text.MultilingualChunker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.util.function.IntConsumer
 
 class MainActivity : AppCompatActivity() {
 
@@ -102,6 +105,7 @@ class MainActivity : AppCompatActivity() {
 
         ViewCompat.requestApplyInsets(binding.root)
 
+        setupCollapsibleSteps()
         setupStep1Listeners()
         setupStep2RecordingAndPicker()
         setupStep3TargetAndLanguage()
@@ -110,6 +114,56 @@ class MainActivity : AppCompatActivity() {
 
         loadSession()
         initializeEngine()
+    }
+
+    private fun setupCollapsibleSteps() = with(binding) {
+        setupCollapsibleStep(1, step1Header, step1Body, step1Chevron)
+        setupCollapsibleStep(2, step2Header, step2Body, step2Chevron) {
+            if (recorderHelper.isRecording) {
+                showFeedback(getString(R.string.stop_recording_before_collapse))
+                false
+            } else {
+                playerRefAudio.pause()
+                true
+            }
+        }
+        setupCollapsibleStep(4, step4Header, step4Body, step4Chevron) {
+            playerLatestAudio.pause()
+            for (row in rvGenerationHistory.children) {
+                row.findViewById<SeekableAudioPlayerView>(R.id.playerClipAudio)?.pause()
+            }
+            true
+        }
+    }
+
+    private fun setupCollapsibleStep(
+        step: Int,
+        header: View,
+        body: CollapsibleSectionBody,
+        chevron: View,
+        beforeCollapse: () -> Boolean = { true }
+    ) {
+        fun showExpanded(expanded: Boolean, animate: Boolean) {
+            body.setExpanded(expanded, chevron, animate)
+            val state = if (expanded) R.string.section_expanded else R.string.section_collapsed
+            ViewCompat.setStateDescription(header, getString(state))
+        }
+
+        ViewCompat.setAccessibilityHeading(header, true)
+        ViewCompat.setScreenReaderFocusable(header, true)
+        showExpanded(sessionCache.isStepExpanded(step), animate = false)
+        header.setOnClickListener {
+            val expand = !body.isExpanded
+            if (!expand) {
+                if (!beforeCollapse()) return@setOnClickListener
+                (body.findFocus() as? EditText)?.let { editor ->
+                    WindowCompat.getInsetsController(window, editor).hide(WindowInsetsCompat.Type.ime())
+                    editor.clearFocus()
+                }
+            }
+            showExpanded(expand, animate = true)
+            sessionCache.setStepExpanded(step, expand)
+        }
     }
 
     private fun setupStep1Listeners() {
@@ -189,7 +243,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnCancelSynthesis.setOnClickListener {
-            synthesisJob?.cancel()
+            val job = synthesisJob ?: return@setOnClickListener
+            if (!job.isActive) return@setOnClickListener
+            binding.btnCancelSynthesis.isEnabled = false
+            binding.tvChunkProgressTitle.text = "Cancelling generation…"
+            binding.tvLatencyInfo.text = "Cancelling…"
+            binding.chunkProgressBar.visibility = View.INVISIBLE
+            binding.tvChunkSubText.freezeProgress()
+            job.cancel()
         }
     }
 
@@ -588,7 +649,6 @@ class MainActivity : AppCompatActivity() {
         // Configure UI for progress
         binding.btnSynthesize.visibility = View.GONE
         binding.tvValidationHint.visibility = View.GONE
-        binding.llSynthesisProgress.visibility = View.VISIBLE
         binding.btnCancelSynthesis.isEnabled = true
 
         if (chunks.size == 1) {
@@ -599,7 +659,9 @@ class MainActivity : AppCompatActivity() {
             binding.chunkProgressBar.progress = 0
         }
         binding.tvChunkProgressTitle.text = "Preparing reference audio…"
-        binding.tvChunkSubText.text = chunks.first().text
+        binding.tvChunkSubText.setChunk(chunks.first().text)
+        binding.chunkProgressBar.visibility = View.VISIBLE
+        binding.llSynthesisProgress.visibility = View.VISIBLE
 
         binding.tvLatencyInfo.text = "Running · $steps ODE steps"
 
@@ -609,7 +671,7 @@ class MainActivity : AppCompatActivity() {
             var totalVocMs = 0f
             var totalIstftMs = 0f
             var totalComputeMs = 0f
-            var isCancelled = false
+            var activeChunkIndex = -1
 
             try {
                 // Precompute speaker conditioning Mel ONCE
@@ -620,47 +682,46 @@ class MainActivity : AppCompatActivity() {
 
                 // Sequential synthesis loop
                 for (chunk in chunks) {
-                    if (!isActive) {
-                        isCancelled = true
-                        break
-                    }
+                    ensureActive()
 
                     withContext(Dispatchers.Main) {
-                        binding.chunkProgressBar.progress = chunk.index
-                        binding.tvChunkProgressTitle.text = if (chunks.size == 1) {
-                            "Synthesizing speech…"
+                        if (chunk.index == 0) {
+                            showChunkProgress(chunk.index, chunks.size)
                         } else {
-                            "Synthesizing part ${chunk.index + 1} of ${chunks.size}…"
+                            binding.tvChunkSubText.transitionToChunk(chunk.text) {
+                                showChunkProgress(chunk.index, chunks.size)
+                            }
                         }
-                        binding.tvChunkSubText.text = chunk.text
+                        activeChunkIndex = chunk.index
                     }
 
                     val chunkRes = engine.synthesizeChunk(
                         chunkText = chunk.text,
                         numSteps = steps,
                         cfgStrength = 2.0f,
-                        seed = 42 + chunk.index
+                        seed = 42 + chunk.index,
+                        onStepCompleted = IntConsumer { completedSteps ->
+                            launch {
+                                if (activeChunkIndex == chunk.index) {
+                                    // Reserve the last increment for successful waveform generation.
+                                    binding.tvChunkSubText.setProgress(completedSteps / (steps + 1f))
+                                }
+                            }
+                        }
                     )
+                    activeChunkIndex = -1
 
-                    if (!isActive) {
-                        isCancelled = true
-                        break
-                    }
+                    ensureActive()
 
                     if (chunkRes.audioSamples.isNotEmpty()) {
                         chunkWaveforms.add(chunkRes.audioSamples)
+                        binding.tvChunkSubText.setProgress(1f, animate = false)
                     }
 
                     totalDiffMs += chunkRes.diffusionTimeMs
                     totalVocMs += chunkRes.vocosTimeMs
                     totalIstftMs += chunkRes.istftTimeMs
                     totalComputeMs += chunkRes.totalTimeMs
-                }
-
-                if (isCancelled || !isActive) {
-                    binding.tvLatencyInfo.text = "Cancelled"
-                    showFeedback("Synthesis cancelled.")
-                    return@launch
                 }
 
                 if (chunkWaveforms.isEmpty()) {
@@ -685,13 +746,17 @@ class MainActivity : AppCompatActivity() {
                 binding.tvRtfInfo.text = "${String.format("%.2f", finalRtf)}× · ${String.format("%.2f", finalDurationSec)} s of audio"
 
                 // Save stitched WAV into persistent Generation History
-                val clipFile = withContext(Dispatchers.IO) {
+                binding.btnCancelSynthesis.isEnabled = false
+                binding.tvChunkProgressTitle.text = "Saving generated speech…"
+                binding.chunkProgressBar.visibility = View.INVISIBLE
+                withContext(Dispatchers.IO) {
                     historyManager.saveGeneratedClip(finalWaveform, finalRtf, vmrss)
                 }
 
-                // Refresh history list and auto-play latest
                 refreshHistoryList()
-                binding.playerLatestAudio.play()
+                if (binding.step4Body.isExpanded) {
+                    binding.playerLatestAudio.play()
+                }
 
                 showFeedback("Generated ${String.format("%.1f", finalDurationSec)} s of speech.")
 
@@ -704,9 +769,19 @@ class MainActivity : AppCompatActivity() {
             } finally {
                 binding.btnSynthesize.visibility = View.VISIBLE
                 binding.llSynthesisProgress.visibility = View.GONE
+                binding.tvChunkSubText.setChunk("")
                 synthesisJob = null
                 updateValidationState()
             }
+        }
+    }
+
+    private fun showChunkProgress(index: Int, count: Int) {
+        binding.chunkProgressBar.progress = index
+        binding.tvChunkProgressTitle.text = if (count == 1) {
+            "Synthesizing speech…"
+        } else {
+            "Synthesizing part ${index + 1} of $count…"
         }
     }
 
