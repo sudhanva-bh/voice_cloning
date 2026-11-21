@@ -1,0 +1,14 @@
+graph TD
+    subgraph Phase1["PHASE 1: Mobile Proof of Concept (Implemented & Measured)"]
+        A1["Teacher Reference Audio<br/>(3-5s Classroom Mic)"] --> B1["Audio Preprocessing<br/>(24 kHz PCM, RMS Normalization)"]
+        B1 --> C1["ZipVoice-Distill<br/>(123M INT8 Zipformer)"]
+        C1 --> D1["Sherpa-ONNX Runtime<br/>(Flutter Android Isolate)"]
+        D1 --> E1["Lenovo Tab K10 Execution<br/>(CPU-Only, 4 GB RAM, 0 LMK Kills)"]
+    end
+
+    subgraph Phase2["PHASE 2 & 3: IndicF5 Engineering & Native Runtime Pipeline (Developed)"]
+        A2["Teacher Audio + Transcript<br/>+ Indic Target Text"] --> B2["Fused Conditioning<br/>(ConvNeXt-V2 Text + Mel Prefix)"]
+        B2 --> C2["IndicF5 Diffusion Transformer<br/>(22 Layers, INT8 349 MB, 8-Step Euler)"]
+        C2 --> D2["Vocos Neural Vocoder<br/>(INT8 22 MB, Analytical iSTFT)"]
+        D2 --> E2["Native C++ & Dart FFI Engine<br/>(Pre-allocated Static Arenas, Flutter App)"]
+    end

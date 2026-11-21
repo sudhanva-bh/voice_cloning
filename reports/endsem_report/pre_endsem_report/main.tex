@@ -1,0 +1,44 @@
+\documentclass[12pt,a4paper,oneside]{Thesis}
+
+\graphicspath{{Figures/}}
+\input{variables}
+\title{\ttitle}
+\renewcommand{\today}{21 November 2026}
+
+\begin{document}
+\frontmatter
+\setstretch{1.16}
+\setlength{\parskip}{0.75ex plus 0.2ex}
+\setlength{\emergencystretch}{3em}
+\fancyhead{}
+\fancyfoot{}
+\rhead{\thepage}
+\pagestyle{fancy}
+
+\maketitle
+
+\begin{abstract}
+This design project implements multilingual voice cloning on Android. The
+application takes a short reference recording, its transcript and new target
+text, then generates a waveform locally using pretrained IndicF5 and Vocos.
+The project began with an English Flutter prototype and a multilingual laptop
+proof of concept. The current implementation converts the models to Google
+LiteRT, quantizes eligible weights to eight bits and runs inference on the
+Android CPU through a native C++ engine. A text chunker and a waveform stitcher
+allow the app to synthesize passages longer than the model's fixed window.
+The two packaged models occupy 341.20 MiB, a 74.5\% reduction from their FP32
+exports. Archived Galaxy S23 tests and later app telemetry show that latency and
+resident memory vary across runs. The report describes the implemented workflow,
+the measurements available, and the validation that remains.
+\end{abstract}
+
+\lhead{\emph{Contents}}
+\tableofcontents
+
+\mainmatter
+\lhead{\nouppercase{\leftmark}}
+\input{Chapters/Chapter1}
+\input{Chapters/Chapter2}
+\input{Chapters/Chapter3}
+\input{Chapters/Chapter4}
+\end{document}

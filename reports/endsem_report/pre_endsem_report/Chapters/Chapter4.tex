@@ -1,0 +1,81 @@
+\chapter{Results, Validation and Conclusion}
+
+\section{Archived device measurements}
+
+The archived suite reports results on a Galaxy S23 with Snapdragon 8 Gen 2,
+8 GB of RAM, Android 16 and five XNNPACK threads. The accompanying
+presentation reports 16 steps. Build identifiers, exact prompts and
+thermal logs for individual cases were unavailable. The suite includes
+English, Hindi, Telugu and Tamil. Table~\ref{tab:measurements} summarizes the
+cases, with RTF carried forward as reported. The tests used short, medium and paragraph prompts.
+
+\begin{table}[htbp]
+\centering
+\caption{Archived Galaxy S23 results by language and prompt length}
+\label{tab:measurements}
+\small
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+Prompt & Language & Audio (s) & Generation (s) & RTF & Peak RSS (MB) \\
+\midrule
+Short & English & 2.48 & 3.82 & 1.54 & 378 \\
+Short & Hindi & 2.31 & 3.79 & 1.64 & 379 \\
+Short & Telugu & 2.52 & 3.85 & 1.52 & 381 \\
+Short & Tamil & 2.40 & 3.81 & 1.58 & 380 \\
+\addlinespace
+Medium & English & 7.12 & 10.84 & 1.52 & 384 \\
+Medium & Hindi & 6.85 & 10.61 & 1.54 & 385 \\
+Medium & Telugu & 7.30 & 11.02 & 1.50 & 386 \\
+Medium & Tamil & 7.05 & 10.79 & 1.53 & 385 \\
+\addlinespace
+Paragraph & English & 15.82 & 23.85 & 1.50 & 387 \\
+Paragraph & Hindi & 16.20 & 24.62 & 1.51 & 388 \\
+Paragraph & Telugu & 15.65 & 23.78 & 1.51 & 389 \\
+Paragraph & Tamil & 16.10 & 24.47 & 1.52 & 388 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Across the 12 archived cases, RTF ranged from 1.50 to 1.64 and peak
+resident memory from 378 to 389 MB. Later screenshots show RTF of 7.88
+and 11.77 and displayed memory of 933 and 812 MB, respectively. These
+screenshots show readings from saved clips with unknown build and device
+conditions. They document separate runs with different measurement scope.
+
+\section{Interpret current app telemetry}
+
+Real-time factor (RTF) is compute time divided by output audio duration.
+\texttt{MainActivity.kt} divides the sum of native chunk times by the
+final stitched waveform duration. An RTF above one means generation took
+longer than playback under that timing definition. Reference preparation,
+Kotlin stitching and WAV writing fall outside the native chunk timer.
+Full latency is the wall-clock interval from tapping Generate to save
+completion.
+
+\texttt{TelemetryMonitor.kt} reads \texttt{VmRSS} after stitching and before
+saving. This reading is a point sample of resident memory. Peak RSS
+requires sampling throughout the run. Model file size measures disk storage
+and is reported separately.
+
+\section{Tests and practical checks}
+
+\texttt{MultilingualChunkerTest.kt} checks segmentation, punctuation and
+abbreviations. \texttt{WaveformStitcherTest.kt} checks assembly, trimming
+and normalization. Device verification should include a short sentence
+and a paragraph in airplane mode after installation, followed by playback,
+export and sharing. Listening to the resulting WAV can reveal missing
+words and clipped endings.
+
+To compare builds, record model hashes, device and Android version, input
+audio and texts, sampling steps, threads and whether the run started cold.
+Capture native timing, end-to-end time and peak memory separately. The
+measurements in this report were carried forward from existing results.
+
+\section{Conclusion and future work}
+
+The project adapted pretrained IndicF5 and Vocos to a fixed-window LiteRT
+deployment on Android. Chunking, cached reference features and waveform
+stitching let the app generate paragraphs offline and save them as one
+WAV. Future work should reproduce latency and peak memory on the latest
+build, test acceleration and lower-step sampling, and evaluate naturalness,
+intelligibility and speaker similarity.

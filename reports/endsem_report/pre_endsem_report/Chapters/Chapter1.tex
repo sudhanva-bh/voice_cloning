@@ -1,0 +1,36 @@
+\chapter{Introduction}
+\enlargethispage{2\baselineskip}
+
+\section{Objective and scope}
+
+The application generates new speech in the voice of a reference speaker on
+Android. It takes three inputs: a reference recording, a transcript containing
+the words spoken in that recording, and the target text to synthesize. After
+installation, generation runs locally on the phone. The resulting audio can be
+played, revisited in the app's library, exported as a WAV file or shared through
+Android.
+
+The main engineering constraints are the size of the two neural models, the
+memory and compute available on a phone, and the fixed audio window that must
+fit both the reference and the generated speech. The project adapts and deploys
+pretrained IndicF5 and Vocos. The contribution is the conversion and native
+deployment pipeline, including reference audio processing, multilingual text
+segmentation and joining generated waveforms for longer passages.
+
+\section{Earlier project stages}
+
+\begin{enumerate}[nosep]
+  \item \textbf{English Android baseline.} The Flutter prototype used ZipVoice-Distill
+        through Sherpa-ONNX. It established that a phone could record or import a
+        reference clip, synthesize new speech locally and play the result.
+        \texttt{tts\_service.dart} ran the English inference work in a Dart isolate.
+  \item \textbf{IndicF5 laptop proof of concept.} The PyTorch trials showed that
+        the pretrained model could synthesize examples in Indian languages.
+        They also identified the need to budget target duration against the
+        reference. \texttt{clone.py} exercised individual prompts and
+        \texttt{batch.py} ran multiple prompts.
+  \item \textbf{Mobile model export.} Static INT8 and dynamic FP32 ONNX
+        variants were investigated. The current Android deployment instead
+        converts the PyTorch models directly to LiteRT and manages inference
+        through Kotlin and the native C++ engine.
+\end{enumerate}

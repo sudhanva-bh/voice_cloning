@@ -1,0 +1,59 @@
+\chapter{Models and Deployment}
+
+\section{Role of IndicF5 and Vocos}
+
+IndicF5 uses a pretrained Diffusion Transformer (DiT) with Continuous Flow
+Matching. It predicts how the mel representation should change at a given
+sampling time. The native sampler starts from Gaussian noise and follows these
+predicted directions to generate acoustic features. The reference mel and
+combined text provide the conditioning. Vocos decodes the resulting mel
+features into complex frequency coefficients. The C++ engine reconstructs the
+waveform from those coefficients with an inverse short-time Fourier transform.
+
+\section{PyTorch export and INT8 quantization}
+
+\texttt{export\_dit\_litert.py} wraps one IndicF5 velocity prediction at a
+time and exports it as a fixed-shape FP32 FlatBuffer.
+\texttt{export\_vocos\_litert.py} exports the Vocos decoder with separate
+real and imaginary output planes. Exporting these two graphs separately lets
+the native runtime control the sampling schedule and the inverse transform.
+
+\texttt{quantize\_litert.py} applies the
+\texttt{dynamic\_wi8c\_afp32} recipe. It stores eligible weights as
+per-channel INT8 and retains floating-point audio and time interfaces and
+integer text tokens. The packaged artifacts are
+\texttt{indicf5\_dit\_int8.tflite}, \texttt{indicf5\_vocos\_int8.tflite}
+and \texttt{vocab.txt}. The two model files occupy 341.20 MiB, compared with
+1,339.54 MiB for the FP32 exports, a 74.5\% reduction on disk.
+
+\clearpage
+\section{Tensor interfaces and conversion validation}
+
+\begin{table}[!ht]
+\centering
+\caption{Tensor interfaces for the fixed-window LiteRT graphs}
+\label{tab:model-tensors}
+\small
+\begin{tabular}{@{}p{0.16\linewidth}p{0.43\linewidth}p{0.32\linewidth}@{}}
+\toprule
+Graph & Inputs & Output \\
+\midrule
+IndicF5 DiT &
+Noisy mel and conditioning mel, both $[1,512,100]$ FP32. Text IDs
+$[1,128]$ INT32 and time $[1]$ FP32. &
+Velocity $[1,512,100]$ FP32. \\
+Vocos & Mel $[1,100,512]$ FP32. &
+Real and imaginary spectrum planes $[1,2,513,512]$ FP32. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Parity checks}
+
+\texttt{evaluate\_parity.py} compares PyTorch and LiteRT FP32 using
+synchronized inputs and sampling. The archived check reported 0.0037 dB of
+dynamic-time-warping-aligned mel-cepstral distortion.
+\texttt{benchmark\_int8.py} compares LiteRT INT8 against LiteRT FP32.
+The archived eight-step check reported an average velocity cosine similarity
+of 0.99923. These tests assess conversion fidelity. Listening quality,
+intelligibility and speaker similarity require separate evaluations.

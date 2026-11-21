@@ -1,0 +1,49 @@
+% Appendix A
+
+% \chapter{Posit Development Overview} % Main appendix title
+
+% \label{AppendixA} % For referencing this appendix elsewhere, use \ref{AppendixA}
+
+% \lhead{Appendix A. \emph{Posit Development Overview}} % This is for the header on each page - perhaps a shortened title
+% \section{Unum Type I}
+% \par{The development of Posits kicked off with the development of \gls{unum} which was based on harnessing the capability of interval arithmetic. This involves addition of an Ubit at the end of the generic IEEE Float Numerical representation  to represent a number inbetween two IEEE float numbers representing their presence in that particular interval instead of storing the erroneous rounded result as depicted pictorially in~\autoref{fig:A1}. Though this seems like a great idea for accurate mathematical solutions it proved to be a adversely limited in terms of effective hardware implementation.}
+
+% \begin{figure}[h]
+% 	\centering
+% 	\scalebox{0.75}{\includegraphics[width=1 \columnwidth]{Figures/A1.png}}
+% 	\caption{Pictorial Representation of \gls{unum} Type I Representation on a Number Line~\cite{unum}}
+% 	\label{fig:A1}
+% \end{figure}
+
+% \section{Unum Type II}
+% \par{Due to the former difficulty, a radical numerical representation based on Projection Arithmetic with a fixed bit size called \gls{unum} Type II was developed. The key development was in the interpretation of the bit representation which enabled negation and reciprocation using basic operations shown in ~\autoref{fig:A2}. The numbers are also visualised on a circular number line. The numbers still require a look up table for effective implementation and this approach works for a \gls{unum} Type II Size of 20 bits.  }
+% \par{As discussed in Chapter 2 \gls{unum} Type II forms the basis for the development of the Posit Representation.}
+
+% \begin{figure}[h]
+% 	\centering
+% 	\scalebox{0.75}{\includegraphics[width=1 \columnwidth]{Figures/A2.png}}
+% 	\caption{Pictorial Representation of \gls{unum} Type II Interval Arithmetic~\cite{unum}}
+% 	\label{fig:A2}
+% \end{figure}
+
+% \section{Posit Representation Advantages }
+% \par{The Advantages of Posits over IEEE Floating Point are summarized below:}
+% \begin{itemize}
+%     \item No Wasted Bit Patterns ( -ve Zero; NANs )
+%     \item Better Dynamic Range, Tapered accuracy centered at 1
+%     \item No Subnormal numbers in Posits (IEEE Implementation Resource Hungry)
+%     \item Neither Overflows to Infinity nor Underflows to zero (Standard Definition)
+%     \item Fused Operations (Dot Product) Defined in Posit Standard Documentation
+%     \item Quire Length and format well defined (Key to better Arithmetic results)
+%     \item Rounding Modes well defined for all Bit Fields
+% \end{itemize}
+
+% \section{Posit Representation Limitations}
+% \par{The Limitations of Posit Numerical Representation are summarized below:~\cite{dedinechin:hal-01959581}}
+% \begin{itemize}
+%     \item Multiplication by a power of two is not always exact (Lack of Significand)
+%     \item Relative error of correctly rounded functions is not bounded by a small value 
+%     \item Inability to represent constants defining Standard International Units
+%     \item Lack of Standalone Posit Operators
+    
+% \end{itemize}
