@@ -25,6 +25,7 @@
         <ImageView
             android:layout_width="20dp"
             android:layout_height="20dp"
+            android:importantForAccessibility="no"
             android:src="@android:drawable/ic_dialog_info"
             app:tint="@color/secondary" />
 
@@ -33,16 +34,16 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:fontFamily="sans-serif-bold"
+            android:accessibilityHeading="true"
+            android:textStyle="bold"
             android:text="Target Speech Ideas"
             android:textColor="@color/text_primary"
             android:textSize="16sp" />
 
         <ImageButton
             android:id="@+id/btnCloseIdeas"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            style="@style/Widget.IndicVoice.IconButton"
+            android:contentDescription="@string/close_sheet"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             app:tint="@color/text_secondary" />
     </LinearLayout>

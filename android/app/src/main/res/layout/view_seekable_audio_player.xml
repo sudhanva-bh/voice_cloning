@@ -3,44 +3,44 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="4dp"
-    android:layout_marginBottom="4dp"
     android:background="@drawable/bg_player_container"
-    android:gravity="center_vertical"
+    android:gravity="top"
     android:orientation="horizontal"
-    android:paddingStart="6dp"
-    android:paddingTop="4dp"
-    android:paddingEnd="10dp"
-    android:paddingBottom="4dp">
+    android:paddingEnd="12dp">
 
     <ImageButton
         android:id="@+id/btnPlayerToggle"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Play or pause audio"
-        android:src="@android:drawable/ic_media_play"
-        app:tint="@color/primary" />
+        style="@style/Widget.IndicVoice.IconButton"
+        android:contentDescription="@string/audio_play"
+        android:src="@drawable/ic_play"
+        app:tint="@color/player_control" />
 
-    <SeekBar
-        android:id="@+id/sbPlayerProgress"
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="2dp"
-        android:layout_marginEnd="8dp"
         android:layout_weight="1"
-        android:max="1000"
-        android:progressBackgroundTint="@color/card_stroke"
-        android:progressTint="@color/primary"
-        android:thumbTint="@color/primary" />
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/tvPlayerTime"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="monospace"
-        android:text="00:00 / 00:00"
-        android:textColor="@color/text_secondary"
-        android:textSize="11.5sp" />
+        <SeekBar
+            android:id="@+id/sbPlayerProgress"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:contentDescription="@string/audio_position"
+            android:max="1000"
+            android:progressBackgroundTint="@color/text_tertiary"
+            android:progressTint="@color/player_control"
+            android:thumbTint="@color/player_control" />
 
+        <TextView
+            android:id="@+id/tvPlayerTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:paddingBottom="6dp"
+            android:fontFamily="monospace"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
 </LinearLayout>

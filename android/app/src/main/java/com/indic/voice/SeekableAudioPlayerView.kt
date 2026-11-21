@@ -36,7 +36,8 @@ class SeekableAudioPlayerView @JvmOverloads constructor(
     private val updateProgressRunnable = object : Runnable {
         override fun run() {
             val mp = mediaPlayer
-            if (mp != null && mp.isPlaying && !isUserScrubbing) {
+            if (mp != null && mp.isPlaying) {
+                if (isUserScrubbing) return
                 val current = mp.currentPosition
                 if (audioDurationMs > 0) {
                     val progress = (current.toFloat() / audioDurationMs * seekBar.max).toInt()
@@ -53,6 +54,7 @@ class SeekableAudioPlayerView @JvmOverloads constructor(
         btnToggle = findViewById(R.id.btnPlayerToggle)
         seekBar = findViewById(R.id.sbPlayerProgress)
         tvTime = findViewById(R.id.tvPlayerTime)
+        setPlayerAvailable(false)
 
         btnToggle.setOnClickListener {
             togglePlayPause()
@@ -63,6 +65,7 @@ class SeekableAudioPlayerView @JvmOverloads constructor(
                 if (fromUser && audioDurationMs > 0) {
                     val targetMs = (progress.toFloat() / seekBar.max * audioDurationMs).toInt()
                     tvTime.text = "${formatDuration(targetMs)} / ${formatDuration(audioDurationMs)}"
+                    if (!isUserScrubbing) mediaPlayer?.seekTo(targetMs)
                 }
             }
 
@@ -76,6 +79,8 @@ class SeekableAudioPlayerView @JvmOverloads constructor(
                 if (sb != null && mp != null && audioDurationMs > 0) {
                     val targetMs = (sb.progress.toFloat() / sb.max * audioDurationMs).toInt()
                     mp.seekTo(targetMs)
+                    handler.removeCallbacks(updateProgressRunnable)
+                    if (mp.isPlaying) handler.post(updateProgressRunnable)
                 }
             }
         })
@@ -106,7 +111,7 @@ class SeekableAudioPlayerView @JvmOverloads constructor(
                 prepare()
                 audioDurationMs = duration
                 setOnCompletionListener {
-                    btnToggle.setImageResource(android.R.drawable.ic_media_play)
+                    showPlaybackState(isPlaying = false)
                     seekBar.progress = 0
                     tvTime.text = "00:00 / ${formatDuration(audioDurationMs)}"
                     handler.removeCallbacks(updateProgressRunnable)
@@ -115,11 +120,10 @@ class SeekableAudioPlayerView @JvmOverloads constructor(
 
             tvTime.text = "00:00 / ${formatDuration(audioDurationMs)}"
             seekBar.progress = 0
-            btnToggle.isEnabled = true
+            setPlayerAvailable(true)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load audio in player: ${e.message}", e)
-            btnToggle.isEnabled = false
-            tvTime.text = "--:-- / --:--"
+            setPlayerAvailable(false)
         }
     }
 
@@ -136,7 +140,7 @@ class SeekableAudioPlayerView @JvmOverloads constructor(
         val mp = mediaPlayer ?: return
         try {
             mp.start()
-            btnToggle.setImageResource(android.R.drawable.ic_media_pause)
+            showPlaybackState(isPlaying = true)
             handler.removeCallbacks(updateProgressRunnable)
             handler.post(updateProgressRunnable)
         } catch (e: Exception) {
@@ -150,7 +154,7 @@ class SeekableAudioPlayerView @JvmOverloads constructor(
             if (mp.isPlaying) {
                 mp.pause()
             }
-            btnToggle.setImageResource(android.R.drawable.ic_media_play)
+            showPlaybackState(isPlaying = false)
             handler.removeCallbacks(updateProgressRunnable)
         } catch (e: Exception) {
             Log.e(TAG, "Error pausing audio: ${e.message}")
@@ -174,9 +178,10 @@ class SeekableAudioPlayerView @JvmOverloads constructor(
         } catch (ignored: Exception) {}
         mediaPlayer = null
         audioDurationMs = 0
-        btnToggle.setImageResource(android.R.drawable.ic_media_play)
+        showPlaybackState(isPlaying = false)
         seekBar.progress = 0
-        tvTime.text = "00:00 / 00:00"
+        isUserScrubbing = false
+        setPlayerAvailable(false)
     }
 
     fun release() {
@@ -187,6 +192,17 @@ class SeekableAudioPlayerView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         release()
+    }
+
+    private fun setPlayerAvailable(available: Boolean) {
+        btnToggle.isEnabled = available
+        seekBar.isEnabled = available
+        if (!available) tvTime.setText(R.string.audio_unavailable)
+    }
+
+    private fun showPlaybackState(isPlaying: Boolean) {
+        btnToggle.setImageResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
+        btnToggle.contentDescription = context.getString(if (isPlaying) R.string.audio_pause else R.string.audio_play)
     }
 
     private fun formatDuration(durationMs: Int): String {

@@ -6,4 +6,13 @@
     <string name="target_label">Text to Synthesize (Indic / English)</string>
     <string name="synthesize_btn">Synthesize Voice (LiteRT INT8)</string>
     <string name="play_btn">Play Synthesized Audio</string>
+    <string name="audio_play">Play audio</string>
+    <string name="audio_pause">Pause audio</string>
+    <string name="audio_position">Playback position</string>
+    <string name="audio_unavailable">Audio unavailable</string>
+    <string name="close_sheet">Close</string>
+    <plurals name="diagnostic_chunks">
+        <item quantity="one">%d chunk</item>
+        <item quantity="other">%d chunks</item>
+    </plurals>
 </resources>

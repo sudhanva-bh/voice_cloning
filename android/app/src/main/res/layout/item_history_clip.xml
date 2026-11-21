@@ -28,38 +28,30 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:ellipsize="middle"
+                android:ellipsize="end"
                 android:fontFamily="sans-serif-medium"
-                android:singleLine="true"
+                android:maxLines="2"
                 android:text="generated_clip.wav"
                 android:textColor="@color/text_primary"
                 android:textSize="13.5sp" />
 
             <ImageButton
                 android:id="@+id/ibShareClip"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                style="@style/Widget.IndicVoice.IconButton"
                 android:contentDescription="Share audio clip"
                 android:src="@android:drawable/ic_menu_share"
                 app:tint="@color/secondary" />
 
             <ImageButton
                 android:id="@+id/ibExportClip"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                style="@style/Widget.IndicVoice.IconButton"
                 android:contentDescription="Export to Downloads"
                 android:src="@android:drawable/stat_sys_download"
                 app:tint="@color/text_secondary" />
 
             <ImageButton
                 android:id="@+id/ibDeleteClip"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                style="@style/Widget.IndicVoice.IconButton"
                 android:contentDescription="Delete clip"
                 android:src="@android:drawable/ic_menu_delete"
                 app:tint="@color/record_red" />

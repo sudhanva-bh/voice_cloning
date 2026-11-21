@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.core.widget.addTextChangedListener
@@ -54,6 +55,9 @@ class MainActivity : AppCompatActivity() {
     private var refAudioName: String = "ref_en.wav"
     private var latestGeneratedFile: File? = null
     private var synthesisJob: Job? = null
+    private var engineState = EngineState.STARTING
+
+    private enum class EngineState { STARTING, READY, FAILED }
 
     // Permission launcher for Microphone recording
     private val requestAudioPermissionLauncher = registerForActivityResult(
@@ -77,13 +81,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Properly handle Android system window insets (status bar, camera cutouts, navigation/gesture bar)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
             val insets = windowInsets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+                WindowInsetsCompat.Type.systemBars() or
+                    WindowInsetsCompat.Type.displayCutout() or
+                    WindowInsetsCompat.Type.ime()
             )
             view.updatePadding(
                 left = insets.left,
@@ -93,6 +99,8 @@ class MainActivity : AppCompatActivity() {
             )
             windowInsets
         }
+
+        ViewCompat.requestApplyInsets(binding.root)
 
         setupStep1Listeners()
         setupStep2RecordingAndPicker()
@@ -130,8 +138,6 @@ class MainActivity : AppCompatActivity() {
         // Re-record button inside ready state
         binding.btnReRecordAudio.setOnClickListener {
             binding.playerRefAudio.pause()
-            binding.llRefAudioReady.visibility = View.GONE
-            binding.llRefAudioNotReady.visibility = View.VISIBLE
             toggleRecording()
         }
 
@@ -254,7 +260,7 @@ class MainActivity : AppCompatActivity() {
                 refAudioName = cachedName ?: file.name
 
                 val durationSec = pcm.size.toFloat() / 24000f
-                binding.tvRefFileName.text = "Clip Ready ($refAudioName • ${String.format("%.2f", durationSec)}s)"
+                binding.tvRefFileName.text = "$refAudioName · ${String.format("%.2f", durationSec)} s"
                 binding.playerRefAudio.setAudioPath(refAudioPath)
                 binding.llRefAudioReady.visibility = View.VISIBLE
                 binding.llRefAudioNotReady.visibility = View.GONE
@@ -300,7 +306,7 @@ class MainActivity : AppCompatActivity() {
             if (history.size > 1) {
                 val pastClips = history.drop(1)
                 binding.llHistorySection.visibility = View.VISIBLE
-                binding.tvHistoryHeader.text = "Previous Generations (${pastClips.size}):"
+                binding.tvHistoryHeader.text = "Previous generations (${pastClips.size})"
                 historyAdapter.setItems(pastClips)
             } else {
                 binding.llHistorySection.visibility = View.GONE
@@ -355,23 +361,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateValidationState() {
-        val hasRefAudio = refPcm != null
-        val hasRefText = binding.etRefText.text.toString().trim().isNotEmpty()
-        val hasTargetText = binding.etTargetText.text.toString().trim().isNotEmpty()
-
-        if (!hasRefAudio) {
-            binding.tvValidationHint.text = "⚠️ Step 2 reference audio required before generating."
-            binding.btnSynthesize.isEnabled = false
-        } else if (!hasRefText) {
-            binding.tvValidationHint.text = "⚠️ Step 1 reference transcript cannot be empty."
-            binding.btnSynthesize.isEnabled = false
-        } else if (!hasTargetText) {
-            binding.tvValidationHint.text = "💡 Enter target text above to generate speech."
-            binding.btnSynthesize.isEnabled = false
-        } else {
-            binding.tvValidationHint.text = "💡 Ready to synthesize speech."
-            binding.btnSynthesize.isEnabled = true
+        val message = when {
+            synthesisJob != null -> null
+            engineState == EngineState.STARTING -> "Starting the speech engine…"
+            engineState == EngineState.FAILED -> "The speech engine could not start. Reopen the app to retry."
+            recorderHelper.isRecording -> "Stop recording before generating speech."
+            refPcm == null -> "Record or upload reference audio in Step 2."
+            binding.etRefText.text.isNullOrBlank() -> "Enter the reference transcript in Step 1."
+            binding.etTargetText.text.isNullOrBlank() -> "Enter target text to generate speech."
+            else -> null
         }
+
+        binding.btnSynthesize.isEnabled = synthesisJob == null && message == null
+        binding.tvValidationHint.visibility = if (message == null) View.GONE else View.VISIBLE
+        binding.tvValidationHint.text = message
     }
 
     private fun toggleRecording() {
@@ -395,10 +398,11 @@ class MainActivity : AppCompatActivity() {
             binding.llRefAudioReady.visibility = View.GONE
             binding.llRefAudioNotReady.visibility = View.VISIBLE
             binding.llRecordingInProgress.visibility = View.VISIBLE
-            binding.btnRecordAudio.text = "Stop Recording"
-            binding.btnRecordAudio.setBackgroundColor(getColor(R.color.record_red))
+            binding.btnRecordAudio.text = "Stop recording"
+            binding.btnRecordAudio.setIconResource(R.drawable.ic_stop)
+            binding.btnRecordAudio.setBackgroundColor(getColor(R.color.primary_variant))
             binding.btnUploadAudio.isEnabled = false
-            binding.btnSynthesize.isEnabled = false
+            updateValidationState()
         } else {
             Toast.makeText(this, "Failed to start microphone recording", Toast.LENGTH_SHORT).show()
         }
@@ -407,7 +411,8 @@ class MainActivity : AppCompatActivity() {
     private fun stopLiveRecording() {
         val recordedFile = recorderHelper.stopRecording()
         binding.llRecordingInProgress.visibility = View.GONE
-        binding.btnRecordAudio.text = "Record Audio"
+        binding.btnRecordAudio.text = "Record"
+        binding.btnRecordAudio.setIconResource(R.drawable.ic_microphone)
         binding.btnRecordAudio.setBackgroundColor(getColor(R.color.primary))
         binding.btnUploadAudio.isEnabled = true
 
@@ -423,7 +428,7 @@ class MainActivity : AppCompatActivity() {
                 sessionCache.refFileName = refAudioName
 
                 val durationSec = pcm.size.toFloat() / 24000f
-                binding.tvRefFileName.text = "Clip Ready ($refAudioName • ${String.format("%.2f", durationSec)}s)"
+                binding.tvRefFileName.text = "$refAudioName · ${String.format("%.2f", durationSec)} s"
                 binding.playerRefAudio.setAudioPath(refAudioPath)
                 binding.llRefAudioReady.visibility = View.VISIBLE
                 binding.llRefAudioNotReady.visibility = View.GONE
@@ -432,6 +437,8 @@ class MainActivity : AppCompatActivity() {
                 return
             }
         }
+        binding.llRefAudioReady.visibility = if (refPcm == null) View.GONE else View.VISIBLE
+        binding.llRefAudioNotReady.visibility = if (refPcm == null) View.VISIBLE else View.GONE
         Toast.makeText(this, "Recording too short or corrupted, please retry", Toast.LENGTH_SHORT).show()
         updateValidationState()
     }
@@ -472,7 +479,7 @@ class MainActivity : AppCompatActivity() {
             sessionCache.refFileName = refAudioName
 
             val durationSec = pcm.size.toFloat() / 24000f
-            binding.tvRefFileName.text = "Clip Ready ($refAudioName • ${String.format("%.2f", durationSec)}s)"
+            binding.tvRefFileName.text = "$refAudioName · ${String.format("%.2f", durationSec)} s"
             binding.playerRefAudio.setAudioPath(refAudioPath)
             binding.llRefAudioReady.visibility = View.VISIBLE
             binding.llRefAudioNotReady.visibility = View.GONE
@@ -511,7 +518,7 @@ class MainActivity : AppCompatActivity() {
                 refAudioName = "ref_en.wav"
 
                 val durationSec = (refPcm?.size ?: 0).toFloat() / 24000f
-                binding.tvRefFileName.text = "Clip Ready ($refAudioName • ${String.format("%.2f", durationSec)}s)"
+                binding.tvRefFileName.text = "$refAudioName · ${String.format("%.2f", durationSec)} s"
                 binding.playerRefAudio.setAudioPath(refAudioPath)
                 binding.llRefAudioReady.visibility = View.VISIBLE
                 binding.llRefAudioNotReady.visibility = View.GONE
@@ -523,28 +530,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeEngine() {
-        binding.btnSynthesize.isEnabled = false
-        binding.progressBar.visibility = View.VISIBLE
-        binding.tvLatencyInfo.text = "Initializing Google LiteRT Engine (INT8)..."
+        updateValidationState()
 
         lifecycleScope.launch {
             try {
                 val ok = engine.initialize(numThreads = 5)
                 if (!ok) {
-                    binding.tvLatencyInfo.text = "Failed to initialize LiteRT Engine"
-                    Toast.makeText(this@MainActivity, "Engine init failed", Toast.LENGTH_LONG).show()
+                    engineState = EngineState.FAILED
+                    binding.tvLatencyInfo.text = "Engine unavailable"
                     return@launch
                 }
 
                 val vmrss = TelemetryMonitor.getResidentMemoryMB()
-                binding.tvDelegateInfo.text = "Delegate: XNNPACK ARM NEON (5 Threads)"
-                binding.tvMemoryInfo.text = "Resident Memory (VmRSS): $vmrss MB / 600 MB Target"
-                binding.tvLatencyInfo.text = "Engine Ready. Tap Synthesize."
-                updateValidationState()
+                binding.tvDelegateInfo.text = "XNNPACK · ARM NEON · 5 threads"
+                binding.tvMemoryInfo.text = "$vmrss MB / 600 MB target"
+                binding.tvLatencyInfo.text = "Ready"
+                engineState = EngineState.READY
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                binding.tvLatencyInfo.text = "Error: ${e.localizedMessage}"
+                engineState = EngineState.FAILED
+                binding.tvLatencyInfo.text = e.localizedMessage ?: "Engine unavailable"
             } finally {
-                binding.progressBar.visibility = View.GONE
+                updateValidationState()
             }
         }
     }
@@ -574,25 +582,26 @@ class MainActivity : AppCompatActivity() {
 
         binding.playerRefAudio.pause()
         binding.playerLatestAudio.pause()
+        WindowCompat.getInsetsController(window, binding.root).hide(WindowInsetsCompat.Type.ime())
+        binding.root.findFocus()?.clearFocus()
 
         // Configure UI for progress
         binding.btnSynthesize.visibility = View.GONE
+        binding.tvValidationHint.visibility = View.GONE
         binding.llSynthesisProgress.visibility = View.VISIBLE
         binding.btnCancelSynthesis.isEnabled = true
 
         if (chunks.size == 1) {
             binding.chunkProgressBar.isIndeterminate = true
-            binding.tvChunkProgressTitle.text = "Synthesizing voice (1 chunk)..."
-            binding.tvChunkSubText.text = chunks[0].text
         } else {
             binding.chunkProgressBar.isIndeterminate = false
             binding.chunkProgressBar.max = chunks.size
             binding.chunkProgressBar.progress = 0
-            binding.tvChunkProgressTitle.text = "Synthesizing sentence 1 of ${chunks.size}..."
-            binding.tvChunkSubText.text = chunks[0].text
         }
+        binding.tvChunkProgressTitle.text = "Preparing reference audio…"
+        binding.tvChunkSubText.text = chunks.first().text
 
-        binding.tvLatencyInfo.text = "Solving Flow Matching ODE ($steps steps, ${chunks.size} chunk${if (chunks.size > 1) "s" else ""})..."
+        binding.tvLatencyInfo.text = "Running · $steps ODE steps"
 
         synthesisJob = lifecycleScope.launch {
             val chunkWaveforms = mutableListOf<FloatArray>()
@@ -618,7 +627,11 @@ class MainActivity : AppCompatActivity() {
 
                     withContext(Dispatchers.Main) {
                         binding.chunkProgressBar.progress = chunk.index
-                        binding.tvChunkProgressTitle.text = "Synthesizing sentence ${chunk.index + 1} of ${chunks.size}..."
+                        binding.tvChunkProgressTitle.text = if (chunks.size == 1) {
+                            "Synthesizing speech…"
+                        } else {
+                            "Synthesizing part ${chunk.index + 1} of ${chunks.size}…"
+                        }
                         binding.tvChunkSubText.text = chunk.text
                     }
 
@@ -645,11 +658,13 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 if (isCancelled || !isActive) {
+                    binding.tvLatencyInfo.text = "Cancelled"
                     showFeedback("Synthesis cancelled.")
                     return@launch
                 }
 
                 if (chunkWaveforms.isEmpty()) {
+                    binding.tvLatencyInfo.text = "No audio produced"
                     Toast.makeText(this@MainActivity, "Synthesis produced no audio", Toast.LENGTH_SHORT).show()
                     return@launch
                 }
@@ -664,9 +679,10 @@ class MainActivity : AppCompatActivity() {
                 val vmrss = TelemetryMonitor.getResidentMemoryMB()
 
                 // Update Telemetry Diagnostics card
-                binding.tvMemoryInfo.text = "Resident Memory (VmRSS): $vmrss MB / 600 MB Target"
-                binding.tvLatencyInfo.text = "Chunks: ${chunks.size} | DiT: ${totalDiffMs.toInt()}ms | Vocos: ${totalVocMs.toInt()}ms | Total: ${totalComputeMs.toInt()}ms"
-                binding.tvRtfInfo.text = "Real-Time Factor: ${String.format("%.2f", finalRtf)}x (${String.format("%.2f", finalDurationSec)}s audio across ${chunks.size} chunks)"
+                binding.tvMemoryInfo.text = "$vmrss MB / 600 MB target"
+                val chunkCount = resources.getQuantityString(R.plurals.diagnostic_chunks, chunks.size, chunks.size)
+                binding.tvLatencyInfo.text = "${totalComputeMs.toInt()} ms total · $chunkCount\nDiT ${totalDiffMs.toInt()} ms · Vocos ${totalVocMs.toInt()} ms"
+                binding.tvRtfInfo.text = "${String.format("%.2f", finalRtf)}× · ${String.format("%.2f", finalDurationSec)} s of audio"
 
                 // Save stitched WAV into persistent Generation History
                 val clipFile = withContext(Dispatchers.IO) {
@@ -677,18 +693,19 @@ class MainActivity : AppCompatActivity() {
                 refreshHistoryList()
                 binding.playerLatestAudio.play()
 
-                showFeedback("Generated ${String.format("%.1f", finalDurationSec)}s audio across ${chunks.size} sentences!")
+                showFeedback("Generated ${String.format("%.1f", finalDurationSec)} s of speech.")
 
             } catch (e: kotlinx.coroutines.CancellationException) {
+                binding.tvLatencyInfo.text = "Cancelled"
                 showFeedback("Synthesis cancelled.")
             } catch (e: Exception) {
-                binding.tvLatencyInfo.text = "Synthesis Error: ${e.localizedMessage}"
+                binding.tvLatencyInfo.text = e.localizedMessage ?: "Synthesis failed"
                 Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
                 binding.btnSynthesize.visibility = View.VISIBLE
-                binding.btnSynthesize.isEnabled = true
                 binding.llSynthesisProgress.visibility = View.GONE
                 synthesisJob = null
+                updateValidationState()
             }
         }
     }
