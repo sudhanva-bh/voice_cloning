@@ -8,7 +8,7 @@
     android:focusable="true"
     app:cardBackgroundColor="@color/surface_dark"
     app:cardCornerRadius="10dp"
-    app:cardElevation="1dp"
+    app:cardElevation="0dp"
     app:strokeColor="@color/card_stroke"
     app:strokeWidth="1dp">
 
@@ -29,8 +29,9 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:fontFamily="sans-serif-medium"
                 android:text="Casual &amp; Conversational"
-                android:textColor="@color/primary"
+                android:textColor="@color/secondary"
                 android:textSize="13.5sp"
                 android:textStyle="bold" />
 
@@ -58,6 +59,5 @@
             android:text="Honestly, I'm just hanging out at home today..."
             android:textColor="@color/text_primary"
             android:textSize="13sp" />
-
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

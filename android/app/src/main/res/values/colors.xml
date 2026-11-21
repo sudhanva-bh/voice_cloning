@@ -1,19 +1,32 @@
 <resources>
-    <color name="primary">#7C4DFF</color>
-    <color name="primary_variant">#651FFF</color>
-    <color name="secondary">#00E5FF</color>
+    <!-- Brand / Presentation Primary & Accents -->
+    <color name="primary">#2563EB</color>               <!-- Electric Royal Blue -->
+    <color name="primary_variant">#1D4ED8</color>       <!-- Darker Royal Blue -->
+    <color name="secondary">#38BDF8</color>             <!-- Bright Cyan (Technical & Indicators) -->
+    <color name="accent_orange">#FF5A1F</color>         <!-- Presentation Flame Orange (Microphone / Recording) -->
     
-    <color name="background_dark">#121212</color>
-    <color name="card_dark">#1A162B</color>
-    <color name="card_stroke">#2E274D</color>
-    <color name="surface_dark">#241E3A</color>
-    <color name="surface_container_highest">#312B4F</color>
+    <!-- Canvas & Surfaces -->
+    <color name="background_dark">#0F1729</color>       <!-- Deep Slate Navy Canvas -->
+    <color name="card_dark">#1E293B</color>             <!-- Slate Navy Card Surface -->
+    <color name="card_stroke">#334155</color>           <!-- Subtle Slate Border -->
+    <color name="card_stroke_subtle">#1F2B3E</color>    <!-- Soft Inner Divider -->
+    <color name="surface_dark">#151E30</color>          <!-- Input Backgrounds & Inner Containers -->
+    <color name="surface_container_highest">#223249</color> <!-- Elevated Chips & Tonal Buttons -->
     
-    <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#A59DBF</color>
+    <!-- Typography -->
+    <color name="text_primary">#F8FAFC</color>          <!-- Crisp Off-White -->
+    <color name="text_secondary">#94A3B8</color>        <!-- Muted Slate Blue/Gray -->
+    <color name="text_tertiary">#64748B</color>         <!-- Caption / Clear Action Gray -->
     
-    <color name="accent_green">#00E676</color>
-    <color name="accent_blue">#2979FF</color>
-    <color name="record_red">#FF5252</color>
-    <color name="warning_orange">#FFA726</color>
+    <!-- Semantic & Indicators -->
+    <color name="accent_green">#10B981</color>          <!-- Muted Teal/Emerald Success -->
+    <color name="accent_blue">#38BDF8</color>           <!-- Technical Cyan/Sky Blue -->
+    <color name="record_red">#FF5A1F</color>            <!-- PPT Flame Orange for Record / Mic -->
+    <color name="warning_orange">#F59E0B</color>        <!-- Amber Warning -->
+    
+    <!-- Component Specific -->
+    <color name="ready_box_bg">#151E30</color>          <!-- Sub-surface container fill -->
+    <color name="ready_box_stroke">#24334C</color>      <!-- Subtle ready border -->
+    <color name="diagnostics_bg">#111927</color>        <!-- Receding dark technical panel -->
+    <color name="diagnostics_stroke">#1E2C40</color>    <!-- Diagnostics border -->
 </resources>

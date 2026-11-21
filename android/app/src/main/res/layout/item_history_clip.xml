@@ -6,7 +6,7 @@
     android:layout_marginBottom="8dp"
     app:cardBackgroundColor="@color/surface_dark"
     app:cardCornerRadius="10dp"
-    app:cardElevation="1dp"
+    app:cardElevation="0dp"
     app:strokeColor="@color/card_stroke"
     app:strokeWidth="1dp">
 
@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:padding="12dp">
 
         <!-- Title & Action Buttons Row -->
         <LinearLayout
@@ -29,11 +29,11 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:ellipsize="middle"
+                android:fontFamily="sans-serif-medium"
                 android:singleLine="true"
-                android:text="generated_18_10_2026__02_15"
+                android:text="generated_clip.wav"
                 android:textColor="@color/text_primary"
-                android:textSize="13.5sp"
-                android:textStyle="bold" />
+                android:textSize="13.5sp" />
 
             <ImageButton
                 android:id="@+id/ibShareClip"
@@ -42,7 +42,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Share audio clip"
                 android:src="@android:drawable/ic_menu_share"
-                app:tint="@color/accent_green" />
+                app:tint="@color/secondary" />
 
             <ImageButton
                 android:id="@+id/ibExportClip"
@@ -52,7 +52,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Export to Downloads"
                 android:src="@android:drawable/stat_sys_download"
-                app:tint="@color/accent_blue" />
+                app:tint="@color/text_secondary" />
 
             <ImageButton
                 android:id="@+id/ibDeleteClip"
@@ -70,7 +70,7 @@
             android:id="@+id/llClipBadges"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="6dp"
             android:layout_marginBottom="4dp"
             android:orientation="horizontal">
 
@@ -79,10 +79,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_pill_rtf"
-                android:paddingStart="5dp"
-                android:paddingTop="1dp"
-                android:paddingEnd="5dp"
-                android:paddingBottom="1dp"
+                android:fontFamily="monospace"
+                android:paddingStart="6dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="6dp"
+                android:paddingBottom="2dp"
                 android:text="RTF: 1.32x"
                 android:textColor="@color/accent_green"
                 android:textSize="11sp"
@@ -94,10 +95,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:background="@drawable/bg_pill_rss"
-                android:paddingStart="5dp"
-                android:paddingTop="1dp"
-                android:paddingEnd="5dp"
-                android:paddingBottom="1dp"
+                android:fontFamily="monospace"
+                android:paddingStart="6dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="6dp"
+                android:paddingBottom="2dp"
                 android:text="Memory: 380 MB"
                 android:textColor="@color/accent_blue"
                 android:textSize="11sp"
@@ -109,7 +111,7 @@
             android:id="@+id/playerClipAudio"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp" />
+            android:layout_marginTop="4dp" />
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

@@ -18,13 +18,20 @@ class VoiceCloneApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         title: 'Voice Clone',
         theme: ThemeData.dark(useMaterial3: true).copyWith(
+          scaffoldBackgroundColor: const Color(0xFF0F1729),
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple,
+            seedColor: const Color(0xFF2563EB),
             brightness: Brightness.dark,
+            primary: const Color(0xFF2563EB),
+            surface: const Color(0xFF1E293B),
           ),
           cardTheme: CardThemeData(
-            elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            color: const Color(0xFF1E293B),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFF334155), width: 1),
+            ),
           ),
         ),
         home: const HomeScreen(),
